@@ -11,6 +11,7 @@ from typing import Dict, List
 
 class DomainCategory(str, Enum):
     """Categories for organizing domains."""
+
     TECHNICAL = "technical"
     BUSINESS = "business"
     CREATIVE = "creative"
@@ -21,6 +22,7 @@ class DomainCategory(str, Enum):
 @dataclass
 class Domain:
     """A domain configuration with recommended personas."""
+
     id: str
     name: str
     description: str
@@ -29,7 +31,7 @@ class Domain:
     optional_personas: List[str] = None
     recommended_mode: str = "synthesis"
     example_queries: List[str] = None
-    
+
     def __post_init__(self):
         if self.optional_personas is None:
             self.optional_personas = []

@@ -2,10 +2,12 @@
 Tests for session and result handling.
 """
 
-import pytest
 from datetime import datetime
-from council_ai import Persona, PersonaCategory
-from council_ai.core.session import Session, ConsultationResult, MemberResponse
+
+import pytest
+
+from council_ai import Persona
+from council_ai.core.session import ConsultationResult, MemberResponse, Session
 
 
 def test_member_response_creation():
@@ -17,13 +19,13 @@ def test_member_response_creation():
         core_question="?",
         razor=".",
     )
-    
+
     response = MemberResponse(
         persona=persona,
         content="This is advice",
         timestamp=datetime.now(),
     )
-    
+
     assert response.persona.id == "test"
     assert response.content == "This is advice"
     assert response.error is None
@@ -39,14 +41,14 @@ def test_member_response_with_error():
         core_question="?",
         razor=".",
     )
-    
+
     response = MemberResponse(
         persona=persona,
         content="Error occurred",
         timestamp=datetime.now(),
         error="API timeout",
     )
-    
+
     assert response.error == "API timeout"
 
 
@@ -59,13 +61,13 @@ def test_member_response_to_dict():
         core_question="?",
         razor=".",
     )
-    
+
     response = MemberResponse(
         persona=persona,
         content="Advice",
         timestamp=datetime.now(),
     )
-    
+
     data = response.to_dict()
     assert data["persona_id"] == "test"
     assert data["persona_name"] == "Test"
@@ -82,13 +84,13 @@ def test_consultation_result_creation():
         core_question="?",
         razor=".",
     )
-    
+
     response = MemberResponse(
         persona=persona,
         content="Advice",
         timestamp=datetime.now(),
     )
-    
+
     result = ConsultationResult(
         query="Should we do this?",
         responses=[response],
@@ -96,7 +98,7 @@ def test_consultation_result_creation():
         context="Context here",
         mode="synthesis",
     )
-    
+
     assert result.query == "Should we do this?"
     assert len(result.responses) == 1
     assert result.synthesis == "Based on advice, yes."
@@ -112,18 +114,18 @@ def test_consultation_result_to_dict():
         core_question="?",
         razor=".",
     )
-    
+
     response = MemberResponse(
         persona=persona,
         content="Advice",
         timestamp=datetime.now(),
     )
-    
+
     result = ConsultationResult(
         query="Query",
         responses=[response],
     )
-    
+
     data = result.to_dict()
     assert data["query"] == "Query"
     assert "responses" in data
@@ -141,21 +143,21 @@ def test_consultation_result_to_markdown():
         core_question="?",
         razor=".",
     )
-    
+
     response = MemberResponse(
         persona=persona,
         content="This is my advice",
         timestamp=datetime.now(),
     )
-    
+
     result = ConsultationResult(
         query="Should we do this?",
         responses=[response],
         synthesis="Yes, we should.",
     )
-    
+
     markdown = result.to_markdown()
-    
+
     assert "# Council Consultation" in markdown
     assert "Should we do this?" in markdown
     assert "Test Expert" in markdown
@@ -169,7 +171,7 @@ def test_session_creation():
         council_name="Test Council",
         members=["rams", "grove"],
     )
-    
+
     assert session.council_name == "Test Council"
     assert len(session.members) == 2
     assert isinstance(session.started_at, datetime)
@@ -182,7 +184,7 @@ def test_session_add_consultation():
         council_name="Test Council",
         members=["test"],
     )
-    
+
     persona = Persona(
         id="test",
         name="Test",
@@ -190,20 +192,20 @@ def test_session_add_consultation():
         core_question="?",
         razor=".",
     )
-    
+
     response = MemberResponse(
         persona=persona,
         content="Advice",
         timestamp=datetime.now(),
     )
-    
+
     result = ConsultationResult(
         query="Query",
         responses=[response],
     )
-    
+
     session.add_consultation(result)
-    
+
     assert len(session.consultations) == 1
     assert session.consultations[0].query == "Query"
 
@@ -214,7 +216,7 @@ def test_session_to_dict():
         council_name="Test Council",
         members=["test1", "test2"],
     )
-    
+
     data = session.to_dict()
     assert data["council_name"] == "Test Council"
     assert len(data["members"]) == 2
@@ -231,19 +233,19 @@ def test_consultation_result_without_synthesis():
         core_question="?",
         razor=".",
     )
-    
+
     response = MemberResponse(
         persona=persona,
         content="Advice",
         timestamp=datetime.now(),
     )
-    
+
     result = ConsultationResult(
         query="Query",
         responses=[response],
         synthesis=None,  # No synthesis
     )
-    
+
     assert result.synthesis is None
     markdown = result.to_markdown()
     assert "## Individual Responses" in markdown
@@ -256,17 +258,17 @@ def test_multiple_responses():
         Persona(id="p2", name="P2", title="E2", core_question="?", razor="."),
         Persona(id="p3", name="P3", title="E3", core_question="?", razor="."),
     ]
-    
+
     responses = [
         MemberResponse(persona=p, content=f"Advice from {p.name}", timestamp=datetime.now())
         for p in personas
     ]
-    
+
     result = ConsultationResult(
         query="Query",
         responses=responses,
     )
-    
+
     assert len(result.responses) == 3
     data = result.to_dict()
     assert len(data["responses"]) == 3

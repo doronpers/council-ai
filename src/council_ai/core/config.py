@@ -5,22 +5,25 @@ Configuration Management
 from __future__ import annotations
 
 import os
-import yaml
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+import yaml
 from pydantic import BaseModel, Field
 
 
 class APIConfig(BaseModel):
     """API configuration."""
-    provider: str = "anthropic"
+
+    provider: str = "openai"
     api_key: Optional[str] = None
-    model: Optional[str] = None
+    model: Optional[str] = "gpt-5.2"
     base_url: Optional[str] = None
 
 
 class Config(BaseModel):
     """Main configuration."""
+
     api: APIConfig = Field(default_factory=APIConfig)
     default_mode: str = "synthesis"
     default_domain: str = "general"
@@ -33,7 +36,7 @@ class Config(BaseModel):
 
 class ConfigManager:
     """Manages loading and saving configuration."""
-    
+
     def __init__(self, config_path: Optional[str] = None):
         if config_path:
             self.path = Path(config_path)
@@ -41,9 +44,9 @@ class ConfigManager:
             config_dir = Path.home() / ".config" / "council-ai"
             config_dir.mkdir(parents=True, exist_ok=True)
             self.path = config_dir / "config.yaml"
-        
+
         self.config = self._load()
-    
+
     def _load(self) -> Config:
         """Load configuration from file."""
         if self.path.exists():
@@ -55,7 +58,7 @@ class ConfigManager:
                 print(f"Warning: Failed to load config from {self.path}: {e}")
                 return Config()
         return Config()
-    
+
     def save(self) -> None:
         """Save configuration to file."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -66,12 +69,16 @@ class ConfigManager:
                 default_flow_style=False,
                 sort_keys=False,
             )
-    
+        try:
+            os.chmod(self.path, 0o600)
+        except OSError:
+            pass
+
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value by dot-notation key."""
         parts = key.split(".")
         value = self.config
-        
+
         for part in parts:
             if hasattr(value, part):
                 value = getattr(value, part)
@@ -79,14 +86,14 @@ class ConfigManager:
                 value = value[part]
             else:
                 return default
-        
+
         return value
-    
+
     def set(self, key: str, value: Any) -> None:
         """Set a configuration value by dot-notation key."""
         parts = key.split(".")
         obj = self.config
-        
+
         for part in parts[:-1]:
             if hasattr(obj, part):
                 obj = getattr(obj, part)
@@ -96,7 +103,7 @@ class ConfigManager:
                 obj = obj[part]
             else:
                 raise KeyError(f"Invalid config path: {key}")
-        
+
         final_key = parts[-1]
         if hasattr(obj, final_key):
             setattr(obj, final_key, value)
@@ -126,12 +133,12 @@ def get_api_key(provider: str = "anthropic") -> Optional[str]:
     env_key = os.environ.get(f"{provider_upper}_API_KEY")
     if env_key:
         return env_key
-    
+
     # Try generic env var
     env_key = os.environ.get("COUNCIL_API_KEY")
     if env_key:
         return env_key
-    
+
     # Try config file
     try:
         config = load_config()

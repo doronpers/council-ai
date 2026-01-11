@@ -6,6 +6,7 @@ Supports multiple LLM providers (Anthropic, OpenAI, custom endpoints).
 
 from __future__ import annotations
 
+import asyncio
 import os
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Type
@@ -13,10 +14,17 @@ from typing import Dict, Optional, Type
 
 class LLMProvider(ABC):
     """Abstract base class for LLM providers."""
-    
-    def __init__(self, api_key: Optional[str] = None):
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
         self.api_key = api_key
-    
+        self.model = model
+        self.base_url = base_url
+
     @abstractmethod
     async def complete(
         self,
@@ -31,12 +39,23 @@ class LLMProvider(ABC):
 
 class AnthropicProvider(LLMProvider):
     """Anthropic Claude provider."""
-    
-    def __init__(self, api_key: Optional[str] = None):
-        super().__init__(api_key or os.environ.get("ANTHROPIC_API_KEY"))
+
+    DEFAULT_MODEL = "claude-sonnet-4-20250514"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
+        super().__init__(
+            api_key or os.environ.get("ANTHROPIC_API_KEY"),
+            model=model,
+            base_url=base_url,
+        )
         if not self.api_key:
             raise ValueError("Anthropic API key required. Set ANTHROPIC_API_KEY or pass api_key.")
-    
+
     async def complete(
         self,
         system_prompt: str,
@@ -51,30 +70,40 @@ class AnthropicProvider(LLMProvider):
             raise ImportError(
                 "anthropic package not installed. Install with: pip install anthropic"
             )
-        
-        client = anthropic.Anthropic(api_key=self.api_key)
-        
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=max_tokens,
-            temperature=temperature,
-            system=system_prompt,
-            messages=[
-                {"role": "user", "content": user_prompt}
-            ]
-        )
-        
-        return message.content[0].text
+
+        def _call() -> str:
+            client = anthropic.Anthropic(api_key=self.api_key)
+            message = client.messages.create(
+                model=self.model or self.DEFAULT_MODEL,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+            return message.content[0].text
+
+        return await asyncio.to_thread(_call)
 
 
 class OpenAIProvider(LLMProvider):
     """OpenAI GPT provider."""
-    
-    def __init__(self, api_key: Optional[str] = None):
-        super().__init__(api_key or os.environ.get("OPENAI_API_KEY"))
+
+    DEFAULT_MODEL = "gpt-5.2"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
+        super().__init__(
+            api_key or os.environ.get("OPENAI_API_KEY"),
+            model=model,
+            base_url=base_url,
+        )
         if not self.api_key:
             raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or pass api_key.")
-    
+
     async def complete(
         self,
         system_prompt: str,
@@ -86,33 +115,46 @@ class OpenAIProvider(LLMProvider):
         try:
             import openai
         except ImportError:
-            raise ImportError(
-                "openai package not installed. Install with: pip install openai"
+            raise ImportError("openai package not installed. Install with: pip install openai")
+
+        def _call() -> str:
+            client_kwargs = {"api_key": self.api_key}
+            if self.base_url:
+                client_kwargs["base_url"] = self.base_url
+            client = openai.OpenAI(**client_kwargs)
+            response = client.chat.completions.create(
+                model=self.model or self.DEFAULT_MODEL,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
             )
-        
-        client = openai.OpenAI(api_key=self.api_key)
-        
-        response = client.chat.completions.create(
-            model="gpt-4",
-            max_tokens=max_tokens,
-            temperature=temperature,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-        )
-        
-        return response.choices[0].message.content
+            return response.choices[0].message.content
+
+        return await asyncio.to_thread(_call)
 
 
 class GeminiProvider(LLMProvider):
     """Google Gemini provider."""
-    
-    def __init__(self, api_key: Optional[str] = None):
-        super().__init__(api_key or os.environ.get("GEMINI_API_KEY"))
+
+    DEFAULT_MODEL = "gemini-pro"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
+        super().__init__(
+            api_key or os.environ.get("GEMINI_API_KEY"),
+            model=model,
+            base_url=base_url,
+        )
         if not self.api_key:
             raise ValueError("Gemini API key required. Set GEMINI_API_KEY or pass api_key.")
-    
+
     async def complete(
         self,
         system_prompt: str,
@@ -127,36 +169,41 @@ class GeminiProvider(LLMProvider):
             raise ImportError(
                 "google-generativeai package not installed. Install with: pip install google-generativeai"
             )
-        
-        genai.configure(api_key=self.api_key)
-        
-        # Create model
-        model = genai.GenerativeModel('gemini-pro')
-        
-        # Combine system and user prompts (Gemini doesn't separate them)
-        full_prompt = f"{system_prompt}\n\n{user_prompt}"
-        
-        # Generate content
-        response = model.generate_content(
-            full_prompt,
-            generation_config={
-                "temperature": temperature,
-                "max_output_tokens": max_tokens,
-            }
-        )
-        
-        return response.text
+
+        def _call() -> str:
+            genai.configure(api_key=self.api_key)
+            model = genai.GenerativeModel(self.model or self.DEFAULT_MODEL)
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+            response = model.generate_content(
+                full_prompt,
+                generation_config={
+                    "temperature": temperature,
+                    "max_output_tokens": max_tokens,
+                },
+            )
+            return response.text
+
+        return await asyncio.to_thread(_call)
 
 
 class HTTPProvider(LLMProvider):
     """Custom HTTP endpoint provider."""
-    
-    def __init__(self, api_key: Optional[str] = None, endpoint: Optional[str] = None):
-        super().__init__(api_key)
-        self.endpoint = endpoint or os.environ.get("LLM_ENDPOINT")
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        endpoint: Optional[str] = None,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
+        resolved_api_key = (
+            api_key or os.environ.get("HTTP_API_KEY") or os.environ.get("COUNCIL_API_KEY")
+        )
+        super().__init__(resolved_api_key, model=model, base_url=base_url)
+        self.endpoint = endpoint or base_url or os.environ.get("LLM_ENDPOINT")
         if not self.endpoint:
             raise ValueError("HTTP endpoint required. Set LLM_ENDPOINT or pass endpoint.")
-    
+
     async def complete(
         self,
         system_prompt: str,
@@ -166,16 +213,19 @@ class HTTPProvider(LLMProvider):
     ) -> str:
         """Generate a completion using custom HTTP endpoint."""
         import httpx
-        
+
         async with httpx.AsyncClient() as client:
+            payload = {
+                "system": system_prompt,
+                "prompt": user_prompt,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
+            if self.model:
+                payload["model"] = self.model
             response = await client.post(
                 self.endpoint,
-                json={
-                    "system": system_prompt,
-                    "prompt": user_prompt,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                },
+                json=payload,
                 headers={"Authorization": f"Bearer {self.api_key}"} if self.api_key else {},
                 timeout=60.0,
             )
@@ -202,7 +252,7 @@ def get_provider(name: str, **kwargs) -> LLMProvider:
     if name not in _PROVIDERS:
         available = ", ".join(_PROVIDERS.keys())
         raise ValueError(f"Provider '{name}' not found. Available: {available}")
-    
+
     return _PROVIDERS[name](**kwargs)
 
 

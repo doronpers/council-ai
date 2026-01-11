@@ -42,6 +42,10 @@ dependencies = [
 anthropic = ["anthropic>=0.18.0"]
 openai = ["openai>=1.0.0"]
 gemini = ["google-generativeai>=0.3.0"]
+web = [
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+]
 all = [
     "anthropic>=0.18.0",
     "openai>=1.0.0",
@@ -54,6 +58,8 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "black>=23.0",
     "ruff>=0.1.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
 ]
 
 [project.scripts]
@@ -77,9 +83,10 @@ target-version = ["py39", "py310", "py311", "py312"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
 ignore = ["E501"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
