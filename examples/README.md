@@ -32,6 +32,15 @@ python examples/usage_examples.py
 | `simple_example.py` | Basic consultation example - perfect for getting started |
 | `usage_examples.py` | Comprehensive examples of all features |
 
+## Web App
+
+For user testing, run the standalone web app:
+
+```bash
+pip install -e ".[web]"
+council web --reload
+```
+
 ## Key Concepts Demonstrated
 
 ### Creating a Council
@@ -84,6 +93,9 @@ result = council.consult(query, mode=ConsultationMode.INDIVIDUAL)
 
 # With synthesis (default)
 result = council.consult(query, mode=ConsultationMode.SYNTHESIS)
+
+# Sequential responses
+result = council.consult(query, mode=ConsultationMode.SEQUENTIAL)
 
 # Debate mode
 result = council.consult(query, mode=ConsultationMode.DEBATE)

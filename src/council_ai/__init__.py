@@ -22,12 +22,12 @@ __author__ = "Doron Reizes"
 __license__ = "MIT"
 
 # Core classes
-from .core.council import Council, ConsultationMode, CouncilConfig
+from .core.council import ConsultationMode, Council, CouncilConfig
 from .core.persona import Persona, PersonaCategory, Trait, get_persona, list_personas
 from .core.session import ConsultationResult, MemberResponse, Session
 
 # Domain and provider utilities
-from .domains import get_domain, list_domains, Domain, DomainCategory
+from .domains import Domain, DomainCategory, get_domain, list_domains
 from .providers import get_provider, list_providers
 
 __all__ = [
@@ -35,25 +35,21 @@ __all__ = [
     "Council",
     "ConsultationMode",
     "CouncilConfig",
-    
     # Persona management
     "Persona",
     "PersonaCategory",
     "Trait",
     "get_persona",
     "list_personas",
-    
     # Results and sessions
     "ConsultationResult",
     "MemberResponse",
     "Session",
-    
     # Domains
     "Domain",
     "DomainCategory",
     "get_domain",
     "list_domains",
-    
     # Providers
     "get_provider",
     "list_providers",

@@ -50,6 +50,7 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
 - 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints
 - 💬 **Multiple Modes** - Individual, synthesis, debate, or vote
+- 🧭 **Standalone Web App** - A focused web UI for user testing
 - 📦 **Portable Package** - pip-installable, use in any project
 
 ---
@@ -115,8 +116,14 @@ council consult --domain startup "Should we pivot?"
 # With specific personas
 council consult --members grove --members taleb "What's our biggest risk?"
 
+# With a specific mode
+council consult --mode sequential "Walk through this step-by-step"
+
 # Interactive mode
 council interactive
+
+# Web app (for user testing)
+council web --reload
 ```
 
 ### Python API
@@ -313,9 +320,10 @@ Council AI stores configuration in `~/.config/council-ai/config.yaml`:
 
 ```yaml
 api:
-  provider: anthropic
+  provider: openai
   api_key: null  # Use environment variable instead
-  model: claude-sonnet-4-20250514
+  model: gpt-5.2
+  base_url: null  # Optional for OpenAI-compatible endpoints
 
 default_mode: synthesis
 default_domain: general
@@ -357,12 +365,14 @@ council = Council(
 )
 ```
 
-### OpenAI (GPT-4)
+### OpenAI (GPT-5.2)
 
 ```python
 council = Council(
     api_key="your-openai-key",
-    provider="openai"
+    provider="openai",
+    model="gpt-5.2",
+    base_url="https://api.openai.com/v1"
 )
 ```
 
@@ -390,6 +400,35 @@ council = Council(
     endpoint="http://localhost:8000/v1/completions"
 )
 ```
+
+You can also set the endpoint via `LLM_ENDPOINT` and pass an optional API key via
+`HTTP_API_KEY` or `COUNCIL_API_KEY`.
+
+You can set provider defaults via the config file (model, base URL) and override them
+per council instance when needed.
+
+---
+
+## Web App (Standalone)
+
+The web app is the primary user-testing surface. It provides a simple, focused UI for
+consultations and is intentionally minimal.
+
+```bash
+# Install web dependencies
+pip install -e ".[web]"
+
+# Run the web app
+council web --reload
+```
+
+Then open http://127.0.0.1:8000.
+
+---
+
+## Quality & Testing Policy
+
+See [QUALITY.md](QUALITY.md) for the testing, linting, and formatting policy.
 
 ---
 

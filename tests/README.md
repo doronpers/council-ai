@@ -8,6 +8,10 @@ This directory contains tests for the Council AI package.
 # Install dev dependencies
 pip install -e ".[dev]"
 
+# Lint and format checks (see QUALITY.md for policy)
+ruff check src tests
+black --check src tests
+
 # Run all tests
 pytest
 

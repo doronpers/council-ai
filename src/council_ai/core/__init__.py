@@ -1,6 +1,6 @@
 """Core council functionality."""
 
-from .council import Council, ConsultationMode, CouncilConfig
+from .council import ConsultationMode, Council, CouncilConfig
 from .persona import Persona, PersonaCategory, Trait, get_persona, list_personas
 from .session import ConsultationResult, MemberResponse, Session
 
