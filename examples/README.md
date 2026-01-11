@@ -25,12 +25,25 @@ Comprehensive examples covering all features:
 python examples/usage_examples.py
 ```
 
+### 3. Repository Review
+Use the council to review a repository's code, design, and functionality:
+
+```bash
+python examples/review_repository.py
+```
+
+This example demonstrates using the embedded council personas to provide a comprehensive review of the repository itself, analyzing:
+- Code quality and architecture
+- Design and user experience
+- Functionality and robustness
+
 ## Examples Overview
 
 | File | Description |
 |------|-------------|
 | `simple_example.py` | Basic consultation example - perfect for getting started |
 | `usage_examples.py` | Comprehensive examples of all features |
+| `review_repository.py` | Use council personas to review repository code, design & UX |
 
 ## Web App
 
