@@ -57,7 +57,7 @@ def gather_repository_context():
                         "content": content,
                     }
                 )
-            except Exception as e:
+            except (FileNotFoundError, PermissionError, UnicodeDecodeError, OSError) as e:
                 print(f"Warning: Could not read {file_path}: {e}")
 
     # Gather directory structure
@@ -91,8 +91,9 @@ def list_directory_structure(path, max_depth=1, current_depth=0):
             elif item.is_dir() and item.name not in EXCLUDED_DIRS:
                 sub_items = list_directory_structure(item, max_depth, current_depth + 1)
                 structure.append({item.name: sub_items})
-    except Exception:
-        pass
+    except (PermissionError, OSError) as e:
+        # Skip directories we can't access
+        print(f"Warning: Could not list directory {path}: {e}", file=sys.stderr)
 
     return structure
 
