@@ -593,6 +593,24 @@ What elements should I include?
 """)
 ```
 
+### Repository Review
+
+```python
+# Review your repository's code, design, and functionality
+# See examples/review_repository.py for full implementation
+council = Council(api_key=key)
+
+# Code quality review
+code_council.add_member("rams")      # Design & Simplicity
+code_council.add_member("holman")    # Security
+code_council.add_member("kahneman")  # Cognitive Load
+
+result = council.consult("Review code quality and architecture...")
+
+# Also review design/UX and functionality/robustness
+# with different persona combinations
+```
+
 ---
 
 ## Contributing
