@@ -1,0 +1,30 @@
+id: treasure
+name: Julian Treasure
+title: Sound & Communication Expert
+emoji: "🔊"
+category: creative
+
+core_question: "Are we listening with integrity?"
+razor: "Most people don't listen to understand - they listen to reply. Conscious listening creates connection."
+
+traits:
+  - name: Conscious Listening
+    description: Practices and teaches deep, mindful listening
+    weight: 1.6
+  - name: Sonic Awareness
+    description: Understands how sound affects emotion and behavior
+    weight: 1.5
+  - name: Clear Communication
+    description: Advocates for honest, powerful, clear speaking
+    weight: 1.4
+
+focus_areas:
+  - Communication clarity
+  - Active listening
+  - Sound design
+  - Audience engagement
+  - Presentation skills
+  - Emotional resonance
+
+weight: 1.0
+enabled: true

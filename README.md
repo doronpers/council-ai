@@ -7,6 +7,39 @@
 
 ---
 
+## 🚀 Quickstart (No API Key Required)
+
+Want to explore Council AI before setting up an API key? Run:
+
+```bash
+python examples/quickstart.py
+```
+
+This interactive demo shows you:
+- All 7 built-in personas and their characteristics
+- 12 domain presets and what they're for
+- How to set up and use councils
+- Example usage patterns
+
+To actually consult the council (requires API key):
+
+```bash
+# Install with a provider (choose one)
+pip install -e ".[anthropic]"   # For Anthropic Claude
+pip install -e ".[openai]"      # For OpenAI GPT
+pip install -e ".[gemini]"      # For Google Gemini
+
+# Set your API key (choose one)
+export ANTHROPIC_API_KEY="your-key"
+export OPENAI_API_KEY="your-key"
+export GEMINI_API_KEY="your-key"
+
+# Try a simple consultation
+python examples/simple_example.py
+```
+
+---
+
 ## Overview
 
 Council AI provides a framework for consulting multiple AI "personas" - each with distinct expertise, perspectives, and decision-making approaches. Whether you're making business decisions, reviewing code, planning strategy, or working on creative projects, the council provides comprehensive, multi-perspective advice.
@@ -15,7 +48,7 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 - 🎭 **7 Built-in Personas** - Advisory Council (build it right) + Red Team (break & survive)
 - 🌐 **12 Domain Presets** - Coding, business, startup, creative, career, and more
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
-- 🤖 **Multi-Provider Support** - Anthropic, OpenAI, or custom endpoints
+- 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints
 - 💬 **Multiple Modes** - Individual, synthesis, debate, or vote
 - 📦 **Portable Package** - pip-installable, use in any project
 
@@ -25,28 +58,49 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 
 ### Installation
 
+**From PyPI (when published):**
 ```bash
 # Basic installation
 pip install council-ai
 
-# With Anthropic support
+# With Anthropic Claude support
 pip install council-ai[anthropic]
 
-# With OpenAI support
+# With OpenAI GPT support
 pip install council-ai[openai]
+
+# With Google Gemini support
+pip install council-ai[gemini]
 
 # Full installation (all providers)
 pip install council-ai[all]
 ```
 
+**Development Installation (from this repo):**
+```bash
+# Clone the repository
+git clone https://github.com/doronpers/council-ai.git
+cd council-ai
+
+# Install with specific provider
+pip install -e ".[anthropic]"
+pip install -e ".[openai]"
+pip install -e ".[gemini]"
+
+# Or with all providers
+pip install -e ".[all]"
+
+# Or for development (includes testing tools)
+pip install -e ".[dev]"
+```
+
 ### Set Your API Key
 
 ```bash
-# Anthropic
-export ANTHROPIC_API_KEY="your-key"
-
-# Or OpenAI
-export OPENAI_API_KEY="your-key"
+# Choose your provider
+export ANTHROPIC_API_KEY="your-key"    # For Claude
+export OPENAI_API_KEY="your-key"       # For GPT-4
+export GEMINI_API_KEY="your-key"       # For Gemini
 ```
 
 ### CLI Usage
@@ -312,6 +366,15 @@ council = Council(
 )
 ```
 
+### Google Gemini
+
+```python
+council = Council(
+    api_key="your-gemini-key",
+    provider="gemini"
+)
+```
+
 ### Custom HTTP Endpoint
 
 ```python
@@ -495,7 +558,7 @@ What elements should I include?
 
 ## Contributing
 
-Contributions welcome! Please read the contributing guidelines first.
+Contributions welcome! Please read the [contributing guidelines](CONTRIBUTING.md) first.
 
 ```bash
 # Development setup
@@ -506,10 +569,42 @@ pip install -e ".[dev]"
 # Run tests
 pytest
 
+# Run tests with coverage
+pytest --cov=council_ai
+
 # Format code
 black src/
 ruff check src/
+
+# Try the quickstart demo (no API key needed)
+python examples/quickstart.py
 ```
+
+### Adding New Personas
+
+Create a YAML file in `src/council_ai/personas/`:
+
+```yaml
+id: your_persona
+name: Full Name
+title: Brief Title
+emoji: "🎭"
+category: advisory
+
+core_question: "The key question?"
+razor: "The decision principle."
+
+traits:
+  - name: Trait Name
+    description: What it means
+    weight: 1.5
+
+focus_areas:
+  - Area 1
+  - Area 2
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on adding domains, providers, and more.
 
 ---
 
