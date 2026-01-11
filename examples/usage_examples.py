@@ -4,6 +4,8 @@ Council AI - Usage Examples
 This file demonstrates various ways to use the Council AI package.
 """
 
+import json
+
 from council_ai import Council, list_domains, list_personas
 from council_ai.core.council import ConsultationMode
 from council_ai.core.persona import Persona, PersonaCategory, Trait
@@ -284,8 +286,6 @@ def example_export():
         f.write(markdown)
 
     # JSON export
-    import json
-
     json_data = result.to_dict()
     with open("consultation_result.json", "w") as f:
         json.dump(json_data, f, indent=2, default=str)
