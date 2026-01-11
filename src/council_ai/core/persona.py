@@ -58,7 +58,7 @@ class Persona(BaseModel):
         metadata: Additional custom data
     """
     
-    id: str = Field(..., pattern=r"^[a-z][a-z0-9_]*$")
+    id: str
     name: str
     title: str
     emoji: str = "👤"
@@ -79,10 +79,16 @@ class Persona(BaseModel):
     
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
-    @field_validator('id')
+    @field_validator('id', mode='before')
     @classmethod
     def validate_id(cls, v: str) -> str:
-        return v.lower().replace(" ", "_").replace("-", "_")
+        """Normalize ID to lowercase with underscores."""
+        normalized = v.lower().replace(" ", "_").replace("-", "_")
+        # Ensure it starts with a letter and only contains valid characters
+        import re
+        if not re.match(r"^[a-z][a-z0-9_]*$", normalized):
+            raise ValueError(f"ID must start with a letter and contain only lowercase letters, numbers, and underscores: {v}")
+        return normalized
     
     def get_system_prompt(self) -> str:
         """Generate the system prompt for this persona."""

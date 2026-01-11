@@ -121,8 +121,9 @@ def save_config(config: Config, path: Optional[str] = None) -> None:
 
 def get_api_key(provider: str = "anthropic") -> Optional[str]:
     """Get API key for a provider from environment or config."""
-    # Try provider-specific env var
-    env_key = os.environ.get(f"{provider.upper()}_API_KEY")
+    # Try provider-specific env var first
+    provider_upper = provider.upper()
+    env_key = os.environ.get(f"{provider_upper}_API_KEY")
     if env_key:
         return env_key
     

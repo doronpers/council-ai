@@ -14,17 +14,28 @@ from council_ai import Council
 def main():
     # Check if API key is available
     import os
-    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    
+    # Check for API keys in order of preference
+    api_key = None
+    provider = None
+    
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        provider = "anthropic"
+    elif os.environ.get("OPENAI_API_KEY"):
+        api_key = os.environ.get("OPENAI_API_KEY")
+        provider = "openai"
+    elif os.environ.get("GEMINI_API_KEY"):
+        api_key = os.environ.get("GEMINI_API_KEY")
+        provider = "gemini"
     
     if not api_key:
         print("❌ Error: No API key found.")
         print("\nPlease set one of:")
         print("  export ANTHROPIC_API_KEY='your-key'")
         print("  export OPENAI_API_KEY='your-key'")
+        print("  export GEMINI_API_KEY='your-key'")
         sys.exit(1)
-    
-    # Determine provider
-    provider = "anthropic" if os.environ.get("ANTHROPIC_API_KEY") else "openai"
     
     print("🏛️  Council AI - Simple Example")
     print("=" * 50)

@@ -105,6 +105,49 @@ class OpenAIProvider(LLMProvider):
         return response.choices[0].message.content
 
 
+class GeminiProvider(LLMProvider):
+    """Google Gemini provider."""
+    
+    def __init__(self, api_key: Optional[str] = None):
+        super().__init__(api_key or os.environ.get("GEMINI_API_KEY"))
+        if not self.api_key:
+            raise ValueError("Gemini API key required. Set GEMINI_API_KEY or pass api_key.")
+    
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        max_tokens: int = 1000,
+        temperature: float = 0.7,
+    ) -> str:
+        """Generate a completion using Google Gemini."""
+        try:
+            import google.generativeai as genai
+        except ImportError:
+            raise ImportError(
+                "google-generativeai package not installed. Install with: pip install google-generativeai"
+            )
+        
+        genai.configure(api_key=self.api_key)
+        
+        # Create model
+        model = genai.GenerativeModel('gemini-pro')
+        
+        # Combine system and user prompts (Gemini doesn't separate them)
+        full_prompt = f"{system_prompt}\n\n{user_prompt}"
+        
+        # Generate content
+        response = model.generate_content(
+            full_prompt,
+            generation_config={
+                "temperature": temperature,
+                "max_output_tokens": max_tokens,
+            }
+        )
+        
+        return response.text
+
+
 class HTTPProvider(LLMProvider):
     """Custom HTTP endpoint provider."""
     
@@ -144,6 +187,7 @@ class HTTPProvider(LLMProvider):
 _PROVIDERS: Dict[str, Type[LLMProvider]] = {
     "anthropic": AnthropicProvider,
     "openai": OpenAIProvider,
+    "gemini": GeminiProvider,
     "http": HTTPProvider,
 }
 
