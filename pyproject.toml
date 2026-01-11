@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "council-ai"
+version = "1.0.0"
+description = "AI-powered advisory council system with customizable personas for decision-making, reviews, and strategic thinking"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Doron Reizes", email = "doron@sonotheia.com"}
+]
+keywords = [
+    "ai", "llm", "advisory", "council", "decision-making", 
+    "strategy", "review", "personas", "anthropic", "openai"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Office/Business :: Scheduling",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "rich>=13.0",
+    "click>=8.0",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.18.0"]
+openai = ["openai>=1.0.0"]
+all = [
+    "anthropic>=0.18.0",
+    "openai>=1.0.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+council = "council_ai.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/doronpers/council-ai"
+Documentation = "https://github.com/doronpers/council-ai#readme"
+Repository = "https://github.com/doronpers/council-ai"
+Issues = "https://github.com/doronpers/council-ai/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+council_ai = ["personas/*.yaml", "domains/*.yaml", "templates/*.md"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
