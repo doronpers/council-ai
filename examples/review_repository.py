@@ -17,6 +17,10 @@ from pathlib import Path
 
 from council_ai import Council
 
+# Configuration constants
+MAX_FILE_CONTENT_LENGTH = 5000  # Maximum characters to include from each file
+EXCLUDED_DIRS = {"__pycache__", "node_modules", ".git"}  # Directories to skip
+
 
 def gather_repository_context():
     """Gather context about the repository for the council to review."""
@@ -43,17 +47,16 @@ def gather_repository_context():
         full_path = repo_root / file_path
         if full_path.exists():
             try:
-                with open(full_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-                    # Limit content size for API constraints
-                    if len(content) > 5000:
-                        content = content[:5000] + "\n... (truncated)"
-                    context["key_files"].append(
-                        {
-                            "path": file_path,
-                            "content": content,
-                        }
-                    )
+                content = full_path.read_text(encoding="utf-8")
+                # Limit content size for API constraints
+                if len(content) > MAX_FILE_CONTENT_LENGTH:
+                    content = content[:MAX_FILE_CONTENT_LENGTH] + "\n... (truncated)"
+                context["key_files"].append(
+                    {
+                        "path": file_path,
+                        "content": content,
+                    }
+                )
             except Exception as e:
                 print(f"Warning: Could not read {file_path}: {e}")
 
@@ -85,7 +88,7 @@ def list_directory_structure(path, max_depth=1, current_depth=0):
                 continue
             if item.is_file():
                 structure.append(item.name)
-            elif item.is_dir() and item.name not in ["__pycache__", "node_modules", ".git"]:
+            elif item.is_dir() and item.name not in EXCLUDED_DIRS:
                 sub_items = list_directory_structure(item, max_depth, current_depth + 1)
                 structure.append({item.name: sub_items})
     except Exception:
