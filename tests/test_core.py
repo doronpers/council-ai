@@ -171,9 +171,7 @@ async def test_consult_structured_synthesis_none_fallback(monkeypatch):
     council.add_member(persona)
 
     async def fake_consult_individual(provider, members, query, context):
-        return [
-            MemberResponse(persona=persona, content="Advice", timestamp=datetime.now())
-        ]
+        return [MemberResponse(persona=persona, content="Advice", timestamp=datetime.now())]
 
     async def fake_structured_synthesis(provider, query, context, responses):
         return None

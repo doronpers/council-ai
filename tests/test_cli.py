@@ -5,7 +5,6 @@ These tests ensure CLI commands work correctly and catch regressions.
 """
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -110,7 +109,9 @@ class TestConsultCommand:
         mock_council.consult.return_value = mock_result
         mock_council_class.return_value = mock_council
 
-        result = runner.invoke(main, ["consult", "--members", "rams", "--members", "taleb", "Test?"])
+        result = runner.invoke(
+            main, ["consult", "--members", "rams", "--members", "taleb", "Test?"]
+        )
         assert result.exit_code == 0
         assert mock_council.add_member.called
 
@@ -493,9 +494,7 @@ class TestHistoryCommands:
 
     @patch("council_ai.cli.ConsultationHistory")
     @patch("council_ai.cli.ConsultationResult")
-    def test_history_export(
-        self, mock_result_class, mock_history_class, runner, tmp_path
-    ):
+    def test_history_export(self, mock_result_class, mock_history_class, runner, tmp_path):
         """Test exporting history."""
         mock_history = MagicMock()
         mock_data = {
@@ -513,9 +512,7 @@ class TestHistoryCommands:
         mock_result_class.from_dict.return_value = mock_result
 
         output_file = tmp_path / "export.md"
-        result = runner.invoke(
-            main, ["history", "export", "test-id", "--output", str(output_file)]
-        )
+        result = runner.invoke(main, ["history", "export", "test-id", "--output", str(output_file)])
         assert result.exit_code == 0
         assert output_file.exists()
 
@@ -647,9 +644,7 @@ class TestCLIRegressionScenarios:
 
     @patch("council_ai.cli.Council")
     @patch("council_ai.cli.get_api_key")
-    def test_api_key_placeholder_detection(
-        self, mock_get_key, mock_council_class, runner
-    ):
+    def test_api_key_placeholder_detection(self, mock_get_key, mock_council_class, runner):
         """Test API key placeholder detection (regression test)."""
         for placeholder in ["your-api-key-here", "YOUR_API_KEY_HERE", "put-your-key-here"]:
             mock_get_key.return_value = placeholder
