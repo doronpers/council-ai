@@ -1,3 +1,4 @@
+# src/council_ai/core/council.py
 """
 Council - The Core Advisory Council Engine
 
@@ -8,10 +9,11 @@ comprehensive advice, reviews, and decision support.
 from __future__ import annotations
 
 import asyncio
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Union
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union
 
 from pydantic import BaseModel
 
@@ -26,9 +28,12 @@ from .persona import Persona, PersonaManager, get_persona_manager
 from .schemas import SynthesisSchema
 from .session import ConsultationResult, MemberResponse, Session
 
+logger = logging.getLogger(__name__)
+
 ALL_MEMBERS_FAILED_MESSAGE = (
     "All council members failed to respond; see individual error messages."
 )
+
 
 class ConsultationMode(str, Enum):
     """How the council responds to queries."""
@@ -52,6 +57,10 @@ class CouncilConfig(BaseModel):
     include_confidence: bool = True
     synthesis_prompt: Optional[str] = None
     context_window: int = 10  # Number of previous exchanges to include
+    # Optional structured-output flag; if True, attempt structured then fallback
+    use_structured_output: bool = False
+    # When exporting, include enabled flags for members
+    export_enabled_state: bool = False
 
 
 class Council:
@@ -108,9 +117,14 @@ class Council:
         self._history = history
 
         # Callbacks for extensibility
-        self._pre_consult_hooks: List[Callable] = []
-        self._post_consult_hooks: List[Callable] = []
-        self._response_hooks: List[Callable] = []
+        # Pre-consult hooks receive (query, context) and must return (query, context)
+        self._pre_consult_hooks: List[
+            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
+        ] = []
+        # Post-consult hooks receive and return ConsultationResult
+        self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
+        # Response hooks process each member's raw content string
+        self._response_hooks: List[Callable[[Persona, str], str]] = []
 
     @classmethod
     def for_domain(
@@ -138,7 +152,8 @@ class Council:
             try:
                 council.add_member(persona_id)
             except ValueError:
-                pass  # Skip if persona not found
+                # Skip if persona not found
+                continue
 
         return council
 
@@ -380,6 +395,7 @@ class Council:
             synthesis=synthesis,
             mode=mode,
             timestamp=datetime.now(),
+            structured_synthesis=structured_synthesis,
         )
 
         # Update session
@@ -437,7 +453,7 @@ class Council:
         session = self._start_session(query, context)
 
         # Get responses based on mode (streaming)
-        responses = []
+        responses: List[MemberResponse] = []
         if mode == ConsultationMode.INDIVIDUAL:
             async for update in self._consult_individual_stream(
                 provider, active_members, query, context
@@ -485,7 +501,7 @@ class Council:
         if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
             # For streaming, use free-form synthesis (structured would require buffering)
             yield {"type": "synthesis_start"}
-            synthesis_parts = []
+            synthesis_parts: List[str] = []
             async for chunk in self._generate_synthesis_stream(provider, query, context, responses):
                 yield {"type": "synthesis_chunk", "content": chunk}
                 synthesis_parts.append(chunk)
@@ -541,7 +557,7 @@ class Council:
         context: Optional[str],
     ) -> List[MemberResponse]:
         """Get responses sequentially, each seeing previous responses."""
-        responses = []
+        responses: List[MemberResponse] = []
         accumulated_context = context or ""
 
         for member in members:
@@ -562,7 +578,7 @@ class Council:
         rounds: int = 2,
     ) -> List[MemberResponse]:
         """Multi-round debate between members."""
-        all_responses = []
+        all_responses: List[MemberResponse] = []
 
         for round_num in range(rounds):
             round_context = context or ""
@@ -679,7 +695,7 @@ REASONING: [your reasoning]
         try:
             member_provider = self._get_member_provider(member, provider)
             params = self._resolve_member_generation_params(member)
-            content_parts = []
+            content_parts: List[str] = []
             async for chunk in member_provider.stream_complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
@@ -791,344 +807,4 @@ REASONING: [your reasoning]
         context: Optional[str],
     ) -> AsyncIterator[Dict[str, Any]]:
         """Vote mode with streaming."""
-        vote_query = f"{query}\n\nPlease vote: YES, NO, or ABSTAIN, and provide brief reasoning."
-        async for update in self._consult_individual_stream(provider, members, vote_query, context):
-            yield update
-
-    async def _generate_synthesis_stream(
-        self,
-        provider: LLMProvider,
-        query: str,
-        context: Optional[str],
-        responses: List[MemberResponse],
-    ) -> AsyncIterator[str]:
-        """Generate a synthesis of all member responses (streaming)."""
-        responses_text = "\n\n".join(
-            [
-                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
-                for r in responses
-                if not r.error
-            ]
-        )
-        if not responses_text.strip():
-            yield ALL_MEMBERS_FAILED_MESSAGE
-            return
-
-        synthesis_prompt = (
-            self.config.synthesis_prompt
-            or """
-You are a council facilitator synthesizing multiple perspectives.
-
-Based on the individual council member responses below, provide:
-1. **Key Points of Agreement**: Where do the advisors align?
-2. **Key Points of Tension**: Where do they disagree or see different risks?
-3. **Synthesized Recommendation**: What's the balanced path forward?
-4. **Action Items**: Concrete next steps based on the collective wisdom
-
-Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
-"""
-        )
-
-        user_prompt = f"""
-Original Query: {query}
-
-{f"Context: {context}" if context else ""}
-
-## Council Responses:
-
-{responses_text}
-
----
-
-Please synthesize these perspectives.
-"""
-
-        async for chunk in provider.stream_complete(
-            system_prompt=synthesis_prompt,
-            user_prompt=user_prompt,
-            max_tokens=self.config.max_tokens_per_response * 2,
-            temperature=0.5,  # Lower temperature for synthesis
-        ):
-            yield chunk
-
-    async def _generate_structured_synthesis(
-        self,
-        provider: LLMProvider,
-        query: str,
-        context: Optional[str],
-        responses: List[MemberResponse],
-    ) -> Optional[SynthesisSchema]:
-        """Generate a structured synthesis using JSON schema."""
-        responses_text = "\n\n".join(
-            [
-                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
-                for r in responses
-                if not r.error
-            ]
-        )
-        if not responses_text.strip():
-            return None
-
-        synthesis_prompt = (
-            self.config.synthesis_prompt
-            or """
-You are a council facilitator synthesizing multiple perspectives.
-
-Based on the individual council member responses below, provide a structured analysis with:
-1. Key Points of Agreement
-2. Key Points of Tension
-3. Synthesized Recommendation
-4. Action Items (with priority)
-5. Recommendations (with confidence)
-6. Pros and Cons (if applicable)
-
-Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
-"""
-        )
-
-        user_prompt = f"""
-Original Query: {query}
-
-{f"Context: {context}" if context else ""}
-
-## Council Responses:
-
-{responses_text}
-
----
-
-Please synthesize these perspectives in the requested structured format.
-"""
-
-        # Get JSON schema from SynthesisSchema
-        json_schema = SynthesisSchema.model_json_schema()
-
-        try:
-            structured_data = await provider.complete_structured(
-                system_prompt=synthesis_prompt,
-                user_prompt=user_prompt,
-                json_schema=json_schema,
-                max_tokens=self.config.max_tokens_per_response * 2,
-                temperature=0.5,
-            )
-
-            # Validate and parse
-            return SynthesisSchema(**structured_data)
-        except Exception:
-            # Fallback to None - will use free-form synthesis
-            return None
-
-    def _format_structured_synthesis(self, structured: Optional[SynthesisSchema]) -> str:
-        """Format structured synthesis as markdown text."""
-        if not structured:
-            return ""
-
-        lines = []
-
-        if structured.key_points_of_agreement:
-            lines.append("## Key Points of Agreement")
-            lines.append("")
-            for point in structured.key_points_of_agreement:
-                lines.append(f"- {point}")
-            lines.append("")
-
-        if structured.key_points_of_tension:
-            lines.append("## Key Points of Tension")
-            lines.append("")
-            for point in structured.key_points_of_tension:
-                lines.append(f"- {point}")
-            lines.append("")
-
-        if structured.synthesized_recommendation:
-            lines.append("## Synthesized Recommendation")
-            lines.append("")
-            lines.append(structured.synthesized_recommendation)
-            lines.append("")
-
-        if structured.action_items:
-            lines.append("## Action Items")
-            lines.append("")
-            for item in structured.action_items:
-                priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
-                    item.priority.lower(), "•"
-                )
-                owner_text = f" ({item.owner})" if item.owner else ""
-                due_text = f" - Due: {item.due_date}" if item.due_date else ""
-                lines.append(f"{priority_emoji} {item.description}{owner_text}{due_text}")
-            lines.append("")
-
-        if structured.recommendations:
-            lines.append("## Recommendations")
-            lines.append("")
-            for rec in structured.recommendations:
-                conf_emoji = {"high": "✓", "medium": "~", "low": "?"}.get(
-                    rec.confidence.lower(), "•"
-                )
-                lines.append(f"### {conf_emoji} {rec.title}")
-                lines.append(f"*Confidence: {rec.confidence}*")
-                lines.append("")
-                lines.append(rec.description)
-                if rec.rationale:
-                    lines.append(f"*Rationale: {rec.rationale}*")
-                lines.append("")
-
-        if structured.pros_cons:
-            lines.append("## Pros and Cons")
-            lines.append("")
-            if structured.pros_cons.pros:
-                lines.append("### Pros")
-                for pro in structured.pros_cons.pros:
-                    lines.append(f"- {pro}")
-                lines.append("")
-            if structured.pros_cons.cons:
-                lines.append("### Cons")
-                for con in structured.pros_cons.cons:
-                    lines.append(f"- {con}")
-                lines.append("")
-            if structured.pros_cons.net_assessment:
-                lines.append(f"**Net Assessment:** {structured.pros_cons.net_assessment}")
-                lines.append("")
-
-        return "\n".join(lines)
-
-    async def _generate_synthesis(
-        self,
-        provider: LLMProvider,
-        query: str,
-        context: Optional[str],
-        responses: List[MemberResponse],
-    ) -> str:
-        """Generate a synthesis of all member responses."""
-        responses_text = "\n\n".join(
-            [
-                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
-                for r in responses
-                if not r.error
-            ]
-        )
-        if not responses_text.strip():
-            return ALL_MEMBERS_FAILED_MESSAGE
-
-        synthesis_prompt = (
-            self.config.synthesis_prompt
-            or """
-You are a council facilitator synthesizing multiple perspectives.
-
-Based on the individual council member responses below, provide:
-1. **Key Points of Agreement**: Where do the advisors align?
-2. **Key Points of Tension**: Where do they disagree or see different risks?
-3. **Synthesized Recommendation**: What's the balanced path forward?
-4. **Action Items**: Concrete next steps based on the collective wisdom
-
-Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
-"""
-        )
-
-        user_prompt = f"""
-Original Query: {query}
-
-{f"Context: {context}" if context else ""}
-
-## Council Responses:
-
-{responses_text}
-
----
-
-Please synthesize these perspectives.
-"""
-
-        return await provider.complete(
-            system_prompt=synthesis_prompt,
-            user_prompt=user_prompt,
-            max_tokens=self.config.max_tokens_per_response * 2,
-            temperature=0.5,  # Lower temperature for synthesis
-        )
-
-    def _get_active_members(self, specific_members: Optional[List[str]] = None) -> List[Persona]:
-        """Get list of active members, optionally filtered."""
-        if specific_members:
-            return [
-                self._members[mid]
-                for mid in specific_members
-                if mid in self._members and self._members[mid].enabled
-            ]
-        return [m for m in self._members.values() if m.enabled]
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    # Session Management
-    # ═══════════════════════════════════════════════════════════════════════════
-
-    def _start_session(self, query: str, context: Optional[str]) -> Session:
-        """Start a new consultation session."""
-        session = Session(
-            council_name=self.config.name,
-            members=[m.id for m in self._members.values()],
-        )
-        self._sessions.append(session)
-        self._current_session = session
-        return session
-
-    def get_session_history(self, limit: int = 10) -> List[Session]:
-        """Get recent session history."""
-        return self._sessions[-limit:]
-
-    def clear_history(self) -> None:
-        """Clear session history."""
-        self._sessions.clear()
-
-    def list_history(self, limit: Optional[int] = None, offset: int = 0) -> List[Dict[str, Any]]:
-        """List saved consultations from history."""
-        if not self._history:
-            return []
-        return self._history.list(limit=limit, offset=offset)
-
-    def get_history(self, consultation_id: str) -> Optional[Dict[str, Any]]:
-        """Get a specific consultation from history."""
-        if not self._history:
-            return None
-        return self._history.load(consultation_id)
-
-    def search_history(self, query: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Search consultations in history."""
-        if not self._history:
-            return []
-        return self._history.search(query, limit=limit)
-        self._current_session = None
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    # Hooks & Extensibility
-    # ═══════════════════════════════════════════════════════════════════════════
-
-    def add_pre_consult_hook(self, hook: Callable[[str, Optional[str]], tuple]) -> None:
-        """Add a hook that runs before consultation."""
-        self._pre_consult_hooks.append(hook)
-
-    def add_post_consult_hook(
-        self, hook: Callable[[ConsultationResult], ConsultationResult]
-    ) -> None:
-        """Add a hook that runs after consultation."""
-        self._post_consult_hooks.append(hook)
-
-    def add_response_hook(self, hook: Callable[[Persona, str], str]) -> None:
-        """Add a hook that processes each member's response."""
-        self._response_hooks.append(hook)
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    # Serialization
-    # ═══════════════════════════════════════════════════════════════════════════
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Export council configuration."""
-        return {
-            "config": self.config.model_dump(),
-            "members": [m.id for m in self._members.values()],
-            "provider": self._provider_name,
-            "model": self._model,
-            "base_url": self._base_url,
-        }
-
-    def __repr__(self) -> str:
-        member_count = len(self._members)
-        enabled_count = len([m for m in self._members.values() if m.enabled])
-        return f"Council(name='{self.config.name}', members={enabled_count}/{member_count})"
+        vote_query = f"{query}\n\nPlease vote: YES, NO, or ABST
