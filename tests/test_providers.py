@@ -4,7 +4,13 @@ Tests for provider abstractions.
 
 import pytest
 
-from council_ai.providers import LLMProvider, get_provider, list_providers, register_provider
+from council_ai.providers import (
+    LLMProvider,
+    get_provider,
+    list_model_capabilities,
+    list_providers,
+    register_provider,
+)
 
 
 def test_list_providers():
@@ -16,6 +22,14 @@ def test_list_providers():
     assert "gemini" in providers
     assert "http" in providers
     assert len(providers) >= 4
+
+
+def test_list_model_capabilities():
+    """Test listing model capabilities."""
+    models = list_model_capabilities()
+    assert isinstance(models, list)
+    assert any(m["provider"] == "anthropic" for m in models)
+    assert any("parameters" in m for m in models)
 
 
 def test_get_nonexistent_provider():

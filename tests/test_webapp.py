@@ -14,6 +14,7 @@ def test_info_endpoint():
     assert response.status_code == 200
     payload = response.json()
     assert "providers" in payload
+    assert "models" in payload
     assert "domains" in payload
     assert "personas" in payload
 

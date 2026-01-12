@@ -17,7 +17,7 @@ from council_ai.core.council import ConsultationMode
 from council_ai.core.history import ConsultationHistory
 from council_ai.core.persona import PersonaCategory, list_personas
 from council_ai.domains import list_domains
-from council_ai.providers import list_providers
+from council_ai.providers import list_model_capabilities, list_providers
 
 app = FastAPI(title="Council AI", version="1.0.0")
 
@@ -104,6 +104,7 @@ async def info() -> dict:
             "mode": config.default_mode,
         },
         "providers": list_providers(),
+        "models": list_model_capabilities(),
         "domains": [
             {
                 "id": d.id,
@@ -123,6 +124,8 @@ async def info() -> dict:
                 "emoji": p.emoji,
                 "category": p.category.value,
                 "focus_areas": p.focus_areas,
+                "model": p.model,
+                "model_params": p.model_params,
             }
             for p in list_personas()
         ],
