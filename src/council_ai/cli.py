@@ -809,7 +809,7 @@ def config_preset_save(ctx, preset_name, domain, members, mode):
         preset["mode"] = config_manager.get("default_mode")
 
     # Save to presets
-    if "presets" not in config_manager.config.presets:
+    if not isinstance(config_manager.config.presets, dict):
         config_manager.config.presets = {}
 
     config_manager.config.presets[preset_name] = preset

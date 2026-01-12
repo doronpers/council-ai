@@ -135,13 +135,21 @@ function handleSaveSettings() {
       saveSettingsEl.style.background = "";
     }, 2000);
   } else {
-    alert("Failed to save settings. Please check browser storage permissions.");
+    // Show error feedback consistent with success feedback
+    const originalText = saveSettingsEl.textContent;
+    saveSettingsEl.textContent = "❌ Failed to Save";
+    saveSettingsEl.style.background = "#ef4444";
+    
+    setTimeout(() => {
+      saveSettingsEl.textContent = originalText;
+      saveSettingsEl.style.background = "";
+    }, 3000);
   }
 }
 
 // Handle reset settings button
 function handleResetSettings() {
-  if (confirm("Reset all settings to defaults? This cannot be undone.")) {
+  if (confirm("Reset all settings to defaults? This will clear your saved settings.")) {
     localStorage.removeItem(SETTINGS_KEY);
     
     // Show feedback
