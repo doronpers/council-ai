@@ -43,8 +43,9 @@ def test_openai_provider_without_key():
     """Test OpenAI provider without API key."""
     import os
 
-    # Temporarily remove API key
+    # Temporarily remove API keys (including fallback keys)
     old_key = os.environ.pop("OPENAI_API_KEY", None)
+    old_gw_key = os.environ.pop("AI_GATEWAY_API_KEY", None)
 
     try:
         with pytest.raises(ValueError, match="API key required"):
@@ -52,6 +53,8 @@ def test_openai_provider_without_key():
     finally:
         if old_key:
             os.environ["OPENAI_API_KEY"] = old_key
+        if old_gw_key:
+            os.environ["AI_GATEWAY_API_KEY"] = old_gw_key
 
 
 def test_gemini_provider_without_key():

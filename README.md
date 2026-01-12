@@ -16,6 +16,7 @@ python examples/quickstart.py
 ```
 
 This interactive demo shows you:
+
 - All 7 built-in personas and their characteristics
 - 12 domain presets and what they're for
 - How to set up and use councils
@@ -45,6 +46,7 @@ python examples/simple_example.py
 Council AI provides a framework for consulting multiple AI "personas" - each with distinct expertise, perspectives, and decision-making approaches. Whether you're making business decisions, reviewing code, planning strategy, or working on creative projects, the council provides comprehensive, multi-perspective advice.
 
 **Key Features:**
+
 - 🎭 **7 Built-in Personas** - Advisory Council (build it right) + Red Team (break & survive)
 - 🌐 **12 Domain Presets** - Coding, business, startup, creative, career, and more
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
@@ -58,6 +60,7 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 ## Installation
 
 **From PyPI (when published):**
+
 ```bash
 # Basic installation
 pip install council-ai
@@ -76,6 +79,7 @@ pip install council-ai[all]
 ```
 
 **Development Installation (from this repo):**
+
 ```bash
 # Clone the repository
 git clone https://github.com/doronpers/council-ai.git
@@ -111,7 +115,7 @@ GEMINI_API_KEY=your-gemini-key-here
 
 The `.env` file is automatically loaded when you import `council_ai`. It's already in `.gitignore`, so it won't be committed.
 
-**Option 2: Environment Variables**
+### Option 2: Environment Variables
 
 ```bash
 # Choose your provider
@@ -120,13 +124,14 @@ export OPENAI_API_KEY="your-key"       # For GPT-4
 export GEMINI_API_KEY="your-key"       # For Gemini
 ```
 
-**Option 3: Config File**
+### Option 3: Config File
 
 ```bash
 council config set api.api_key your-key
 ```
 
 **Priority Order:**
+
 1. CLI flags (`--api-key`)
 2. Environment variables
 3. `.env` file (auto-loaded)
@@ -182,7 +187,7 @@ for response in result.responses:
 ### Advisory Council (Build It Right)
 
 | Persona | Focus | Core Question |
-|---------|-------|---------------|
+| ------- | ----- | ------------- |
 | 🎨 **Dieter Rams** | Simplification, Design | "Is this as simple as possible?" |
 | 🎖️ **Martin Dempsey** | Mission Clarity, Autonomy | "Can this operate without asking permission?" |
 | 🧠 **Daniel Kahneman** | Cognitive Load, UX | "Does this work with human cognition?" |
@@ -191,7 +196,7 @@ for response in result.responses:
 ### Red Team Council (Break & Survive)
 
 | Persona | Focus | Core Question |
-|---------|-------|---------------|
+| ------- | ----- | ------------- |
 | 🔓 **Pablos Holman** | Security, Exploits | "How would I break this?" |
 | 🦢 **Nassim Taleb** | Risk, Antifragility | "What's the hidden risk?" |
 | 🎯 **Andy Grove** | Strategy, Competition | "What 10X force could make us irrelevant?" |
@@ -206,7 +211,7 @@ council domain list
 ```
 
 | Domain | Description | Default Personas |
-|--------|-------------|------------------|
+| ------ | ----------- | ---------------- |
 | `coding` | Software development | Rams, Kahneman, Holman, Taleb |
 | `business` | Business strategy | Grove, Taleb, Dempsey, Kahneman |
 | `startup` | Early-stage decisions | Grove, Taleb, Kahneman, Rams |
@@ -227,11 +232,13 @@ council domain list
 ### Create Custom Personas
 
 **Via CLI:**
+
 ```bash
 council persona create --interactive
 ```
 
 **Via Python:**
+
 ```python
 from council_ai import Council
 from council_ai.core.persona import Persona, PersonaCategory
@@ -254,6 +261,7 @@ council.add_member(custom)
 ```
 
 **Via YAML:**
+
 ```yaml
 # ~/.config/council-ai/personas/my_advisor.yaml
 id: my_advisor
@@ -450,13 +458,13 @@ pip install -e ".[web]"
 council web --reload
 ```
 
-Then open http://127.0.0.1:8000.
+Then open <http://127.0.0.1:8000>.
 
 ---
 
 ## Quality & Testing Policy
 
-See [QUALITY.md](QUALITY.md) for the testing, linting, and formatting policy.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the testing, linting, and formatting policy.
 
 ---
 
@@ -702,6 +710,7 @@ MIT License - see LICENSE file.
 ## Credits
 
 Inspired by the decision-making frameworks of:
+
 - **Dieter Rams** - Industrial design principles
 - **Martin Dempsey** - Mission command leadership
 - **Daniel Kahneman** - Behavioral economics
