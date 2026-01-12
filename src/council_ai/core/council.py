@@ -471,6 +471,16 @@ class Council:
         for hook in self._post_consult_hooks:
             result = hook(result)
 
+        # Auto-save to history if enabled
+        if self._history:
+            try:
+                self._history.save(result)
+            except Exception:
+                # Don't fail consultation if history save fails
+                import sys
+
+                print("Warning: Failed to save consultation to history", file=sys.stderr)
+
         yield {"type": "complete", "result": result}
 
     async def _consult_individual(

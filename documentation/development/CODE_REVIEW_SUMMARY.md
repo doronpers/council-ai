@@ -6,7 +6,7 @@
 
 ## Overview
 
-Comprehensive review of all code generated within the last 4 hours, identifying and fixing errors, redundancies, security vulnerabilities, and inefficiencies. Documentation has been updated to be accurate and free from redundant information.
+Comprehensive review of all code generated within the last 4 hours, identifying and fixing errors, redundancies, security vulnerabilities, and inefficiencies. Documentation has been updated to be accurate and free from redundant information. A follow-up pass addressed missing history persistence for streaming consultations.
 
 ## Issues Identified and Fixed
 
@@ -106,12 +106,18 @@ Comprehensive review of all code generated within the last 4 hours, identifying 
   - Add clear status indicators
 - **Status:** ✅ Fixed
 
+### 7. Streaming History Persistence
+
+#### Issue: Streaming consultations skipped history auto-save
+- **Location:** `src/council_ai/core/council.py` and `src/council_ai/webapp/app.py`
+- **Problem:** `consult_stream()` returned results without persisting them when history was configured, and the webapp streaming endpoint did not attach the shared history instance
+- **Impact:** Streaming consultations were not recorded in consultation history, leading to inconsistent behavior between streaming and non-streaming flows
+- **Fix:** Added history auto-save to `consult_stream()` and wired the webapp streaming endpoint to the shared history instance
+- **Status:** ✅ Fixed
+
 ## Test Results
 
-All tests passing after fixes:
-```
-57 passed in 0.48s
-```
+Tests were not re-run in this follow-up review. See prior CI results for the latest status.
 
 ## Code Quality Validation
 
@@ -132,29 +138,31 @@ All tests passing after fixes:
 ### Source Code (10 files)
 1. `src/council_ai/cli.py` - Fixed imports, unused variables, orphaned code
 2. `src/council_ai/core/config.py` - Formatting
-3. `src/council_ai/core/council.py` - Formatting
+3. `src/council_ai/core/council.py` - Formatting, streaming history auto-save
 4. `src/council_ai/core/diagnostics.py` - Unused variable, formatting
 5. `src/council_ai/core/history.py` - SQL injection fix, formatting
 6. `src/council_ai/core/schemas.py` - Formatting
 7. `src/council_ai/core/session.py` - Formatting
 8. `src/council_ai/providers/__init__.py` - Critical syntax error, formatting
 9. `src/council_ai/tools/reviewer.py` - Formatting
-10. `src/council_ai/webapp/app.py` - Formatting (130+ whitespace fixes)
+10. `src/council_ai/webapp/app.py` - Formatting, streaming history auto-save
 
-### Documentation (3 files)
+### Documentation (4 files)
 1. `BUILD_WEB.md` - Updated to reflect actual status
 2. `COUNCIL_REVIEW_MOBILE.md` - Changed from "Complete" to "Planned"
 3. `LAZY_LOADING_IMPLEMENTATION.md` - Changed from "Implementation Complete" to "Implementation Guide"
+4. `CODE_REVIEW_SUMMARY.md` - Follow-up updates for streaming history persistence
 
 ## Summary Statistics
 
 - **Critical Errors Fixed:** 2 (syntax error, SQL injection)
+- **Behavioral Bugs Fixed:** 1 (streaming history persistence)
 - **Code Quality Issues Fixed:** 135+ (unused variables, formatting, imports)
 - **Security Vulnerabilities Fixed:** 1 (SQL injection)
-- **Documentation Files Updated:** 3
-- **Tests Passing:** 57/57 (100%)
-- **Linting Errors:** 0
-- **Formatting Issues:** 0
+- **Documentation Files Updated:** 4
+- **Tests Status:** Not re-run in follow-up (last recorded: 57/57 passing)
+- **Linting Status:** Not re-run in follow-up (last recorded: 0 errors)
+- **Formatting Status:** Not re-run in follow-up (last recorded: 0 issues)
 
 ## Recommendations for Future
 
@@ -179,7 +187,7 @@ The codebase is now:
 - ✅ Free from syntax errors
 - ✅ Properly formatted according to project standards
 - ✅ Free from critical security vulnerabilities
-- ✅ Passing all tests
+- ✅ Streaming and non-streaming histories aligned
 - ✅ Documented accurately
 
 All identified issues have been resolved, and the code is production-ready from a quality and security perspective.
