@@ -222,6 +222,13 @@ class ConsultationHistory:
             List of consultation summaries
         """
         if self.use_sqlite:
+            # Validate order_by to prevent SQL injection
+            allowed_order_by = ["timestamp", "query", "mode", "id"]
+            if order_by not in allowed_order_by:
+                raise ValueError(
+                    f"Invalid order_by value: {order_by}. Must be one of {allowed_order_by}"
+                )
+
             conn = sqlite3.connect(self.db_path)
             order = "DESC" if reverse else "ASC"
             query = f"SELECT id, query, mode, timestamp, synthesis FROM consultations ORDER BY {order_by} {order}"
