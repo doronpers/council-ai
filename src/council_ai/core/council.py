@@ -11,13 +11,14 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Union
 
 from pydantic import BaseModel
 
 from ..providers import LLMProvider, get_provider
 from .config import get_api_key
 from .persona import Persona, PersonaManager, get_persona_manager
+from .schemas import SynthesisSchema
 from .session import ConsultationResult, MemberResponse, Session
 
 
@@ -71,6 +72,7 @@ class Council:
         persona_manager: Optional[PersonaManager] = None,
         model: Optional[str] = None,
         base_url: Optional[str] = None,
+        history: Optional[Any] = None,
     ):
         """
         Initialize a Council.
@@ -80,6 +82,9 @@ class Council:
             provider: LLM provider name ("anthropic", "openai", etc.)
             config: Council configuration
             persona_manager: Custom persona manager (uses global if None)
+            model: Model name override
+            base_url: Base URL override
+            history: ConsultationHistory instance for auto-saving (optional)
         """
         self.config = config or CouncilConfig()
         self._persona_manager = persona_manager or get_persona_manager()
@@ -91,6 +96,7 @@ class Council:
         self._base_url = base_url
         self._sessions: List[Session] = []
         self._current_session: Optional[Session] = None
+        self._history = history
 
         # Callbacks for extensibility
         self._pre_consult_hooks: List[Callable] = []
@@ -310,8 +316,19 @@ class Council:
 
         # Generate synthesis if needed
         synthesis = None
+        structured_synthesis = None
         if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
-            synthesis = await self._generate_synthesis(provider, query, context, responses)
+            # Try structured synthesis if enabled in config
+            if getattr(self.config, 'use_structured_output', False):
+                try:
+                    structured_synthesis = await self._generate_structured_synthesis(provider, query, context, responses)
+                    # Convert structured to text for backward compatibility
+                    synthesis = self._format_structured_synthesis(structured_synthesis)
+                except Exception:
+                    # Fallback to free-form synthesis
+                    synthesis = await self._generate_synthesis(provider, query, context, responses)
+            else:
+                synthesis = await self._generate_synthesis(provider, query, context, responses)
 
         # Create result
         result = ConsultationResult(
@@ -330,7 +347,117 @@ class Council:
         for hook in self._post_consult_hooks:
             result = hook(result)
 
+        # Auto-save to history if enabled
+        if self._history:
+            try:
+                self._history.save(result)
+            except Exception:
+                # Don't fail consultation if history save fails
+                import sys
+                print(f"Warning: Failed to save consultation to history", file=sys.stderr)
+
         return result
+
+    async def consult_stream(
+        self,
+        query: str,
+        context: Optional[str] = None,
+        mode: Optional[ConsultationMode] = None,
+        members: Optional[List[str]] = None,
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """
+        Stream consultation results as they're generated.
+        
+        Yields progress updates and response chunks:
+        - {"type": "progress", "message": "Consulting Rams..."}
+        - {"type": "response_start", "persona_id": "rams", "persona_name": "Dieter Rams"}
+        - {"type": "response_chunk", "persona_id": "rams", "content": "chunk of text"}
+        - {"type": "response_complete", "persona_id": "rams", "response": MemberResponse}
+        - {"type": "synthesis_start"}
+        - {"type": "synthesis_chunk", "content": "chunk of synthesis"}
+        - {"type": "synthesis_complete", "synthesis": "full synthesis"}
+        - {"type": "complete", "result": ConsultationResult}
+        """
+        mode = mode or self.config.mode
+        provider = self._get_provider(fallback=True)
+
+        # Get active members
+        active_members = self._get_active_members(members)
+        if not active_members:
+            raise ValueError("No active council members")
+
+        # Run pre-consult hooks
+        for hook in self._pre_consult_hooks:
+            query, context = hook(query, context)
+
+        # Start session
+        session = self._start_session(query, context)
+
+        # Get responses based on mode (streaming)
+        responses = []
+        if mode == ConsultationMode.INDIVIDUAL:
+            async for update in self._consult_individual_stream(provider, active_members, query, context):
+                yield update
+                if update.get("type") == "response_complete":
+                    responses.append(update["response"])
+        elif mode == ConsultationMode.SEQUENTIAL:
+            async for update in self._consult_sequential_stream(provider, active_members, query, context):
+                yield update
+                if update.get("type") == "response_complete":
+                    responses.append(update["response"])
+        elif mode == ConsultationMode.SYNTHESIS:
+            async for update in self._consult_individual_stream(provider, active_members, query, context):
+                yield update
+                if update.get("type") == "response_complete":
+                    responses.append(update["response"])
+        elif mode == ConsultationMode.DEBATE:
+            async for update in self._consult_debate_stream(provider, active_members, query, context):
+                yield update
+                if update.get("type") == "response_complete":
+                    responses.append(update["response"])
+        elif mode == ConsultationMode.VOTE:
+            async for update in self._consult_vote_stream(provider, active_members, query, context):
+                yield update
+                if update.get("type") == "response_complete":
+                    responses.append(update["response"])
+        else:
+            async for update in self._consult_individual_stream(provider, active_members, query, context):
+                yield update
+                if update.get("type") == "response_complete":
+                    responses.append(update["response"])
+
+        # Generate synthesis if needed (streaming)
+        synthesis = None
+        structured_synthesis = None
+        if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
+            # For streaming, use free-form synthesis (structured would require buffering)
+            yield {"type": "synthesis_start"}
+            synthesis_parts = []
+            async for chunk in self._generate_synthesis_stream(provider, query, context, responses):
+                yield {"type": "synthesis_chunk", "content": chunk}
+                synthesis_parts.append(chunk)
+            synthesis = "".join(synthesis_parts)
+            yield {"type": "synthesis_complete", "synthesis": synthesis}
+
+        # Create result
+        result = ConsultationResult(
+            query=query,
+            context=context,
+            responses=responses,
+            synthesis=synthesis,
+            mode=mode,
+            timestamp=datetime.now(),
+            structured_synthesis=structured_synthesis,
+        )
+
+        # Update session
+        session.add_consultation(result)
+
+        # Run post-consult hooks
+        for hook in self._post_consult_hooks:
+            result = hook(result)
+
+        yield {"type": "complete", "result": result}
 
     async def _consult_individual(
         self,
@@ -466,6 +593,324 @@ REASONING: [your reasoning]
                 error=error_msg,
             )
 
+    async def _get_member_response_stream(
+        self,
+        provider: LLMProvider,
+        member: Persona,
+        query: str,
+        context: Optional[str],
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """Stream a single member's response."""
+        yield {
+            "type": "response_start",
+            "persona_id": member.id,
+            "persona_name": member.name,
+            "persona_emoji": member.emoji,
+        }
+        
+        system_prompt = member.get_system_prompt()
+        user_prompt = member.format_response_prompt(query, context)
+
+        try:
+            content_parts = []
+            async for chunk in provider.stream_complete(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                max_tokens=self.config.max_tokens_per_response,
+                temperature=self.config.temperature,
+            ):
+                content_parts.append(chunk)
+                yield {
+                    "type": "response_chunk",
+                    "persona_id": member.id,
+                    "content": chunk,
+                }
+            
+            content = "".join(content_parts)
+
+            # Run response hooks
+            for hook in self._response_hooks:
+                content = hook(member, content)
+
+            response = MemberResponse(
+                persona=member,
+                content=content,
+                timestamp=datetime.now(),
+            )
+            
+            yield {
+                "type": "response_complete",
+                "persona_id": member.id,
+                "response": response,
+            }
+        except Exception as e:
+            error_msg = str(e)
+            if "API key" in error_msg or "authentication" in error_msg.lower():
+                error_msg = (
+                    f"API authentication failed: {error_msg}. "
+                    f"Please check your API key for provider '{self._provider_name}'. "
+                    f"Council AI will try fallback providers if available."
+                )
+            elif "rate limit" in error_msg.lower():
+                error_msg = f"Rate limit exceeded: {error_msg}. Please try again later."
+
+            response = MemberResponse(
+                persona=member,
+                content=f"[Error getting response: {error_msg}]",
+                timestamp=datetime.now(),
+                error=error_msg,
+            )
+            
+            yield {
+                "type": "response_complete",
+                "persona_id": member.id,
+                "response": response,
+            }
+
+    async def _consult_individual_stream(
+        self,
+        provider: LLMProvider,
+        members: List[Persona],
+        query: str,
+        context: Optional[str],
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """Get individual responses from all members (streaming, sequential for simplicity)."""
+        # Stream each member's response sequentially
+        # TODO: Optimize to stream multiple members concurrently in future
+        for member in members:
+            yield {"type": "progress", "message": f"Consulting {member.name}..."}
+            async for update in self._get_member_response_stream(provider, member, query, context):
+                yield update
+
+    async def _consult_sequential_stream(
+        self,
+        provider: LLMProvider,
+        members: List[Persona],
+        query: str,
+        context: Optional[str],
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """Get responses sequentially, each seeing previous responses (streaming)."""
+        accumulated_context = context or ""
+        
+        for member in members:
+            async for update in self._get_member_response_stream(provider, member, query, accumulated_context):
+                yield update
+                if update.get("type") == "response_complete":
+                    response = update["response"]
+                    accumulated_context += f"\n\n{member.emoji} {member.name} said:\n{response.content}"
+
+    async def _consult_debate_stream(
+        self,
+        provider: LLMProvider,
+        members: List[Persona],
+        query: str,
+        context: Optional[str],
+        rounds: int = 2,
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """Debate mode with streaming (simplified - streams first round)."""
+        # For streaming, we'll stream the first round of responses
+        async for update in self._consult_individual_stream(provider, members, query, context):
+            yield update
+
+    async def _consult_vote_stream(
+        self,
+        provider: LLMProvider,
+        members: List[Persona],
+        query: str,
+        context: Optional[str],
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """Vote mode with streaming."""
+        vote_query = f"{query}\n\nPlease vote: YES, NO, or ABSTAIN, and provide brief reasoning."
+        async for update in self._consult_individual_stream(provider, members, vote_query, context):
+            yield update
+
+    async def _generate_synthesis_stream(
+        self,
+        provider: LLMProvider,
+        query: str,
+        context: Optional[str],
+        responses: List[MemberResponse],
+    ) -> AsyncIterator[str]:
+        """Generate a synthesis of all member responses (streaming)."""
+        synthesis_prompt = (
+            self.config.synthesis_prompt
+            or """
+You are a council facilitator synthesizing multiple perspectives.
+
+Based on the individual council member responses below, provide:
+1. **Key Points of Agreement**: Where do the advisors align?
+2. **Key Points of Tension**: Where do they disagree or see different risks?
+3. **Synthesized Recommendation**: What's the balanced path forward?
+4. **Action Items**: Concrete next steps based on the collective wisdom
+
+Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
+"""
+        )
+
+        responses_text = "\n\n".join(
+            [
+                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
+                for r in responses
+                if not r.error
+            ]
+        )
+
+        user_prompt = f"""
+Original Query: {query}
+
+{f"Context: {context}" if context else ""}
+
+## Council Responses:
+
+{responses_text}
+
+---
+
+Please synthesize these perspectives.
+"""
+
+        async for chunk in provider.stream_complete(
+            system_prompt=synthesis_prompt,
+            user_prompt=user_prompt,
+            max_tokens=self.config.max_tokens_per_response * 2,
+            temperature=0.5,  # Lower temperature for synthesis
+        ):
+            yield chunk
+
+    async def _generate_structured_synthesis(
+        self,
+        provider: LLMProvider,
+        query: str,
+        context: Optional[str],
+        responses: List[MemberResponse],
+    ) -> Optional[SynthesisSchema]:
+        """Generate a structured synthesis using JSON schema."""
+        synthesis_prompt = (
+            self.config.synthesis_prompt
+            or """
+You are a council facilitator synthesizing multiple perspectives.
+
+Based on the individual council member responses below, provide a structured analysis with:
+1. Key Points of Agreement
+2. Key Points of Tension
+3. Synthesized Recommendation
+4. Action Items (with priority)
+5. Recommendations (with confidence)
+6. Pros and Cons (if applicable)
+
+Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
+"""
+        )
+
+        responses_text = "\n\n".join(
+            [
+                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
+                for r in responses
+                if not r.error
+            ]
+        )
+
+        user_prompt = f"""
+Original Query: {query}
+
+{f"Context: {context}" if context else ""}
+
+## Council Responses:
+
+{responses_text}
+
+---
+
+Please synthesize these perspectives in the requested structured format.
+"""
+
+        # Get JSON schema from SynthesisSchema
+        json_schema = SynthesisSchema.model_json_schema()
+        
+        try:
+            structured_data = await provider.complete_structured(
+                system_prompt=synthesis_prompt,
+                user_prompt=user_prompt,
+                json_schema=json_schema,
+                max_tokens=self.config.max_tokens_per_response * 2,
+                temperature=0.5,
+            )
+            
+            # Validate and parse
+            return SynthesisSchema(**structured_data)
+        except Exception:
+            # Fallback to None - will use free-form synthesis
+            return None
+
+    def _format_structured_synthesis(self, structured: Optional[SynthesisSchema]) -> str:
+        """Format structured synthesis as markdown text."""
+        if not structured:
+            return ""
+        
+        lines = []
+        
+        if structured.key_points_of_agreement:
+            lines.append("## Key Points of Agreement")
+            lines.append("")
+            for point in structured.key_points_of_agreement:
+                lines.append(f"- {point}")
+            lines.append("")
+        
+        if structured.key_points_of_tension:
+            lines.append("## Key Points of Tension")
+            lines.append("")
+            for point in structured.key_points_of_tension:
+                lines.append(f"- {point}")
+            lines.append("")
+        
+        if structured.synthesized_recommendation:
+            lines.append("## Synthesized Recommendation")
+            lines.append("")
+            lines.append(structured.synthesized_recommendation)
+            lines.append("")
+        
+        if structured.action_items:
+            lines.append("## Action Items")
+            lines.append("")
+            for item in structured.action_items:
+                priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(item.priority.lower(), "•")
+                owner_text = f" ({item.owner})" if item.owner else ""
+                due_text = f" - Due: {item.due_date}" if item.due_date else ""
+                lines.append(f"{priority_emoji} {item.description}{owner_text}{due_text}")
+            lines.append("")
+        
+        if structured.recommendations:
+            lines.append("## Recommendations")
+            lines.append("")
+            for rec in structured.recommendations:
+                conf_emoji = {"high": "✓", "medium": "~", "low": "?"}.get(rec.confidence.lower(), "•")
+                lines.append(f"### {conf_emoji} {rec.title}")
+                lines.append(f"*Confidence: {rec.confidence}*")
+                lines.append("")
+                lines.append(rec.description)
+                if rec.rationale:
+                    lines.append(f"*Rationale: {rec.rationale}*")
+                lines.append("")
+        
+        if structured.pros_cons:
+            lines.append("## Pros and Cons")
+            lines.append("")
+            if structured.pros_cons.pros:
+                lines.append("### Pros")
+                for pro in structured.pros_cons.pros:
+                    lines.append(f"- {pro}")
+                lines.append("")
+            if structured.pros_cons.cons:
+                lines.append("### Cons")
+                for con in structured.pros_cons.cons:
+                    lines.append(f"- {con}")
+                lines.append("")
+            if structured.pros_cons.net_assessment:
+                lines.append(f"**Net Assessment:** {structured.pros_cons.net_assessment}")
+                lines.append("")
+        
+        return "\n".join(lines)
+
     async def _generate_synthesis(
         self,
         provider: LLMProvider,
@@ -549,6 +994,24 @@ Please synthesize these perspectives.
     def clear_history(self) -> None:
         """Clear session history."""
         self._sessions.clear()
+
+    def list_history(self, limit: Optional[int] = None, offset: int = 0) -> List[Dict[str, Any]]:
+        """List saved consultations from history."""
+        if not self._history:
+            return []
+        return self._history.list(limit=limit, offset=offset)
+
+    def get_history(self, consultation_id: str) -> Optional[Dict[str, Any]]:
+        """Get a specific consultation from history."""
+        if not self._history:
+            return None
+        return self._history.load(consultation_id)
+
+    def search_history(self, query: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Search consultations in history."""
+        if not self._history:
+            return []
+        return self._history.search(query, limit=limit)
         self._current_session = None
 
     # ═══════════════════════════════════════════════════════════════════════════

@@ -50,8 +50,8 @@ async function initForm() {
   }
 }
 
-// Handle consultation submission
-async function handleSubmit() {
+// Handle consultation submission (with streaming support)
+async function handleSubmit(useStreaming = true) {
   if (!queryEl.value.trim()) {
     statusEl.textContent = "Please enter a query.";
     statusEl.className = "error";
@@ -77,9 +77,50 @@ async function handleSubmit() {
   };
   
   try {
-    const data = await submitConsultation(payload);
-    const render = await getRenderModule();
-    render.renderResult(data, statusEl, synthesisEl, responsesEl);
+    if (useStreaming) {
+      // Use streaming endpoint
+      const render = await getRenderModule();
+      const response = await fetch("/api/consult/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || "Request failed.");
+      }
+      
+      // Read SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || ""; // Keep incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              render.handleStreamUpdate(data, statusEl, synthesisEl, responsesEl);
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+    } else {
+      // Use non-streaming endpoint
+      const data = await submitConsultation(payload);
+      const render = await getRenderModule();
+      render.renderResult(data, statusEl, synthesisEl, responsesEl);
+    }
   } catch (err) {
     statusEl.textContent = err.message || "Network error. Please check your connection.";
     statusEl.className = "error";

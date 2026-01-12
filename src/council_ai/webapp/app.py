@@ -6,18 +6,24 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+import json
 
 from council_ai import Council
 from council_ai.core.config import ConfigManager, get_api_key
 from council_ai.core.council import ConsultationMode
+from council_ai.core.history import ConsultationHistory
 from council_ai.core.persona import PersonaCategory, list_personas
+from council_ai.core.session import ConsultationResult
 from council_ai.domains import list_domains
 from council_ai.providers import list_providers
 
 app = FastAPI(title="Council AI", version="1.0.0")
+
+# Initialize history (shared instance)
+_history = ConsultationHistory()
 
 # Determine if we're in production (built assets exist) or development
 WEBAPP_DIR = Path(__file__).parent
@@ -165,6 +171,8 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     try:
+        # Enable history for auto-save
+        council._history = _history
         result = await council.consult_async(payload.query, context=payload.context, mode=mode)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -174,6 +182,129 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
         responses=[r.to_dict() for r in result.responses],
         mode=result.mode,
     )
+
+
+@app.post("/api/consult/stream")
+async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
+    """Stream consultation results as Server-Sent Events (SSE)."""
+    config = ConfigManager().config
+    provider = payload.provider or config.api.provider
+    model = payload.model or config.api.model
+    base_url = payload.base_url or config.api.base_url
+    api_key = payload.api_key or get_api_key(provider)
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key is required for consultation.")
+
+    try:
+        mode = ConsultationMode(payload.mode)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if payload.members:
+        council = Council(
+            api_key=api_key,
+            provider=provider,
+            model=model,
+            base_url=base_url,
+        )
+        for member_id in payload.members:
+            try:
+                council.add_member(member_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+    else:
+        domain = payload.domain or config.default_domain
+        try:
+            council = Council.for_domain(
+                domain,
+                api_key=api_key,
+                provider=provider,
+                model=model,
+                base_url=base_url,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    async def generate_stream():
+        try:
+            async for update in council.consult_stream(
+                payload.query, context=payload.context, mode=mode
+            ):
+                # Convert update to SSE format
+                if "result" in update:
+                    # For the final result, convert MemberResponse objects to dicts
+                    result = update["result"]
+                    update["result"] = {
+                        "query": result.query,
+                        "context": result.context,
+                        "mode": result.mode,
+                        "timestamp": result.timestamp.isoformat(),
+                        "responses": [r.to_dict() for r in result.responses],
+                        "synthesis": result.synthesis,
+                    }
+                elif "response" in update:
+                    # Convert MemberResponse to dict
+                    update["response"] = update["response"].to_dict()
+                
+                # Format as SSE
+                yield f"data: {json.dumps(update)}\n\n"
+        except Exception as exc:
+            error_update = {
+                "type": "error",
+                "error": str(exc),
+            }
+            yield f"data: {json.dumps(error_update)}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
+
+
+@app.get("/api/history")
+async def history_list(limit: Optional[int] = None, offset: int = 0) -> dict:
+    """List saved consultations."""
+    consultations = _history.list(limit=limit, offset=offset)
+    return {"consultations": consultations, "total": len(consultations)}
+
+
+@app.get("/api/history/{consultation_id}")
+async def history_get(consultation_id: str) -> dict:
+    """Get a specific consultation."""
+    data = _history.load(consultation_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    return data
+
+
+@app.post("/api/history/{consultation_id}/save")
+async def history_save(consultation_id: str, tags: Optional[List[str]] = None, notes: Optional[str] = None) -> dict:
+    """Save/update a consultation (used after consultation completes)."""
+    # This would typically be called after a consultation completes
+    # For now, consultations are auto-saved, but this allows updating tags/notes
+    if _history.update_metadata(consultation_id, tags=tags, notes=notes):
+        return {"status": "saved", "id": consultation_id}
+    raise HTTPException(status_code=404, detail="Consultation not found")
+
+
+@app.delete("/api/history/{consultation_id}")
+async def history_delete(consultation_id: str) -> dict:
+    """Delete a consultation."""
+    if _history.delete(consultation_id):
+        return {"status": "deleted", "id": consultation_id}
+    raise HTTPException(status_code=404, detail="Consultation not found")
+
+
+@app.get("/api/history/search")
+async def history_search(q: str, limit: Optional[int] = None) -> dict:
+    """Search consultations."""
+    results = _history.search(q, limit=limit)
+    return {"consultations": results, "query": q, "count": len(results)}
 
 
 _INDEX_HTML = """

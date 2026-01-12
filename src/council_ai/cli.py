@@ -18,7 +18,9 @@ from rich.table import Table
 
 from . import Council, get_domain, get_persona, list_domains, list_personas
 from .core.config import ConfigManager, get_api_key
+from .core.history import ConsultationHistory
 from .core.persona import Persona, PersonaCategory, PersonaManager
+from .core.session import ConsultationResult
 from .providers import list_providers
 
 console = Console()
@@ -784,6 +786,164 @@ def review(ctx, path, focus, provider, api_key, output):
             pass # Fallback if specific personas missing
 
     reviewer = RepositoryReviewer(council)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# History Commands
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@main.group("history")
+def history_group():
+    """Manage consultation history."""
+    pass
+
+
+@history_group.command("list")
+@click.option("--limit", "-n", type=int, help="Maximum number of results")
+@click.option("--offset", "-o", type=int, default=0, help="Skip N results")
+def history_list(limit, offset):
+    """List saved consultations."""
+    history = ConsultationHistory()
+    consultations = history.list(limit=limit, offset=offset)
+    
+    if not consultations:
+        console.print("[dim]No consultations found.[/dim]")
+        return
+    
+    table = Table(title="Consultation History")
+    table.add_column("ID", style="cyan", width=36)
+    table.add_column("Query", style="white", max_width=50)
+    table.add_column("Mode", style="yellow")
+    table.add_column("Date", style="dim")
+    
+    for cons in consultations:
+        query_preview = cons["query"][:47] + "..." if len(cons["query"]) > 50 else cons["query"]
+        date_str = cons["timestamp"][:10] if cons["timestamp"] else "N/A"
+        table.add_row(
+            cons["id"][:8] + "...",
+            query_preview,
+            cons["mode"],
+            date_str,
+        )
+    
+    console.print(table)
+    console.print(f"\n[dim]Total: {len(consultations)}[/dim]")
+
+
+@history_group.command("show")
+@click.argument("consultation_id")
+@click.option("--format", "-f", type=click.Choice(["markdown", "json"]), default="markdown", help="Output format")
+def history_show(consultation_id, format):
+    """Show a specific consultation."""
+    history = ConsultationHistory()
+    data = history.load(consultation_id)
+    
+    if not data:
+        console.print(f"[red]Consultation '{consultation_id}' not found.[/red]")
+        sys.exit(1)
+    
+    # Reconstruct ConsultationResult
+    result = ConsultationResult.from_dict(data)
+    
+    if format == "json":
+        import json
+        console.print(json.dumps(result.to_dict(), indent=2))
+    else:
+        console.print()
+        console.print(Markdown(result.to_markdown()))
+
+
+@history_group.command("search")
+@click.argument("query")
+@click.option("--limit", "-n", type=int, help="Maximum number of results")
+def history_search(query, limit):
+    """Search consultations."""
+    history = ConsultationHistory()
+    results = history.search(query, limit=limit)
+    
+    if not results:
+        console.print(f"[dim]No consultations found matching '{query}'.[/dim]")
+        return
+    
+    table = Table(title=f"Search Results: '{query}'")
+    table.add_column("ID", style="cyan", width=36)
+    table.add_column("Query", style="white", max_width=50)
+    table.add_column("Mode", style="yellow")
+    table.add_column("Date", style="dim")
+    
+    for cons in results:
+        query_preview = cons["query"][:47] + "..." if len(cons["query"]) > 50 else cons["query"]
+        date_str = cons["timestamp"][:10] if cons["timestamp"] else "N/A"
+        table.add_row(
+            cons["id"][:8] + "...",
+            query_preview,
+            cons["mode"],
+            date_str,
+        )
+    
+    console.print(table)
+    console.print(f"\n[dim]Found: {len(results)}[/dim]")
+
+
+@history_group.command("export")
+@click.argument("consultation_id")
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--format", "-f", type=click.Choice(["markdown", "json"]), default="markdown", help="Export format")
+def history_export(consultation_id, output, format):
+    """Export a consultation to a file."""
+    history = ConsultationHistory()
+    data = history.load(consultation_id)
+    
+    if not data:
+        console.print(f"[red]Consultation '{consultation_id}' not found.[/red]")
+        sys.exit(1)
+    
+    result = ConsultationResult.from_dict(data)
+    
+    if format == "json":
+        import json
+        content = json.dumps(result.to_dict(), indent=2, ensure_ascii=False)
+        ext = "json"
+    else:
+        content = result.to_markdown()
+        ext = "md"
+    
+    if output:
+        output_path = Path(output)
+    else:
+        # Generate filename from query
+        safe_query = "".join(c if c.isalnum() or c in (" ", "-", "_") else "" for c in result.query[:30])
+        safe_query = safe_query.replace(" ", "_").lower()
+        output_path = Path(f"consultation_{consultation_id[:8]}_{safe_query}.{ext}")
+    
+    output_path.write_text(content, encoding="utf-8")
+    console.print(f"[green]✓[/green] Exported to {output_path}")
+
+
+@history_group.command("delete")
+@click.argument("consultation_id")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation")
+def history_delete(consultation_id, yes):
+    """Delete a consultation."""
+    history = ConsultationHistory()
+    data = history.load(consultation_id)
+    
+    if not data:
+        console.print(f"[red]Consultation '{consultation_id}' not found.[/red]")
+        sys.exit(1)
+    
+    if not yes:
+        query_preview = data["query"][:50] + "..." if len(data["query"]) > 50 else data["query"]
+        if not Confirm.ask(f"Delete consultation: {query_preview}?"):
+            console.print("[dim]Cancelled.[/dim]")
+            return
+    
+    if history.delete(consultation_id):
+        console.print(f"[green]✓[/green] Deleted consultation '{consultation_id}'")
+    else:
+        console.print(f"[red]Failed to delete consultation '{consultation_id}'[/red]")
+        sys.exit(1)
 
     with console.status(f"[bold green]Scanning {path}...[/bold green]"):
         context = reviewer.gather_context(Path(path))
