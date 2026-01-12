@@ -136,10 +136,10 @@ class Council:
     def _get_provider(self, fallback: bool = True) -> LLMProvider:
         """
         Get or create the LLM provider.
-        
+
         Args:
             fallback: If True, will try fallback providers if primary fails
-            
+
         Returns:
             LLMProvider instance
         """
@@ -169,6 +169,7 @@ class Council:
                                     base_url=self._base_url,
                                 )
                                 import sys
+
                                 print(
                                     f"Warning: {self._provider_name} provider failed ({str(e)}). "
                                     f"Falling back to {fallback_provider}.",
@@ -319,9 +320,11 @@ class Council:
         structured_synthesis = None
         if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
             # Try structured synthesis if enabled in config
-            if getattr(self.config, 'use_structured_output', False):
+            if getattr(self.config, "use_structured_output", False):
                 try:
-                    structured_synthesis = await self._generate_structured_synthesis(provider, query, context, responses)
+                    structured_synthesis = await self._generate_structured_synthesis(
+                        provider, query, context, responses
+                    )
                     # Convert structured to text for backward compatibility
                     synthesis = self._format_structured_synthesis(structured_synthesis)
                 except Exception:
@@ -354,7 +357,8 @@ class Council:
             except Exception:
                 # Don't fail consultation if history save fails
                 import sys
-                print(f"Warning: Failed to save consultation to history", file=sys.stderr)
+
+                print("Warning: Failed to save consultation to history", file=sys.stderr)
 
         return result
 
@@ -367,7 +371,7 @@ class Council:
     ) -> AsyncIterator[Dict[str, Any]]:
         """
         Stream consultation results as they're generated.
-        
+
         Yields progress updates and response chunks:
         - {"type": "progress", "message": "Consulting Rams..."}
         - {"type": "response_start", "persona_id": "rams", "persona_name": "Dieter Rams"}
@@ -396,22 +400,30 @@ class Council:
         # Get responses based on mode (streaming)
         responses = []
         if mode == ConsultationMode.INDIVIDUAL:
-            async for update in self._consult_individual_stream(provider, active_members, query, context):
+            async for update in self._consult_individual_stream(
+                provider, active_members, query, context
+            ):
                 yield update
                 if update.get("type") == "response_complete":
                     responses.append(update["response"])
         elif mode == ConsultationMode.SEQUENTIAL:
-            async for update in self._consult_sequential_stream(provider, active_members, query, context):
+            async for update in self._consult_sequential_stream(
+                provider, active_members, query, context
+            ):
                 yield update
                 if update.get("type") == "response_complete":
                     responses.append(update["response"])
         elif mode == ConsultationMode.SYNTHESIS:
-            async for update in self._consult_individual_stream(provider, active_members, query, context):
+            async for update in self._consult_individual_stream(
+                provider, active_members, query, context
+            ):
                 yield update
                 if update.get("type") == "response_complete":
                     responses.append(update["response"])
         elif mode == ConsultationMode.DEBATE:
-            async for update in self._consult_debate_stream(provider, active_members, query, context):
+            async for update in self._consult_debate_stream(
+                provider, active_members, query, context
+            ):
                 yield update
                 if update.get("type") == "response_complete":
                     responses.append(update["response"])
@@ -421,7 +433,9 @@ class Council:
                 if update.get("type") == "response_complete":
                     responses.append(update["response"])
         else:
-            async for update in self._consult_individual_stream(provider, active_members, query, context):
+            async for update in self._consult_individual_stream(
+                provider, active_members, query, context
+            ):
                 yield update
                 if update.get("type") == "response_complete":
                     responses.append(update["response"])
@@ -607,7 +621,7 @@ REASONING: [your reasoning]
             "persona_name": member.name,
             "persona_emoji": member.emoji,
         }
-        
+
         system_prompt = member.get_system_prompt()
         user_prompt = member.format_response_prompt(query, context)
 
@@ -625,7 +639,7 @@ REASONING: [your reasoning]
                     "persona_id": member.id,
                     "content": chunk,
                 }
-            
+
             content = "".join(content_parts)
 
             # Run response hooks
@@ -637,7 +651,7 @@ REASONING: [your reasoning]
                 content=content,
                 timestamp=datetime.now(),
             )
-            
+
             yield {
                 "type": "response_complete",
                 "persona_id": member.id,
@@ -660,7 +674,7 @@ REASONING: [your reasoning]
                 timestamp=datetime.now(),
                 error=error_msg,
             )
-            
+
             yield {
                 "type": "response_complete",
                 "persona_id": member.id,
@@ -691,13 +705,17 @@ REASONING: [your reasoning]
     ) -> AsyncIterator[Dict[str, Any]]:
         """Get responses sequentially, each seeing previous responses (streaming)."""
         accumulated_context = context or ""
-        
+
         for member in members:
-            async for update in self._get_member_response_stream(provider, member, query, accumulated_context):
+            async for update in self._get_member_response_stream(
+                provider, member, query, accumulated_context
+            ):
                 yield update
                 if update.get("type") == "response_complete":
                     response = update["response"]
-                    accumulated_context += f"\n\n{member.emoji} {member.name} said:\n{response.content}"
+                    accumulated_context += (
+                        f"\n\n{member.emoji} {member.name} said:\n{response.content}"
+                    )
 
     async def _consult_debate_stream(
         self,
@@ -826,7 +844,7 @@ Please synthesize these perspectives in the requested structured format.
 
         # Get JSON schema from SynthesisSchema
         json_schema = SynthesisSchema.model_json_schema()
-        
+
         try:
             structured_data = await provider.complete_structured(
                 system_prompt=synthesis_prompt,
@@ -835,7 +853,7 @@ Please synthesize these perspectives in the requested structured format.
                 max_tokens=self.config.max_tokens_per_response * 2,
                 temperature=0.5,
             )
-            
+
             # Validate and parse
             return SynthesisSchema(**structured_data)
         except Exception:
@@ -846,44 +864,48 @@ Please synthesize these perspectives in the requested structured format.
         """Format structured synthesis as markdown text."""
         if not structured:
             return ""
-        
+
         lines = []
-        
+
         if structured.key_points_of_agreement:
             lines.append("## Key Points of Agreement")
             lines.append("")
             for point in structured.key_points_of_agreement:
                 lines.append(f"- {point}")
             lines.append("")
-        
+
         if structured.key_points_of_tension:
             lines.append("## Key Points of Tension")
             lines.append("")
             for point in structured.key_points_of_tension:
                 lines.append(f"- {point}")
             lines.append("")
-        
+
         if structured.synthesized_recommendation:
             lines.append("## Synthesized Recommendation")
             lines.append("")
             lines.append(structured.synthesized_recommendation)
             lines.append("")
-        
+
         if structured.action_items:
             lines.append("## Action Items")
             lines.append("")
             for item in structured.action_items:
-                priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(item.priority.lower(), "•")
+                priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
+                    item.priority.lower(), "•"
+                )
                 owner_text = f" ({item.owner})" if item.owner else ""
                 due_text = f" - Due: {item.due_date}" if item.due_date else ""
                 lines.append(f"{priority_emoji} {item.description}{owner_text}{due_text}")
             lines.append("")
-        
+
         if structured.recommendations:
             lines.append("## Recommendations")
             lines.append("")
             for rec in structured.recommendations:
-                conf_emoji = {"high": "✓", "medium": "~", "low": "?"}.get(rec.confidence.lower(), "•")
+                conf_emoji = {"high": "✓", "medium": "~", "low": "?"}.get(
+                    rec.confidence.lower(), "•"
+                )
                 lines.append(f"### {conf_emoji} {rec.title}")
                 lines.append(f"*Confidence: {rec.confidence}*")
                 lines.append("")
@@ -891,7 +913,7 @@ Please synthesize these perspectives in the requested structured format.
                 if rec.rationale:
                     lines.append(f"*Rationale: {rec.rationale}*")
                 lines.append("")
-        
+
         if structured.pros_cons:
             lines.append("## Pros and Cons")
             lines.append("")
@@ -908,7 +930,7 @@ Please synthesize these perspectives in the requested structured format.
             if structured.pros_cons.net_assessment:
                 lines.append(f"**Net Assessment:** {structured.pros_cons.net_assessment}")
                 lines.append("")
-        
+
         return "\n".join(lines)
 
     async def _generate_synthesis(

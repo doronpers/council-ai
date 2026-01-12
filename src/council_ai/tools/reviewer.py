@@ -12,14 +12,23 @@ class RepositoryReviewer:
     """Tool for reviewing repositories using Council AI."""
 
     DEFAULT_EXCLUDED_DIRS = {
-        "__pycache__", "node_modules", ".git", ".venv", "venv", ".idea", ".vscode", "build", "dist", ".pytest_cache"
+        "__pycache__",
+        "node_modules",
+        ".git",
+        ".venv",
+        "venv",
+        ".idea",
+        ".vscode",
+        "build",
+        "dist",
+        ".pytest_cache",
     }
 
     def __init__(
         self,
         council: Council,
         max_file_content_length: int = 5000,
-        excluded_dirs: Optional[Set[str]] = None
+        excluded_dirs: Optional[Set[str]] = None,
     ):
         self.council = council
         self.max_file_content_length = max_file_content_length
@@ -36,8 +45,15 @@ class RepositoryReviewer:
 
         # Identify key files heuristically
         key_file_patterns = [
-            "README.md", "pyproject.toml", "requirements.txt", "package.json",
-            "setup.py", "Cargo.toml", "go.mod", "Makefile", "Dockerfile"
+            "README.md",
+            "pyproject.toml",
+            "requirements.txt",
+            "package.json",
+            "setup.py",
+            "Cargo.toml",
+            "go.mod",
+            "Makefile",
+            "Dockerfile",
         ]
 
         # Add src/main files if they exist
@@ -53,14 +69,17 @@ class RepositoryReviewer:
         # In a real tool this would be smarter, but this is a good start
         source_extensions = {".py", ".js", ".ts", ".rs", ".go", ".c", ".cpp", ".java"}
         source_files = [
-            f for f in repo_files
-            if f.is_file() and f.suffix in source_extensions and not any(p in f.parts for p in self.excluded_dirs)
+            f
+            for f in repo_files
+            if f.is_file()
+            and f.suffix in source_extensions
+            and not any(p in f.parts for p in self.excluded_dirs)
         ]
 
         # specific focus on critical logic (often init or core files)
         for f in source_files:
             if f.name == "__init__.py" or "core" in f.parts or "main" in f.name:
-                 if len(context["key_files"]) < 10: # Limit total context files
+                if len(context["key_files"]) < 10:  # Limit total context files
                     self._add_file_to_context(f, repo_root, context)
 
         # Structure
@@ -78,16 +97,15 @@ class RepositoryReviewer:
 
             content = file_path.read_text(encoding="utf-8")
             if len(content) > self.max_file_content_length:
-                content = content[:self.max_file_content_length] + "\n... (truncated)"
+                content = content[: self.max_file_content_length] + "\n... (truncated)"
 
-            context["key_files"].append({
-                "path": rel_path,
-                "content": content
-            })
+            context["key_files"].append({"path": rel_path, "content": content})
         except Exception:
             pass  # Skip unreadable files
 
-    def _list_directory_structure(self, path: Path, max_depth: int = 1, current_depth: int = 0) -> Any:
+    def _list_directory_structure(
+        self, path: Path, max_depth: int = 1, current_depth: int = 0
+    ) -> Any:
         """List directory structure recursively."""
         if current_depth >= max_depth:
             return []

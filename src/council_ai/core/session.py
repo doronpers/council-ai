@@ -62,31 +62,51 @@ class ConsultationResult:
             "synthesis": self.synthesis,
             "tags": self.tags,
             "notes": self.notes,
-            "structured_synthesis": self.structured_synthesis.model_dump() if self.structured_synthesis and hasattr(self.structured_synthesis, "model_dump") else (self.structured_synthesis if self.structured_synthesis else None),
-            "action_items": [item.model_dump() if hasattr(item, "model_dump") else item for item in self.action_items],
-            "recommendations": [rec.model_dump() if hasattr(rec, "model_dump") else rec for rec in self.recommendations],
-            "pros_cons": self.pros_cons.model_dump() if self.pros_cons and hasattr(self.pros_cons, "model_dump") else (self.pros_cons if self.pros_cons else None),
+            "structured_synthesis": (
+                self.structured_synthesis.model_dump()
+                if self.structured_synthesis and hasattr(self.structured_synthesis, "model_dump")
+                else (self.structured_synthesis if self.structured_synthesis else None)
+            ),
+            "action_items": [
+                item.model_dump() if hasattr(item, "model_dump") else item
+                for item in self.action_items
+            ],
+            "recommendations": [
+                rec.model_dump() if hasattr(rec, "model_dump") else rec
+                for rec in self.recommendations
+            ],
+            "pros_cons": (
+                self.pros_cons.model_dump()
+                if self.pros_cons and hasattr(self.pros_cons, "model_dump")
+                else (self.pros_cons if self.pros_cons else None)
+            ),
         }
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ConsultationResult":
         """Create ConsultationResult from dictionary."""
         from datetime import datetime
-        
+
         # Reconstruct MemberResponse objects
         responses = []
         for r_data in data.get("responses", []):
             from .persona import get_persona
+
             persona = get_persona(r_data.get("persona_id", ""))
             if persona:
                 from .session import MemberResponse
-                responses.append(MemberResponse(
-                    persona=persona,
-                    content=r_data.get("content", ""),
-                    timestamp=datetime.fromisoformat(r_data.get("timestamp", datetime.now().isoformat())),
-                    error=r_data.get("error"),
-                ))
-        
+
+                responses.append(
+                    MemberResponse(
+                        persona=persona,
+                        content=r_data.get("content", ""),
+                        timestamp=datetime.fromisoformat(
+                            r_data.get("timestamp", datetime.now().isoformat())
+                        ),
+                        error=r_data.get("error"),
+                    )
+                )
+
         return cls(
             id=data.get("id"),
             query=data["query"],
@@ -127,6 +147,7 @@ class ConsultationResult:
         # Use structured synthesis if available, otherwise use free-form
         if self.structured_synthesis:
             from .schemas import SynthesisSchema
+
             if isinstance(self.structured_synthesis, SynthesisSchema):
                 # Format structured synthesis nicely
                 if self.structured_synthesis.key_points_of_agreement:
@@ -135,35 +156,39 @@ class ConsultationResult:
                     for point in self.structured_synthesis.key_points_of_agreement:
                         lines.append(f"- {point}")
                     lines.append("")
-                
+
                 if self.structured_synthesis.key_points_of_tension:
                     lines.append("## Key Points of Tension")
                     lines.append("")
                     for point in self.structured_synthesis.key_points_of_tension:
                         lines.append(f"- {point}")
                     lines.append("")
-                
+
                 if self.structured_synthesis.synthesized_recommendation:
                     lines.append("## Synthesized Recommendation")
                     lines.append("")
                     lines.append(self.structured_synthesis.synthesized_recommendation)
                     lines.append("")
-                
+
                 if self.structured_synthesis.action_items:
                     lines.append("## Action Items")
                     lines.append("")
                     for item in self.structured_synthesis.action_items:
-                        priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(item.priority.lower(), "•")
+                        priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
+                            item.priority.lower(), "•"
+                        )
                         owner_text = f" ({item.owner})" if item.owner else ""
                         due_text = f" - Due: {item.due_date}" if item.due_date else ""
                         lines.append(f"{priority_emoji} {item.description}{owner_text}{due_text}")
                     lines.append("")
-                
+
                 if self.structured_synthesis.recommendations:
                     lines.append("## Recommendations")
                     lines.append("")
                     for rec in self.structured_synthesis.recommendations:
-                        conf_emoji = {"high": "✓", "medium": "~", "low": "?"}.get(rec.confidence.lower(), "•")
+                        conf_emoji = {"high": "✓", "medium": "~", "low": "?"}.get(
+                            rec.confidence.lower(), "•"
+                        )
                         lines.append(f"### {conf_emoji} {rec.title}")
                         lines.append(f"*Confidence: {rec.confidence}*")
                         lines.append("")
@@ -171,7 +196,7 @@ class ConsultationResult:
                         if rec.rationale:
                             lines.append(f"*Rationale: {rec.rationale}*")
                         lines.append("")
-                
+
                 if self.structured_synthesis.pros_cons:
                     lines.append("## Pros and Cons")
                     lines.append("")
@@ -186,7 +211,9 @@ class ConsultationResult:
                             lines.append(f"- {con}")
                         lines.append("")
                     if self.structured_synthesis.pros_cons.net_assessment:
-                        lines.append(f"**Net Assessment:** {self.structured_synthesis.pros_cons.net_assessment}")
+                        lines.append(
+                            f"**Net Assessment:** {self.structured_synthesis.pros_cons.net_assessment}"
+                        )
                         lines.append("")
         elif self.synthesis:
             lines.extend(

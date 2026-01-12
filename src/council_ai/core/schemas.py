@@ -44,12 +44,8 @@ class SynthesisSchema(BaseModel):
     key_points_of_tension: List[str] = Field(
         default_factory=list, description="Where advisors disagree or see different risks"
     )
-    synthesized_recommendation: str = Field(
-        ..., description="The balanced path forward"
-    )
-    action_items: List[ActionItem] = Field(
-        default_factory=list, description="Concrete next steps"
-    )
+    synthesized_recommendation: str = Field(..., description="The balanced path forward")
+    action_items: List[ActionItem] = Field(default_factory=list, description="Concrete next steps")
     recommendations: List[Recommendation] = Field(
         default_factory=list, description="Specific recommendations"
     )
