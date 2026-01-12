@@ -298,7 +298,7 @@ def consult(
                 try:
                     council.add_member(member_id)
                 except ValueError as e:
-                    console.print(f"[yellow]Warning:[/yellow] {e}", file=sys.stderr)
+                    console.print(f"[yellow]Warning:[/yellow] {e}")
         else:
             council = Council.for_domain(
                 domain,
@@ -311,7 +311,7 @@ def consult(
         try:
             result = council.consult(query, context=context, mode=mode_enum)
         except Exception as e:
-            console.print(f"[red]Error:[/red] {e}", file=sys.stderr)
+            console.print(f"[red]Error:[/red] {e}")
             sys.exit(1)
     else:
         # Show progress with spinner for interactive mode
@@ -330,7 +330,7 @@ def consult(
                     try:
                         council.add_member(member_id)
                     except ValueError as e:
-                        console.print(f"[yellow]Warning:[/yellow] {e}", file=sys.stderr)
+                        console.print(f"[yellow]Warning:[/yellow] {e}")
             else:
                 council = Council.for_domain(
                     domain,
