@@ -1061,6 +1061,7 @@ Please synthesize these perspectives.
     def clear_history(self) -> None:
         """Clear session history."""
         self._sessions.clear()
+        self._current_session = None
 
     def list_history(self, limit: Optional[int] = None, offset: int = 0) -> List[Dict[str, Any]]:
         """List saved consultations from history."""
@@ -1079,7 +1080,6 @@ Please synthesize these perspectives.
         if not self._history:
             return []
         return self._history.search(query, limit=limit)
-        self._current_session = None
 
     # ═══════════════════════════════════════════════════════════════════════════
     # Hooks & Extensibility
