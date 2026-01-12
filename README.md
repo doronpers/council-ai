@@ -95,12 +95,42 @@ pip install -e ".[dev]"
 
 ### Set Your API Key
 
+**Option 1: Using a `.env` file (Recommended)**
+
+Create a `.env` file in your project root:
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and add your API keys
+ANTHROPIC_API_KEY=your-anthropic-key-here
+OPENAI_API_KEY=your-openai-key-here
+GEMINI_API_KEY=your-gemini-key-here
+```
+
+The `.env` file is automatically loaded when you import `council_ai`. It's already in `.gitignore`, so it won't be committed.
+
+**Option 2: Environment Variables**
+
 ```bash
 # Choose your provider
 export ANTHROPIC_API_KEY="your-key"    # For Claude
 export OPENAI_API_KEY="your-key"       # For GPT-4
 export GEMINI_API_KEY="your-key"       # For Gemini
 ```
+
+**Option 3: Config File**
+
+```bash
+council config set api.api_key your-key
+```
+
+**Priority Order:**
+1. CLI flags (`--api-key`)
+2. Environment variables
+3. `.env` file (auto-loaded)
+4. Config file (`~/.config/council-ai/config.yaml`)
 
 ### CLI Usage
 

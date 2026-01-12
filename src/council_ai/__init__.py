@@ -15,11 +15,21 @@ Features:
     - Multiple consultation modes
     - Full customization support
     - CLI and Python API
+
+API Keys:
+    Council AI automatically loads API keys from:
+    1. .env file in project root (recommended)
+    2. Environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)
+    3. Config file (~/.config/council-ai/config.yaml)
+    4. CLI flags (--api-key)
 """
 
 __version__ = "1.0.0"
 __author__ = "Doron Reizes"
 __license__ = "MIT"
+
+# Import config module to trigger .env loading
+from .core import config  # noqa: F401
 
 # Core classes
 from .core.council import ConsultationMode, Council, CouncilConfig

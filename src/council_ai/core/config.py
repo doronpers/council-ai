@@ -11,6 +11,29 @@ from typing import Any, Dict, Optional
 import yaml
 from pydantic import BaseModel, Field
 
+# Load .env file automatically if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+
+    # Load .env from project root (wherever the package is installed/run from)
+    # Try multiple common locations
+    _env_loaded = False
+    for env_path in [
+        Path.cwd() / ".env",  # Current working directory
+        Path(__file__).parent.parent.parent.parent / ".env",  # Project root (if running from repo)
+        Path.home() / ".council-ai" / ".env",  # User home directory
+    ]:
+        if env_path.exists():
+            load_dotenv(env_path, override=False)  # Don't override existing env vars
+            _env_loaded = True
+            break
+    # Also try loading from current directory as fallback
+    if not _env_loaded:
+        load_dotenv(override=False)
+except ImportError:
+    # python-dotenv not installed, skip .env loading
+    pass
+
 
 class APIConfig(BaseModel):
     """API configuration."""
