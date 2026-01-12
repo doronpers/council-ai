@@ -807,4 +807,19 @@ REASONING: [your reasoning]
         context: Optional[str],
     ) -> AsyncIterator[Dict[str, Any]]:
         """Vote mode with streaming."""
-        vote_query = f"{query}\n\nPlease vote: YES, NO, or ABST
+        vote_query = f"""
+{query}
+
+Please provide:
+1. Your VOTE: APPROVE / REJECT / ABSTAIN
+2. Your CONFIDENCE: HIGH / MEDIUM / LOW
+3. Brief reasoning (2-3 sentences)
+
+Format your response as:
+VOTE: [your vote]
+CONFIDENCE: [your confidence]
+REASONING: [your reasoning]
+"""
+        # Stream individual votes
+        async for update in self._consult_individual_stream(provider, members, vote_query, context):
+            yield update
