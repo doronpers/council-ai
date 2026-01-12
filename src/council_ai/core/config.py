@@ -41,9 +41,25 @@ class ConfigManager:
         if config_path:
             self.path = Path(config_path)
         else:
-            config_dir = Path.home() / ".config" / "council-ai"
-            config_dir.mkdir(parents=True, exist_ok=True)
-            self.path = config_dir / "config.yaml"
+            options = [
+                os.environ.get("COUNCIL_CONFIG_DIR"),
+                Path.home() / ".config" / "council-ai",
+                Path("/tmp/council-ai"),
+            ]
+
+            for option in options:
+                if not option:
+                    continue
+                path = Path(option)
+                try:
+                    path.mkdir(parents=True, exist_ok=True)
+                    self.path = path / "config.yaml"
+                    break
+                except OSError:
+                    continue
+            else:
+                # Fallback if no paths are writable
+                self.path = Path("config.yaml")  # Dummy path
 
         self.config = self._load()
 
@@ -56,24 +72,28 @@ class ConfigManager:
                 return Config(**data)
             except Exception as e:
                 import sys
+
                 print(f"Warning: Failed to load config from {self.path}: {e}", file=sys.stderr)
                 return Config()
         return Config()
 
     def save(self) -> None:
         """Save configuration to file."""
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.path, "w", encoding="utf-8") as f:
-            yaml.dump(
-                self.config.model_dump(exclude_none=True),
-                f,
-                default_flow_style=False,
-                sort_keys=False,
-            )
         try:
-            os.chmod(self.path, 0o600)
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.path, "w", encoding="utf-8") as f:
+                yaml.dump(
+                    self.config.model_dump(exclude_none=True),
+                    f,
+                    default_flow_style=False,
+                    sort_keys=False,
+                )
+            try:
+                os.chmod(self.path, 0o600)
+            except OSError:
+                pass
         except OSError:
-            pass
+            pass  # Silently fail if we can't save
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value by dot-notation key."""

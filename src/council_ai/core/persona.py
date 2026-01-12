@@ -246,6 +246,7 @@ class PersonaManager:
                     self._personas[persona.id] = persona
                 except Exception as e:
                     import sys
+
                     print(f"Warning: Failed to load {yaml_file}: {e}", file=sys.stderr)
 
     def _load_custom_personas(self) -> None:
@@ -260,6 +261,7 @@ class PersonaManager:
                         self._personas[persona.id] = persona
                     except Exception as e:
                         import sys
+
                         print(f"Warning: Failed to load {yaml_file}: {e}", file=sys.stderr)
 
     def get(self, persona_id: str) -> Optional[Persona]:

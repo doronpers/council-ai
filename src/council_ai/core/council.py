@@ -214,7 +214,7 @@ class Council:
             ConsultationResult with individual responses and synthesis
         """
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             # If we're in an async context, we need to run in a thread
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(
