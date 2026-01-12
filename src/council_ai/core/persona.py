@@ -57,6 +57,8 @@ class Persona(BaseModel):
         focus_areas: Areas of expertise or concern
         prompt_prefix: Custom prefix for LLM prompts
         prompt_suffix: Custom suffix for LLM prompts
+        model: Optional model override for this persona
+        model_params: Model parameter overrides (temperature, max_tokens)
         weight: Influence weight in council decisions (0.0-2.0)
         enabled: Whether this persona is active
         metadata: Additional custom data
@@ -77,6 +79,9 @@ class Persona(BaseModel):
     prompt_prefix: Optional[str] = None
     prompt_suffix: Optional[str] = None
     system_prompt_override: Optional[str] = None
+
+    model: Optional[str] = None
+    model_params: Dict[str, Any] = Field(default_factory=dict)
 
     weight: float = Field(default=1.0, ge=0.0, le=2.0)
     enabled: bool = True

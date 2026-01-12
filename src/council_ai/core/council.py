@@ -15,7 +15,12 @@ from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Union
 
 from pydantic import BaseModel
 
-from ..providers import LLMProvider, get_provider
+from ..providers import (
+    LLMProvider,
+    get_provider,
+    normalize_model_params,
+    validate_model_params,
+)
 from .config import get_api_key
 from .persona import Persona, PersonaManager, get_persona_manager
 from .schemas import SynthesisSchema
@@ -94,6 +99,7 @@ class Council:
         self._api_key = api_key
         self._model = model
         self._base_url = base_url
+        self._provider_cache: Dict[tuple[str, Optional[str], Optional[str]], LLMProvider] = {}
         self._sessions: List[Session] = []
         self._current_session: Optional[Session] = None
         self._history = history
@@ -189,6 +195,31 @@ class Council:
                 else:
                     raise
         return self._provider
+
+    def _get_member_provider(self, member: Persona, default_provider: LLMProvider) -> LLMProvider:
+        """Get or create a provider for a specific member's model override."""
+        if not member.model or member.model == self._model:
+            return default_provider
+
+        cache_key = (self._provider_name, member.model, self._base_url)
+        if cache_key not in self._provider_cache:
+            self._provider_cache[cache_key] = get_provider(
+                self._provider_name,
+                api_key=self._api_key,
+                model=member.model,
+                base_url=self._base_url,
+            )
+        return self._provider_cache[cache_key]
+
+    def _resolve_member_generation_params(self, member: Persona) -> Dict[str, Any]:
+        """Resolve per-member generation parameters."""
+        overrides = normalize_model_params(member.model_params)
+        params = {
+            "temperature": overrides.get("temperature", self.config.temperature),
+            "max_tokens": overrides.get("max_tokens", self.config.max_tokens_per_response),
+        }
+        validate_model_params(params)
+        return params
 
     # ═══════════════════════════════════════════════════════════════════════════
     # Member Management
@@ -582,11 +613,13 @@ REASONING: [your reasoning]
         user_prompt = member.format_response_prompt(query, context)
 
         try:
-            content = await provider.complete(
+            member_provider = self._get_member_provider(member, provider)
+            params = self._resolve_member_generation_params(member)
+            content = await member_provider.complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                max_tokens=self.config.max_tokens_per_response,
-                temperature=self.config.temperature,
+                max_tokens=params["max_tokens"],
+                temperature=params["temperature"],
             )
 
             # Run response hooks
@@ -636,12 +669,14 @@ REASONING: [your reasoning]
         user_prompt = member.format_response_prompt(query, context)
 
         try:
+            member_provider = self._get_member_provider(member, provider)
+            params = self._resolve_member_generation_params(member)
             content_parts = []
-            async for chunk in provider.stream_complete(
+            async for chunk in member_provider.stream_complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                max_tokens=self.config.max_tokens_per_response,
-                temperature=self.config.temperature,
+                max_tokens=params["max_tokens"],
+                temperature=params["temperature"],
             ):
                 content_parts.append(chunk)
                 yield {
