@@ -25,6 +25,7 @@ from ..providers import (
 )
 from .config import get_api_key
 from .persona import Persona, PersonaManager, get_persona_manager
+from .schemas import SynthesisSchema
 from .session import ConsultationResult, MemberResponse, Session
 
 logger = logging.getLogger(__name__)
@@ -282,10 +283,10 @@ class Council:
     def _get_active_members(self, member_ids: Optional[List[str]] = None) -> List[Persona]:
         """
         Get active members for a consultation.
-        
+
         Args:
             member_ids: Optional list of member IDs to use. If None, uses all enabled members.
-            
+
         Returns:
             List of Persona objects to consult
         """
@@ -961,8 +962,16 @@ Please synthesize these perspectives into a cohesive summary.
     ) -> Optional[Dict[str, Any]]:
         """
         Generate a structured synthesis using the provider's structured output capability.
-        
-        Returns None if the provider doesn't support structured output or if it fails.
+
+        Args:
+            provider: LLM provider instance
+            query: Original consultation query
+            context: Optional context for the consultation
+            responses: List of member responses to synthesize
+
+        Returns:
+            Optional[Dict[str, Any]]: Structured synthesis dictionary, or None if provider
+                doesn't support structured output or if it fails.
         """
         # Check if provider supports structured output
         if not hasattr(provider, "complete_structured"):
@@ -991,9 +1000,6 @@ Council Responses:
 
 Please synthesize these perspectives into a structured summary.
 """
-
-        # Define JSON schema for structured output
-        from .schemas import SynthesisSchema
 
         try:
             result = await provider.complete_structured(

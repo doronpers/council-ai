@@ -330,7 +330,7 @@ def consult(
                     try:
                         council.add_member(member_id)
                     except ValueError as e:
-                        console.print(f"[yellow]Warning:[/yellow] {e}")
+                        console.print(f"[yellow]Warning:[/yellow] {e}", file=sys.stderr)
             else:
                 council = Council.for_domain(
                     domain,
