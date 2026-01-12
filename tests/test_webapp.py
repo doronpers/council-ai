@@ -18,8 +18,8 @@ def test_info_endpoint():
     assert "personas" in payload
 
 
-
 from unittest.mock import patch
+
 
 def test_consult_requires_api_key():
     with patch("council_ai.webapp.app.get_api_key", return_value=None):
@@ -29,4 +29,3 @@ def test_consult_requires_api_key():
             json={"query": "Hello", "mode": "synthesis", "provider": "openai"},
         )
         assert response.status_code == 400
-

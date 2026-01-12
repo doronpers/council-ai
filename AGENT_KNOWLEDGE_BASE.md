@@ -72,7 +72,7 @@ pytest --cov=council_ai
 
 ## 3. Project Architecture
 
-```
+```text
 council-ai/
 ├── src/council_ai/
 │   ├── __init__.py        # Public API exports
@@ -142,7 +142,7 @@ council-ai/
 ## 6. Quick Reference
 
 | Task | Command |
-|------|---------|
+| :--- | :--- |
 | Install (dev) | `pip install -e ".[dev]"` |
 | Format | `black src/` |
 | Lint | `ruff check src/` |
