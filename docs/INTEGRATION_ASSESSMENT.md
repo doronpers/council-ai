@@ -193,7 +193,7 @@ def get_test_strategy(failure_info):
 - Contains proprietary persona definitions (doesn't currently)
 - Has custom LLM training data (doesn't have any)
 
-### Recommendation: Keep PUBLIC
+### Council AI Recommendation: Keep PUBLIC
 
 ---
 
@@ -218,7 +218,7 @@ def get_test_strategy(failure_info):
 3. **Monetization Strategy** - Plan to sell as enterprise tool
    - Solution: Open core model (public basic, paid enterprise features)
 
-### Recommendation: Keep PUBLIC
+### Feedback-Loop Recommendation: Keep PUBLIC
 
 ---
 

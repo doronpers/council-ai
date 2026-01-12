@@ -7,6 +7,7 @@ You are an AI coding assistant working on the **Council AI** repository.
 Before starting any task, you MUST read and follow: `AGENT_KNOWLEDGE_BASE.md` in the repository root.
 
 This file contains:
+
 - Prime directives (non-negotiable rules)
 - Coding standards (black, ruff, type hints)
 - Project architecture
