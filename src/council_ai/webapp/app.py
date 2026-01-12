@@ -226,6 +226,9 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    # Enable history for auto-save
+    council._history = _history
+
     async def generate_stream():
         try:
             async for update in council.consult_stream(
