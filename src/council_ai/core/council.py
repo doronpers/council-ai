@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 from pydantic import BaseModel
 
 from ..providers import LLMProvider, get_provider
+from .config import get_api_key
 from .persona import Persona, PersonaManager, get_persona_manager
 from .session import ConsultationResult, MemberResponse, Session
 
@@ -126,15 +127,60 @@ class Council:
 
         return council
 
-    def _get_provider(self) -> LLMProvider:
-        """Get or create the LLM provider."""
+    def _get_provider(self, fallback: bool = True) -> LLMProvider:
+        """
+        Get or create the LLM provider.
+        
+        Args:
+            fallback: If True, will try fallback providers if primary fails
+            
+        Returns:
+            LLMProvider instance
+        """
         if self._provider is None:
-            self._provider = get_provider(
-                self._provider_name,
-                api_key=self._api_key,
-                model=self._model,
-                base_url=self._base_url,
-            )
+            try:
+                self._provider = get_provider(
+                    self._provider_name,
+                    api_key=self._api_key,
+                    model=self._model,
+                    base_url=self._base_url,
+                )
+            except (ValueError, ImportError) as e:
+                if fallback:
+                    # Try fallback providers in order: anthropic, gemini, openai
+                    fallback_order = ["anthropic", "gemini", "openai"]
+                    fallback_order = [p for p in fallback_order if p != self._provider_name]
+
+                    last_error = e
+                    for fallback_provider in fallback_order:
+                        fallback_key = get_api_key(fallback_provider)
+                        if fallback_key:
+                            try:
+                                self._provider = get_provider(
+                                    fallback_provider,
+                                    api_key=fallback_key,
+                                    model=self._model,
+                                    base_url=self._base_url,
+                                )
+                                import sys
+                                print(
+                                    f"Warning: {self._provider_name} provider failed ({str(e)}). "
+                                    f"Falling back to {fallback_provider}.",
+                                    file=sys.stderr,
+                                )
+                                self._provider_name = fallback_provider
+                                break
+                            except Exception:
+                                continue
+
+                    if self._provider is None:
+                        raise ValueError(
+                            f"Primary provider '{self._provider_name}' failed: {str(last_error)}. "
+                            f"No fallback providers available. Please check your API keys. "
+                            f"Run 'council providers --diagnose' for troubleshooting."
+                        ) from last_error
+                else:
+                    raise
         return self._provider
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -234,7 +280,7 @@ class Council:
     ) -> ConsultationResult:
         """Async version of consult."""
         mode = mode or self.config.mode
-        provider = self._get_provider()
+        provider = self._get_provider(fallback=True)
 
         # Get active members
         active_members = self._get_active_members(members)
@@ -402,11 +448,22 @@ REASONING: [your reasoning]
                 timestamp=datetime.now(),
             )
         except Exception as e:
+            error_msg = str(e)
+            # Provide more helpful error messages
+            if "API key" in error_msg or "authentication" in error_msg.lower():
+                error_msg = (
+                    f"API authentication failed: {error_msg}. "
+                    f"Please check your API key for provider '{self._provider_name}'. "
+                    f"Council AI will try fallback providers if available."
+                )
+            elif "rate limit" in error_msg.lower():
+                error_msg = f"Rate limit exceeded: {error_msg}. Please try again later."
+            
             return MemberResponse(
                 persona=member,
-                content=f"[Error getting response: {str(e)}]",
+                content=f"[Error getting response: {error_msg}]",
                 timestamp=datetime.now(),
-                error=str(e),
+                error=error_msg,
             )
 
     async def _generate_synthesis(

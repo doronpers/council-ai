@@ -178,6 +178,12 @@ def get_api_key(provider: str = "anthropic") -> Optional[str]:
     if env_key:
         return env_key
 
+    # Special handling for Vercel AI Gateway (OpenAI-compatible)
+    if provider == "openai" or provider == "vercel":
+        gateway_key = os.environ.get("AI_GATEWAY_API_KEY")
+        if gateway_key:
+            return gateway_key
+
     # Try generic env var
     env_key = os.environ.get("COUNCIL_API_KEY")
     if env_key:
@@ -189,3 +195,17 @@ def get_api_key(provider: str = "anthropic") -> Optional[str]:
         return config.api.api_key
     except Exception:
         return None
+
+
+def get_available_providers() -> list[tuple[str, Optional[str]]]:
+    """
+    Get list of available providers with their API keys.
+    
+    Returns:
+        List of (provider_name, api_key) tuples. api_key is None if not available.
+    """
+    providers = []
+    for provider_name in ["openai", "anthropic", "gemini"]:
+        key = get_api_key(provider_name)
+        providers.append((provider_name, key))
+    return providers

@@ -583,10 +583,53 @@ def config_get(ctx, key):
 
 
 @main.command("providers")
-def show_providers():
+@click.option("--diagnose", "-d", is_flag=True, help="Show detailed API key diagnostics")
+def show_providers(diagnose):
     """List available LLM providers."""
     providers = list_providers()
 
+    if diagnose:
+        from .core.diagnostics import diagnose_api_keys
+        
+        diagnostics = diagnose_api_keys()
+        
+        console.print("\n[bold]API Key Diagnostics[/bold]")
+        console.print("=" * 60)
+        
+        # Show provider status
+        table = Table(title="Provider Status")
+        table.add_column("Provider", style="cyan")
+        table.add_column("Has Key", style="green")
+        table.add_column("Details")
+        
+        for provider, status in diagnostics["provider_status"].items():
+            has_key = status.get("has_key", False)
+            details = []
+            if has_key:
+                details.append(f"Length: {status.get('key_length', '?')}")
+                if "key_prefix" in status:
+                    details.append(f"Prefix: {status['key_prefix']}")
+            else:
+                details.append(f"Set: {status.get('env_var', 'N/A')}")
+            if "note" in status:
+                details.append(status["note"])
+            
+            table.add_row(
+                provider.upper(),
+                "[green]✓[/green]" if has_key else "[red]✗[/red]",
+                ", ".join(details) if details else "N/A"
+            )
+        
+        console.print(table)
+        
+        # Show recommendations
+        if diagnostics["recommendations"]:
+            console.print("\n[bold]Recommendations:[/bold]")
+            for rec in diagnostics["recommendations"]:
+                console.print(f"  • {rec}")
+        
+        console.print()
+    
     table = Table(title="Available LLM Providers")
     table.add_column("Name", style="cyan")
     table.add_column("Env Variable")
@@ -594,14 +637,49 @@ def show_providers():
 
     for name in providers:
         env_var = f"{name.upper()}_API_KEY"
-        has_key = bool(os.environ.get(env_var) or os.environ.get("COUNCIL_API_KEY"))
+        # Check for Vercel AI Gateway for OpenAI
+        if name == "openai":
+            has_key = bool(
+                os.environ.get(env_var)
+                or os.environ.get("AI_GATEWAY_API_KEY")
+                or os.environ.get("COUNCIL_API_KEY")
+            )
+        else:
+            has_key = bool(os.environ.get(env_var) or os.environ.get("COUNCIL_API_KEY"))
         status = "[green]✓ Configured[/green]" if has_key else "[dim]Not configured[/dim]"
         table.add_row(name, env_var, status)
+    
+    # Add Vercel AI Gateway info
+    if os.environ.get("AI_GATEWAY_API_KEY"):
+        table.add_row("vercel", "AI_GATEWAY_API_KEY", "[green]✓ Configured[/green]")
 
     console.print(table)
     console.print(
-        "\n[dim]Set API key via environment variable or 'council config set api.api_key'[/dim]"
+        "\n[dim]Set API key via .env file, environment variable, or 'council config set api.api_key'[/dim]"
     )
+    if not diagnose:
+        console.print("[dim]Use --diagnose for detailed API key diagnostics[/dim]")
+
+
+@main.command("test-key")
+@click.option("--provider", "-p", default="openai", help="Provider to test")
+@click.option("--api-key", "-k", help="API key to test (uses env/config if not provided)")
+def test_key(provider: str, api_key: Optional[str]):
+    """Test if an API key works for a provider."""
+    from .core.diagnostics import test_api_key
+    
+    success, message = test_api_key(provider, api_key)
+    
+    if success:
+        console.print(f"[green]✓[/green] {message}")
+    else:
+        console.print(f"[red]✗[/red] {message}")
+        console.print("\n[yellow]Troubleshooting:[/yellow]")
+        console.print("  1. Verify the API key is correct and not expired")
+        console.print("  2. Check the key has proper permissions")
+        console.print("  3. For OpenAI, ensure the key starts with 'sk-'")
+        console.print("  4. Run 'council providers --diagnose' for detailed diagnostics")
+        sys.exit(1)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

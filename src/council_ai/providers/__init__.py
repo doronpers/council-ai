@@ -86,7 +86,7 @@ class AnthropicProvider(LLMProvider):
 
 
 class OpenAIProvider(LLMProvider):
-    """OpenAI GPT provider."""
+    """OpenAI GPT provider (also supports Vercel AI Gateway)."""
 
     DEFAULT_MODEL = "gpt-4-turbo-preview"
 
@@ -96,13 +96,27 @@ class OpenAIProvider(LLMProvider):
         model: Optional[str] = None,
         base_url: Optional[str] = None,
     ):
+        # Try OpenAI key first, then Vercel AI Gateway key
+        resolved_key = (
+            api_key
+            or os.environ.get("OPENAI_API_KEY")
+            or os.environ.get("AI_GATEWAY_API_KEY")
+        )
+        
+        # If using Vercel AI Gateway, set the base URL
+        if not base_url and os.environ.get("AI_GATEWAY_API_KEY") and not os.environ.get("OPENAI_API_KEY"):
+            # Vercel AI Gateway endpoint (can be overridden)
+            base_url = base_url or os.environ.get("VERCEL_AI_GATEWAY_URL") or "https://api.vercel.ai/v1"
+        
         super().__init__(
-            api_key or os.environ.get("OPENAI_API_KEY"),
+            resolved_key,
             model=model,
             base_url=base_url,
         )
         if not self.api_key:
-            raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or pass api_key.")
+            raise ValueError(
+                "OpenAI API key required. Set OPENAI_API_KEY, AI_GATEWAY_API_KEY, or pass api_key."
+            )
 
     async def complete(
         self,
@@ -122,16 +136,37 @@ class OpenAIProvider(LLMProvider):
             if self.base_url:
                 client_kwargs["base_url"] = self.base_url
             client = openai.OpenAI(**client_kwargs)
-            response = client.chat.completions.create(
-                model=self.model or self.DEFAULT_MODEL,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            )
-            return response.choices[0].message.content
+            try:
+                response = client.chat.completions.create(
+                    model=self.model or self.DEFAULT_MODEL,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                )
+                return response.choices[0].message.content
+            except openai.AuthenticationError as e:
+                error_msg = str(e)
+                # Provide helpful error messages
+                if "Invalid API key" in error_msg or "Incorrect API key" in error_msg or "401" in error_msg:
+                    raise ValueError(
+                        f"OpenAI API key authentication failed. "
+                        f"Please verify your OPENAI_API_KEY or AI_GATEWAY_API_KEY is correct and not expired. "
+                        f"Error details: {error_msg}. "
+                        f"Run 'council providers --diagnose' for troubleshooting."
+                    ) from e
+                raise ValueError(f"OpenAI authentication error: {error_msg}") from e
+            except openai.APIError as e:
+                error_msg = str(e)
+                if "rate limit" in error_msg.lower() or "429" in error_msg:
+                    raise ValueError(f"OpenAI rate limit exceeded: {error_msg}") from e
+                raise ValueError(f"OpenAI API error: {error_msg}") from e
+            except Exception as e:
+                # Catch-all for other errors (network, timeout, etc.)
+                error_msg = str(e)
+                raise ValueError(f"OpenAI request failed: {error_msg}") from e
 
         return await asyncio.to_thread(_call)
 
@@ -239,6 +274,7 @@ _PROVIDERS: Dict[str, Type[LLMProvider]] = {
     "openai": OpenAIProvider,
     "gemini": GeminiProvider,
     "http": HTTPProvider,
+    "vercel": OpenAIProvider,  # Vercel AI Gateway is OpenAI-compatible
 }
 
 
