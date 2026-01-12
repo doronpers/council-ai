@@ -26,6 +26,9 @@ from .persona import Persona, PersonaManager, get_persona_manager
 from .schemas import SynthesisSchema
 from .session import ConsultationResult, MemberResponse, Session
 
+ALL_MEMBERS_FAILED_MESSAGE = (
+    "All council members failed to respond; see individual error messages."
+)
 
 class ConsultationMode(str, Enum):
     """How the council responds to queries."""
@@ -356,8 +359,13 @@ class Council:
                     structured_synthesis = await self._generate_structured_synthesis(
                         provider, query, context, responses
                     )
-                    # Convert structured to text for backward compatibility
-                    synthesis = self._format_structured_synthesis(structured_synthesis)
+                    if structured_synthesis is None:
+                        synthesis = await self._generate_synthesis(
+                            provider, query, context, responses
+                        )
+                    else:
+                        # Convert structured to text for backward compatibility
+                        synthesis = self._format_structured_synthesis(structured_synthesis)
                 except Exception:
                     # Fallback to free-form synthesis
                     synthesis = await self._generate_synthesis(provider, query, context, responses)
@@ -795,6 +803,17 @@ REASONING: [your reasoning]
         responses: List[MemberResponse],
     ) -> AsyncIterator[str]:
         """Generate a synthesis of all member responses (streaming)."""
+        responses_text = "\n\n".join(
+            [
+                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
+                for r in responses
+                if not r.error
+            ]
+        )
+        if not responses_text.strip():
+            yield ALL_MEMBERS_FAILED_MESSAGE
+            return
+
         synthesis_prompt = (
             self.config.synthesis_prompt
             or """
@@ -808,14 +827,6 @@ Based on the individual council member responses below, provide:
 
 Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
 """
-        )
-
-        responses_text = "\n\n".join(
-            [
-                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
-                for r in responses
-                if not r.error
-            ]
         )
 
         user_prompt = f"""
@@ -848,6 +859,16 @@ Please synthesize these perspectives.
         responses: List[MemberResponse],
     ) -> Optional[SynthesisSchema]:
         """Generate a structured synthesis using JSON schema."""
+        responses_text = "\n\n".join(
+            [
+                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
+                for r in responses
+                if not r.error
+            ]
+        )
+        if not responses_text.strip():
+            return None
+
         synthesis_prompt = (
             self.config.synthesis_prompt
             or """
@@ -863,14 +884,6 @@ Based on the individual council member responses below, provide a structured ana
 
 Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
 """
-        )
-
-        responses_text = "\n\n".join(
-            [
-                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
-                for r in responses
-                if not r.error
-            ]
         )
 
         user_prompt = f"""
@@ -986,6 +999,16 @@ Please synthesize these perspectives in the requested structured format.
         responses: List[MemberResponse],
     ) -> str:
         """Generate a synthesis of all member responses."""
+        responses_text = "\n\n".join(
+            [
+                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
+                for r in responses
+                if not r.error
+            ]
+        )
+        if not responses_text.strip():
+            return ALL_MEMBERS_FAILED_MESSAGE
+
         synthesis_prompt = (
             self.config.synthesis_prompt
             or """
@@ -999,14 +1022,6 @@ Based on the individual council member responses below, provide:
 
 Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
 """
-        )
-
-        responses_text = "\n\n".join(
-            [
-                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
-                for r in responses
-                if not r.error
-            ]
         )
 
         user_prompt = f"""
