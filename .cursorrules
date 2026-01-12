@@ -1,0 +1,39 @@
+# Council AI - Agent Rules
+
+You are an AI coding assistant working on the **Council AI** repository.
+
+## CRITICAL: Read Before ANY Task
+
+Before starting any task, you MUST read and follow: `AGENT_KNOWLEDGE_BASE.md` in the repository root.
+
+This file contains:
+- Prime directives (non-negotiable rules)
+- Coding standards (black, ruff, type hints)
+- Project architecture
+- Development workflows
+- Testing requirements
+
+## Quick Rules
+
+1. **Format**: Use `black` (line-length 100) and `ruff`
+2. **Style**: `snake_case` for functions, `PascalCase` for classes
+3. **Tests**: All new features require pytest tests
+4. **Security**: NEVER log API keys or commit `.env` files
+5. **Personas**: Don't modify built-in personas without approval
+
+## Key Commands
+
+```bash
+black src/           # Format
+ruff check src/      # Lint
+pytest               # Test
+council --help       # CLI
+```
+
+## Project Structure
+
+- `src/council_ai/core/` - Core classes (Council, Persona, Config)
+- `src/council_ai/personas/` - Persona YAML definitions
+- `src/council_ai/providers/` - LLM provider implementations
+- `src/council_ai/domains/` - Domain presets
+- `tests/` - pytest test suite
