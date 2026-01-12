@@ -88,7 +88,7 @@ class AnthropicProvider(LLMProvider):
 class OpenAIProvider(LLMProvider):
     """OpenAI GPT provider."""
 
-    DEFAULT_MODEL = "gpt-5.2"
+    DEFAULT_MODEL = "gpt-4-turbo-preview"
 
     def __init__(
         self,

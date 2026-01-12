@@ -17,7 +17,7 @@ class APIConfig(BaseModel):
 
     provider: str = "openai"
     api_key: Optional[str] = None
-    model: Optional[str] = "gpt-5.2"
+    model: Optional[str] = None  # Uses provider default if not set
     base_url: Optional[str] = None
 
 
@@ -51,18 +51,19 @@ class ConfigManager:
         """Load configuration from file."""
         if self.path.exists():
             try:
-                with open(self.path) as f:
+                with open(self.path, encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
                 return Config(**data)
             except Exception as e:
-                print(f"Warning: Failed to load config from {self.path}: {e}")
+                import sys
+                print(f"Warning: Failed to load config from {self.path}: {e}", file=sys.stderr)
                 return Config()
         return Config()
 
     def save(self) -> None:
         """Save configuration to file."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.path, "w") as f:
+        with open(self.path, "w", encoding="utf-8") as f:
             yaml.dump(
                 self.config.model_dump(exclude_none=True),
                 f,

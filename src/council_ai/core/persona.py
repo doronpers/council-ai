@@ -9,6 +9,7 @@ at runtime.
 from __future__ import annotations
 
 import os
+import re
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -88,8 +89,6 @@ class Persona(BaseModel):
         """Normalize ID to lowercase with underscores."""
         normalized = v.lower().replace(" ", "_").replace("-", "_")
         # Ensure it starts with a letter and only contains valid characters
-        import re
-
         if not re.match(r"^[a-z][a-z0-9_]*$", normalized):
             raise ValueError(
                 f"ID must start with a letter and contain only lowercase letters, numbers, and underscores: {v}"
@@ -165,12 +164,12 @@ When responding:
     @classmethod
     def from_yaml_file(cls, path: Union[str, Path]) -> "Persona":
         """Load persona from YAML file."""
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return cls.from_yaml(f.read())
 
     def save_to_yaml(self, path: Union[str, Path]) -> None:
         """Save persona to YAML file."""
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(self.to_yaml())
 
     def update_trait(
@@ -246,7 +245,8 @@ class PersonaManager:
                     persona = Persona.from_yaml_file(yaml_file)
                     self._personas[persona.id] = persona
                 except Exception as e:
-                    print(f"Warning: Failed to load {yaml_file}: {e}")
+                    import sys
+                    print(f"Warning: Failed to load {yaml_file}: {e}", file=sys.stderr)
 
     def _load_custom_personas(self) -> None:
         """Load personas from custom paths and user directory."""
@@ -259,7 +259,8 @@ class PersonaManager:
                         persona = Persona.from_yaml_file(yaml_file)
                         self._personas[persona.id] = persona
                     except Exception as e:
-                        print(f"Warning: Failed to load {yaml_file}: {e}")
+                        import sys
+                        print(f"Warning: Failed to load {yaml_file}: {e}", file=sys.stderr)
 
     def get(self, persona_id: str) -> Optional[Persona]:
         """Get a persona by ID."""

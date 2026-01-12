@@ -174,7 +174,7 @@ _INDEX_HTML = """
           </div>
           <div>
             <label for="model">Model</label>
-            <input id="model" placeholder="gpt-5.2" />
+            <input id="model" placeholder="gpt-4-turbo-preview" />
           </div>
           <div>
             <label for="base_url">Base URL</label>
@@ -226,12 +226,19 @@ _INDEX_HTML = """
       const synthesisEl = document.getElementById("synthesis");
       const responsesEl = document.getElementById("responses");
 
+      function escapeHtml(text) {
+        if (text == null) return "";
+        const div = document.createElement("div");
+        div.textContent = String(text);
+        return div.innerHTML;
+      }
+
       async function loadInfo() {
         const res = await fetch("/api/info");
         const data = await res.json();
-        providerEl.innerHTML = data.providers.map(p => `<option value="${p}">${p}</option>`).join("");
-        modeEl.innerHTML = data.modes.map(m => `<option value="${m}">${m}</option>`).join("");
-        domainEl.innerHTML = data.domains.map(d => `<option value="${d.id}">${d.name}</option>`).join("");
+        providerEl.innerHTML = data.providers.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+        modeEl.innerHTML = data.modes.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
+        domainEl.innerHTML = data.domains.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`).join("");
         providerEl.value = data.defaults.provider || "openai";
         modelEl.value = data.defaults.model || "";
         baseUrlEl.value = data.defaults.base_url || "";
@@ -241,15 +248,22 @@ _INDEX_HTML = """
 
       function renderResult(result) {
         statusEl.textContent = `Mode: ${result.mode}`;
-        synthesisEl.innerHTML = result.synthesis ? `<h3>Synthesis</h3><p>${result.synthesis}</p>` : "";
+        if (result.synthesis) {
+          synthesisEl.innerHTML = `<h3>Synthesis</h3><p>${escapeHtml(result.synthesis)}</p>`;
+        } else {
+          synthesisEl.innerHTML = "";
+        }
         responsesEl.innerHTML = "";
         result.responses.forEach(r => {
           const card = document.createElement("div");
           card.className = "response";
+          const personaName = escapeHtml(r.persona_name || r.persona_id || "Unknown");
+          const content = escapeHtml(r.content || "");
+          const error = r.error ? escapeHtml(r.error) : "";
           card.innerHTML = `
-            <div class="badge">${r.persona_name || r.persona_id}</div>
-            <p>${r.content}</p>
-            ${r.error ? `<p class="muted">Error: ${r.error}</p>` : ""}
+            <div class="badge">${personaName}</div>
+            <p>${content}</p>
+            ${error ? `<p class="muted">Error: ${error}</p>` : ""}
           `;
           responsesEl.appendChild(card);
         });

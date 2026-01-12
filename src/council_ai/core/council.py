@@ -214,15 +214,16 @@ class Council:
             ConsultationResult with individual responses and synthesis
         """
         try:
-            asyncio.get_running_loop()
+            loop = asyncio.get_running_loop()
+            # If we're in an async context, we need to run in a thread
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(
+                    lambda: asyncio.run(self.consult_async(query, context, mode, members))
+                )
+                return future.result()
         except RuntimeError:
+            # No running event loop, we can create one
             return asyncio.run(self.consult_async(query, context, mode, members))
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(
-                lambda: asyncio.run(self.consult_async(query, context, mode, members))
-            )
-            return future.result()
 
     async def consult_async(
         self,

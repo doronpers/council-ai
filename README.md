@@ -55,9 +55,7 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 
 ---
 
-## Quick Start
-
-### Installation
+## Installation
 
 **From PyPI (when published):**
 ```bash
@@ -322,7 +320,7 @@ Council AI stores configuration in `~/.config/council-ai/config.yaml`:
 api:
   provider: openai
   api_key: null  # Use environment variable instead
-  model: gpt-5.2
+  model: gpt-4-turbo-preview  # or your preferred model
   base_url: null  # Optional for OpenAI-compatible endpoints
 
 default_mode: synthesis
@@ -365,13 +363,13 @@ council = Council(
 )
 ```
 
-### OpenAI (GPT-5.2)
+### OpenAI (GPT-4)
 
 ```python
 council = Council(
     api_key="your-openai-key",
     provider="openai",
-    model="gpt-5.2",
+    model="gpt-4-turbo-preview",  # or "gpt-4", "gpt-3.5-turbo", etc.
     base_url="https://api.openai.com/v1"
 )
 ```
@@ -601,9 +599,9 @@ What elements should I include?
 council = Council(api_key=key)
 
 # Code quality review
-code_council.add_member("rams")      # Design & Simplicity
-code_council.add_member("holman")    # Security
-code_council.add_member("kahneman")  # Cognitive Load
+council.add_member("rams")      # Design & Simplicity
+council.add_member("holman")    # Security
+council.add_member("kahneman")  # Cognitive Load
 
 result = council.consult("Review code quality and architecture...")
 

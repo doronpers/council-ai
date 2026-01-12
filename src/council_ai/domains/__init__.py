@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class DomainCategory(str, Enum):
@@ -198,7 +198,7 @@ def get_domain(domain_id: str) -> Domain:
     return DOMAINS[domain_id]
 
 
-def list_domains(category: DomainCategory = None) -> List[Domain]:
+def list_domains(category: Optional[DomainCategory] = None) -> List[Domain]:
     """List all domains, optionally filtered by category."""
     domains = list(DOMAINS.values())
     if category:
