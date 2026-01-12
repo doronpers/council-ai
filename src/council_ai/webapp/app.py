@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from council_ai import Council
@@ -39,6 +39,29 @@ class ConsultResponse(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def index() -> HTMLResponse:
     return HTMLResponse(_INDEX_HTML)
+
+
+@app.get("/manifest.json")
+async def manifest() -> JSONResponse:
+    """PWA manifest for mobile app installation."""
+    return JSONResponse({
+        "name": "Council AI",
+        "short_name": "Council AI",
+        "description": "AI-powered advisory council system with customizable personas",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#0c0f14",
+        "theme_color": "#0c0f14",
+        "orientation": "portrait-primary",
+        "icons": [
+            {
+                "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>",
+                "sizes": "any",
+                "type": "image/svg+xml",
+                "purpose": "any maskable"
+            }
+        ]
+    })
 
 
 @app.get("/api/info")
@@ -138,25 +161,355 @@ _INDEX_HTML = """
   <head>
     <meta charset="utf-8" />
     <title>Council AI</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta name="description" content="AI-powered advisory council system with customizable personas" />
+    <meta name="theme-color" content="#0c0f14" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Council AI" />
+    <link rel="manifest" href="/manifest.json" />
     <style>
-      :root { color-scheme: light dark; }
-      body { font-family: system-ui, sans-serif; margin: 0; background: #0c0f14; color: #f6f7fb; }
-      header { padding: 32px; border-bottom: 1px solid #1f2430; background: #0f1219; }
-      header h1 { margin: 0 0 8px; font-size: 28px; }
-      header p { margin: 0; color: #b2b7c2; }
-      main { display: grid; gap: 24px; padding: 32px; max-width: 1100px; margin: 0 auto; }
-      .panel { background: #141824; border: 1px solid #1f2430; border-radius: 12px; padding: 20px; }
-      label { display: block; margin-bottom: 6px; color: #d4d7dd; font-weight: 600; }
-      input, select, textarea { width: 100%; margin-bottom: 12px; padding: 10px; border-radius: 8px; border: 1px solid #2a3140; background: #0e1118; color: #f6f7fb; }
-      textarea { min-height: 120px; resize: vertical; }
-      button { background: #3b82f6; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-      button:disabled { opacity: 0.6; cursor: not-allowed; }
-      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-      .responses { display: grid; gap: 12px; }
-      .response { background: #0e121a; border: 1px solid #23293a; padding: 12px; border-radius: 8px; }
-      .muted { color: #9aa3b2; font-size: 14px; }
-      .badge { background: #1f2937; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+      :root { 
+        color-scheme: light dark; 
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+        --bg-primary: #0c0f14;
+        --bg-secondary: #141824;
+        --bg-tertiary: #0e1118;
+        --border: #1f2430;
+        --text-primary: #f6f7fb;
+        --text-secondary: #d4d7dd;
+        --text-muted: #9aa3b2;
+      }
+      
+      * { box-sizing: border-box; }
+      
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; 
+        margin: 0; 
+        background: var(--bg-primary); 
+        color: var(--text-primary);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      header { 
+        padding: 20px 16px; 
+        border-bottom: 1px solid var(--border); 
+        background: #0f1219;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+      
+      header h1 { 
+        margin: 0 0 4px; 
+        font-size: 24px; 
+        font-weight: 700;
+      }
+      
+      header p { 
+        margin: 0; 
+        color: var(--text-muted); 
+        font-size: 14px;
+      }
+      
+      main { 
+        display: grid; 
+        gap: 20px; 
+        padding: 20px 16px; 
+        max-width: 1100px; 
+        margin: 0 auto;
+        padding-bottom: 40px;
+      }
+      
+      .panel { 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border); 
+        border-radius: 12px; 
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      .panel h2 {
+        margin: 0 0 16px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      
+      label { 
+        display: block; 
+        margin-bottom: 8px; 
+        color: var(--text-secondary); 
+        font-weight: 600;
+        font-size: 14px;
+      }
+      
+      input, select, textarea { 
+        width: 100%; 
+        margin-bottom: 16px; 
+        padding: 12px; 
+        border-radius: 8px; 
+        border: 1px solid #2a3140; 
+        background: var(--bg-tertiary); 
+        color: var(--text-primary);
+        font-size: 16px; /* Prevents zoom on iOS */
+        font-family: inherit;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      
+      input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      
+      textarea { 
+        min-height: 100px; 
+        resize: vertical; 
+        line-height: 1.5;
+      }
+      
+      button { 
+        background: var(--primary); 
+        color: white; 
+        border: none; 
+        padding: 14px 24px; 
+        border-radius: 8px; 
+        font-weight: 600; 
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+        transition: background 0.2s, transform 0.1s;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      button:active {
+        transform: scale(0.98);
+      }
+      
+      button:hover:not(:disabled) { 
+        background: var(--primary-hover);
+      }
+      
+      button:disabled { 
+        opacity: 0.6; 
+        cursor: not-allowed;
+        transform: none;
+      }
+      
+      .grid { 
+        display: grid; 
+        gap: 16px; 
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+      }
+      
+      .responses { 
+        display: grid; 
+        gap: 12px; 
+      }
+      
+      .response { 
+        background: var(--bg-tertiary); 
+        border: 1px solid #23293a; 
+        padding: 16px; 
+        border-radius: 8px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+      
+      .response p {
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+      }
+      
+      .muted { 
+        color: var(--text-muted); 
+        font-size: 14px; 
+      }
+      
+      .badge { 
+        background: #1f2937; 
+        padding: 4px 10px; 
+        border-radius: 999px; 
+        font-size: 12px;
+        display: inline-block;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      .error {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        margin-top: 12px;
+      }
+      
+      .synthesis {
+        background: var(--bg-tertiary);
+        padding: 16px;
+        border-radius: 8px;
+        border-left: 4px solid var(--primary);
+        margin-bottom: 16px;
+      }
+      
+      .synthesis h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        color: var(--text-secondary);
+      }
+      
+      .synthesis p {
+        margin: 0;
+        white-space: pre-wrap;
+      }
+      
+      /* Mobile optimizations */
+      @media (max-width: 768px) {
+        header {
+          padding: 16px;
+        }
+        
+        header h1 {
+          font-size: 22px;
+        }
+        
+        header p {
+          font-size: 13px;
+        }
+        
+        main {
+          padding: 16px 12px;
+          gap: 16px;
+        }
+        
+        .panel {
+          padding: 16px;
+        }
+        
+        .panel h2 {
+          font-size: 18px;
+          margin-bottom: 12px;
+        }
+        
+        .grid {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        
+        input, select, textarea {
+          margin-bottom: 12px;
+          padding: 14px;
+        }
+        
+        button {
+          padding: 16px 24px;
+          font-size: 16px;
+        }
+        
+        .response {
+          padding: 14px;
+        }
+        
+        textarea {
+          min-height: 80px;
+        }
+      }
+      
+      /* Very small screens */
+      @media (max-width: 360px) {
+        header h1 {
+          font-size: 20px;
+        }
+        
+        main {
+          padding: 12px 8px;
+        }
+        
+        .panel {
+          padding: 12px;
+        }
+      }
+      
+      /* Landscape mobile */
+      @media (max-width: 768px) and (orientation: landscape) {
+        header {
+          padding: 12px 16px;
+        }
+        
+        header h1 {
+          font-size: 20px;
+          margin-bottom: 2px;
+        }
+        
+        header p {
+          font-size: 12px;
+        }
+        
+        main {
+          padding: 12px 16px;
+          gap: 12px;
+        }
+      }
+      
+      /* Touch device optimizations */
+      @media (hover: none) and (pointer: coarse) {
+        button {
+          min-height: 44px; /* iOS recommended touch target */
+        }
+        
+        input, select, textarea {
+          min-height: 44px;
+        }
+        
+        .response {
+          padding: 16px;
+        }
+      }
+      
+      /* Dark mode support (system preference) */
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg-primary: #ffffff;
+          --bg-secondary: #f8f9fa;
+          --bg-tertiary: #ffffff;
+          --border: #e0e0e0;
+          --text-primary: #1a1a1a;
+          --text-secondary: #4a4a4a;
+          --text-muted: #6a6a6a;
+        }
+        
+        body {
+          background: var(--bg-primary);
+          color: var(--text-primary);
+        }
+        
+        input, select, textarea {
+          border-color: #d0d0d0;
+          background: var(--bg-tertiary);
+        }
+      }
     </style>
   </head>
   <body>
@@ -248,32 +601,55 @@ _INDEX_HTML = """
 
       function renderResult(result) {
         statusEl.textContent = `Mode: ${result.mode}`;
+        statusEl.className = "muted";
+        
         if (result.synthesis) {
-          synthesisEl.innerHTML = `<h3>Synthesis</h3><p>${escapeHtml(result.synthesis)}</p>`;
+          synthesisEl.innerHTML = `<div class="synthesis"><h3>Synthesis</h3><p>${escapeHtml(result.synthesis)}</p></div>`;
         } else {
           synthesisEl.innerHTML = "";
         }
+        
         responsesEl.innerHTML = "";
-        result.responses.forEach(r => {
-          const card = document.createElement("div");
-          card.className = "response";
-          const personaName = escapeHtml(r.persona_name || r.persona_id || "Unknown");
-          const content = escapeHtml(r.content || "");
-          const error = r.error ? escapeHtml(r.error) : "";
-          card.innerHTML = `
-            <div class="badge">${personaName}</div>
-            <p>${content}</p>
-            ${error ? `<p class="muted">Error: ${error}</p>` : ""}
-          `;
-          responsesEl.appendChild(card);
-        });
+        
+        if (result.responses && result.responses.length > 0) {
+          result.responses.forEach(r => {
+            const card = document.createElement("div");
+            card.className = "response";
+            const personaName = escapeHtml(r.persona_name || r.persona_id || "Unknown");
+            const content = escapeHtml(r.content || "");
+            const error = r.error ? escapeHtml(r.error) : "";
+            card.innerHTML = `
+              <div class="badge">${personaName}</div>
+              ${content ? `<p>${escapeHtml(content)}</p>` : ""}
+              ${error ? `<div class="error">Error: ${escapeHtml(error)}</div>` : ""}
+            `;
+            responsesEl.appendChild(card);
+          });
+        } else {
+          responsesEl.innerHTML = '<p class="muted">No responses received.</p>';
+        }
+        
+        // Scroll to results on mobile
+        if (window.innerWidth <= 768) {
+          setTimeout(() => {
+            document.querySelector('#status').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        }
       }
 
-      submitEl.addEventListener("click", async () => {
+      async function submitConsultation() {
+        if (!queryEl.value.trim()) {
+          statusEl.textContent = "Please enter a query.";
+          statusEl.className = "error";
+          return;
+        }
+        
         submitEl.disabled = true;
-        statusEl.textContent = "Consulting...";
+        statusEl.innerHTML = '<span class="loading"></span>Consulting the council...';
+        statusEl.className = "muted";
         synthesisEl.innerHTML = "";
         responsesEl.innerHTML = "";
+        
         const payload = {
           query: queryEl.value.trim(),
           context: contextEl.value.trim() || null,
@@ -285,23 +661,39 @@ _INDEX_HTML = """
           base_url: baseUrlEl.value.trim() || null,
           api_key: apiKeyEl.value.trim() || null
         };
+        
         try {
           const res = await fetch("/api/consult", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
           });
+          
           if (!res.ok) {
             const err = await res.json();
             statusEl.textContent = err.detail || "Request failed.";
+            statusEl.className = "error";
+            synthesisEl.innerHTML = `<div class="error">${escapeHtml(err.detail || "Request failed.")}</div>`;
           } else {
             const data = await res.json();
             renderResult(data);
           }
         } catch (err) {
-          statusEl.textContent = err.message || "Request failed.";
+          statusEl.textContent = err.message || "Network error. Please check your connection.";
+          statusEl.className = "error";
+          synthesisEl.innerHTML = `<div class="error">${escapeHtml(err.message || "Network error.")}</div>`;
         } finally {
           submitEl.disabled = false;
+        }
+      }
+      
+      submitEl.addEventListener("click", submitConsultation);
+      
+      // Allow Enter key to submit (but not in textareas)
+      queryEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          submitConsultation();
         }
       });
 
