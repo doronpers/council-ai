@@ -356,8 +356,13 @@ class Council:
                     structured_synthesis = await self._generate_structured_synthesis(
                         provider, query, context, responses
                     )
-                    # Convert structured to text for backward compatibility
-                    synthesis = self._format_structured_synthesis(structured_synthesis)
+                    if structured_synthesis is None:
+                        synthesis = await self._generate_synthesis(
+                            provider, query, context, responses
+                        )
+                    else:
+                        # Convert structured to text for backward compatibility
+                        synthesis = self._format_structured_synthesis(structured_synthesis)
                 except Exception:
                     # Fallback to free-form synthesis
                     synthesis = await self._generate_synthesis(provider, query, context, responses)

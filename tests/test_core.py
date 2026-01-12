@@ -155,5 +155,42 @@ def test_trait_operations():
     assert len(persona.traits) == 0
 
 
+@pytest.mark.anyio
+async def test_consult_structured_synthesis_none_fallback(monkeypatch):
+    """Test fallback when structured synthesis returns None."""
+    council = Council(api_key="test-key")
+    object.__setattr__(council.config, "use_structured_output", True)
+
+    persona = Persona(
+        id="test",
+        name="Test",
+        title="Expert",
+        core_question="?",
+        razor=".",
+    )
+    council.add_member(persona)
+
+    async def fake_consult_individual(provider, members, query, context):
+        return [
+            MemberResponse(persona=persona, content="Advice", timestamp=datetime.now())
+        ]
+
+    async def fake_structured_synthesis(provider, query, context, responses):
+        return None
+
+    async def fake_synthesis(provider, query, context, responses):
+        return "fallback synthesis"
+
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    monkeypatch.setattr(council, "_consult_individual", fake_consult_individual)
+    monkeypatch.setattr(council, "_generate_structured_synthesis", fake_structured_synthesis)
+    monkeypatch.setattr(council, "_generate_synthesis", fake_synthesis)
+
+    result = await council.consult_async("Test question")
+
+    assert result.synthesis
+    assert result.synthesis == "fallback synthesis"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
