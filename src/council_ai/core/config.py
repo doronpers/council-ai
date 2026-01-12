@@ -18,13 +18,25 @@ try:
     # Load .env from project root (wherever the package is installed/run from)
     # Try multiple common locations
     _env_loaded = False
-    for env_path in [
+    env_paths_to_try = [
         Path.cwd() / ".env",  # Current working directory
         Path(__file__).parent.parent.parent.parent / ".env",  # Project root (if running from repo)
         Path.home() / ".council-ai" / ".env",  # User home directory
-    ]:
+    ]
+    
+    for env_path in env_paths_to_try:
         if env_path.exists():
-            load_dotenv(env_path, override=False)  # Don't override existing env vars
+            # Check if any API key env vars are placeholders - if so, override them
+            api_key_vars = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "AI_GATEWAY_API_KEY", "COUNCIL_API_KEY"]
+            has_placeholder = False
+            for var in api_key_vars:
+                existing_val = os.environ.get(var, "")
+                if existing_val and ("your-" in existing_val.lower() or "here" in existing_val.lower()):
+                    has_placeholder = True
+                    break
+            
+            # Override placeholders or use override=False to preserve real env vars
+            load_dotenv(env_path, override=has_placeholder)
             _env_loaded = True
             break
     # Also try loading from current directory as fallback

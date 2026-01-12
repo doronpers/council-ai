@@ -96,12 +96,24 @@ def consult(ctx, query, domain, members, provider, api_key, context, mode, outpu
     config_manager = ctx.obj["config_manager"]
 
     # Get API key
-    api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
+    requested_provider = provider or config_manager.get("api.provider", "anthropic")
+    
+    # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
+    is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
+    if is_placeholder:
+        api_key = None  # Ignore placeholder, force get_api_key() to run
+    
+    api_key = api_key or get_api_key(requested_provider)
     if not api_key:
         console.print("[red]Error:[/red] No API key provided.")
         console.print(
             "Set via --api-key, COUNCIL_API_KEY env var, or 'council config set api.api_key'"
         )
+        sys.exit(1)
+    if "your-" in api_key.lower() or "here" in api_key.lower():
+        console.print("[red]Error:[/red] API key appears to be a placeholder value.")
+        console.print("Please update your .env file with your actual API key (not the example value).")
+        console.print("Run 'council providers --diagnose' for help.")
         sys.exit(1)
 
     # Create council
@@ -177,9 +189,19 @@ def interactive(ctx, domain, provider, api_key):
     """
     config_manager = ctx.obj["config_manager"]
 
+    # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
+    is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
+    if is_placeholder:
+        api_key = None  # Ignore placeholder, force get_api_key() to run
+    
     api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
     if not api_key:
         console.print("[red]Error:[/red] No API key provided.")
+        sys.exit(1)
+    if "your-" in api_key.lower() or "here" in api_key.lower():
+        console.print("[red]Error:[/red] API key appears to be a placeholder value.")
+        console.print("Please update your .env file with your actual API key (not the example value).")
+        console.print("Run 'council providers --diagnose' for help.")
         sys.exit(1)
 
     provider = provider or config_manager.get("api.provider", "anthropic")
@@ -724,10 +746,20 @@ def review(ctx, path, focus, provider, api_key, output):
     Performs a comprehensive AI-driven audit of the code at PATH.
     """
     config_manager = ctx.obj["config_manager"]
-    api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
+    # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
+    is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
+    if is_placeholder:
+        api_key = None  # Ignore placeholder, force get_api_key() to run
     
+    api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
+
     if not api_key:
         console.print("[red]Error:[/red] No API key provided.")
+        sys.exit(1)
+    if "your-" in api_key.lower() or "here" in api_key.lower():
+        console.print("[red]Error:[/red] API key appears to be a placeholder value.")
+        console.print("Please update your .env file with your actual API key (not the example value).")
+        console.print("Run 'council providers --diagnose' for help.")
         sys.exit(1)
 
     provider = provider or config_manager.get("api.provider", "anthropic")
