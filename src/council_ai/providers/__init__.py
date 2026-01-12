@@ -102,12 +102,12 @@ class OpenAIProvider(LLMProvider):
             or os.environ.get("OPENAI_API_KEY")
             or os.environ.get("AI_GATEWAY_API_KEY")
         )
-        
+
         # If using Vercel AI Gateway, set the base URL
         if not base_url and os.environ.get("AI_GATEWAY_API_KEY") and not os.environ.get("OPENAI_API_KEY"):
             # Vercel AI Gateway endpoint (can be overridden)
             base_url = base_url or os.environ.get("VERCEL_AI_GATEWAY_URL") or "https://api.vercel.ai/v1"
-        
+
         super().__init__(
             resolved_key,
             model=model,

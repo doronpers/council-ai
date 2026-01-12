@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import List, Optional
 
-import os
-from pathlib import Path
-
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 

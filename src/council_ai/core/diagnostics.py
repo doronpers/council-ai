@@ -5,7 +5,7 @@ Diagnostic utilities for troubleshooting API keys and providers.
 from __future__ import annotations
 
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from .config import get_api_key
 
@@ -26,11 +26,11 @@ def diagnose_api_keys() -> Dict[str, any]:
 
     # Check each provider
     providers_to_check = ["openai", "anthropic", "gemini"]
-    
+
     for provider in providers_to_check:
         key = get_api_key(provider)
         diagnostics["available_keys"][provider] = bool(key)
-        
+
         if key:
             diagnostics["provider_status"][provider] = {
                 "has_key": True,
@@ -106,20 +106,20 @@ def test_api_key(provider: str, api_key: Optional[str] = None) -> Tuple[bool, st
     """
     if api_key is None:
         api_key = get_api_key(provider)
-    
+
     if not api_key:
         return False, f"No API key found for {provider}"
-    
+
     try:
         from ..providers import get_provider
-        
+
         # Try to create provider instance (this validates the key format)
         test_provider = get_provider(provider, api_key=api_key)
-        
+
         # Basic validation - key should not be empty
         if len(api_key.strip()) < 10:
             return False, f"API key for {provider} appears too short (may be invalid)"
-        
+
         return True, f"API key for {provider} appears valid (format check passed)"
     except ValueError as e:
         return False, f"API key validation failed: {str(e)}"

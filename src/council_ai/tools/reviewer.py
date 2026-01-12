@@ -2,11 +2,10 @@
 Repository Reviewer Tool
 """
 
-import sys
 from pathlib import Path
-from typing import Dict, List, Set, Any, Optional
+from typing import Any, Dict, List, Optional, Set
 
-from ..core.council import Council, ConsultationResult
+from ..core.council import ConsultationResult, Council
 
 
 class RepositoryReviewer:
@@ -40,10 +39,10 @@ class RepositoryReviewer:
             "README.md", "pyproject.toml", "requirements.txt", "package.json",
             "setup.py", "Cargo.toml", "go.mod", "Makefile", "Dockerfile"
         ]
-        
+
         # Add src/main files if they exist
         repo_files = list(repo_root.rglob("*"))
-        
+
         # Prioritize key config/readme files
         for pattern in key_file_patterns:
             f = repo_root / pattern
@@ -54,10 +53,10 @@ class RepositoryReviewer:
         # In a real tool this would be smarter, but this is a good start
         source_extensions = {".py", ".js", ".ts", ".rs", ".go", ".c", ".cpp", ".java"}
         source_files = [
-            f for f in repo_files 
+            f for f in repo_files
             if f.is_file() and f.suffix in source_extensions and not any(p in f.parts for p in self.excluded_dirs)
         ]
-        
+
         # specific focus on critical logic (often init or core files)
         for f in source_files:
             if f.name == "__init__.py" or "core" in f.parts or "main" in f.name:
@@ -66,7 +65,7 @@ class RepositoryReviewer:
 
         # Structure
         context["structure"] = self._list_directory_structure(repo_root, max_depth=2)
-        
+
         return context
 
     def _add_file_to_context(self, file_path: Path, repo_root: Path, context: Dict[str, Any]):
@@ -80,7 +79,7 @@ class RepositoryReviewer:
             content = file_path.read_text(encoding="utf-8")
             if len(content) > self.max_file_content_length:
                 content = content[:self.max_file_content_length] + "\n... (truncated)"
-            
+
             context["key_files"].append({
                 "path": rel_path,
                 "content": content
@@ -98,7 +97,7 @@ class RepositoryReviewer:
             for item in sorted(path.iterdir()):
                 if item.name.startswith(".") or item.name in self.excluded_dirs:
                     continue
-                    
+
                 if item.is_file():
                     structure.append(item.name)
                 elif item.is_dir():
@@ -106,7 +105,7 @@ class RepositoryReviewer:
                     structure.append({item.name: sub_items})
         except Exception:
             pass
-            
+
         return structure
 
     def format_context(self, context: Dict[str, Any]) -> str:
@@ -116,17 +115,17 @@ class RepositoryReviewer:
             "",
             "## Structure",
         ]
-        
+
         lines.append(self._format_structure(context["structure"]))
         lines.append("")
         lines.append("## Key Files")
-        
+
         for f in context["key_files"]:
             lines.append(f"\n### {f['path']}")
             lines.append("```")
             lines.append(f["content"])
             lines.append("```")
-            
+
         return "\n".join(lines)
 
     def _format_structure(self, structure: List[Any], indent: int = 0) -> str:

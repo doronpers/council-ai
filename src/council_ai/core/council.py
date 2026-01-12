@@ -458,7 +458,7 @@ REASONING: [your reasoning]
                 )
             elif "rate limit" in error_msg.lower():
                 error_msg = f"Rate limit exceeded: {error_msg}. Please try again later."
-            
+
             return MemberResponse(
                 persona=member,
                 content=f"[Error getting response: {error_msg}]",

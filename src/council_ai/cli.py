@@ -97,12 +97,12 @@ def consult(ctx, query, domain, members, provider, api_key, context, mode, outpu
 
     # Get API key
     requested_provider = provider or config_manager.get("api.provider", "anthropic")
-    
+
     # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
     is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
     if is_placeholder:
         api_key = None  # Ignore placeholder, force get_api_key() to run
-    
+
     api_key = api_key or get_api_key(requested_provider)
     if not api_key:
         console.print("[red]Error:[/red] No API key provided.")
@@ -193,7 +193,7 @@ def interactive(ctx, domain, provider, api_key):
     is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
     if is_placeholder:
         api_key = None  # Ignore placeholder, force get_api_key() to run
-    
+
     api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
     if not api_key:
         console.print("[red]Error:[/red] No API key provided.")
@@ -612,18 +612,18 @@ def show_providers(diagnose):
 
     if diagnose:
         from .core.diagnostics import diagnose_api_keys
-        
+
         diagnostics = diagnose_api_keys()
-        
+
         console.print("\n[bold]API Key Diagnostics[/bold]")
         console.print("=" * 60)
-        
+
         # Show provider status
         table = Table(title="Provider Status")
         table.add_column("Provider", style="cyan")
         table.add_column("Has Key", style="green")
         table.add_column("Details")
-        
+
         for provider, status in diagnostics["provider_status"].items():
             has_key = status.get("has_key", False)
             details = []
@@ -635,23 +635,23 @@ def show_providers(diagnose):
                 details.append(f"Set: {status.get('env_var', 'N/A')}")
             if "note" in status:
                 details.append(status["note"])
-            
+
             table.add_row(
                 provider.upper(),
                 "[green]✓[/green]" if has_key else "[red]✗[/red]",
                 ", ".join(details) if details else "N/A"
             )
-        
+
         console.print(table)
-        
+
         # Show recommendations
         if diagnostics["recommendations"]:
             console.print("\n[bold]Recommendations:[/bold]")
             for rec in diagnostics["recommendations"]:
                 console.print(f"  • {rec}")
-        
+
         console.print()
-    
+
     table = Table(title="Available LLM Providers")
     table.add_column("Name", style="cyan")
     table.add_column("Env Variable")
@@ -670,7 +670,7 @@ def show_providers(diagnose):
             has_key = bool(os.environ.get(env_var) or os.environ.get("COUNCIL_API_KEY"))
         status = "[green]✓ Configured[/green]" if has_key else "[dim]Not configured[/dim]"
         table.add_row(name, env_var, status)
-    
+
     # Add Vercel AI Gateway info
     if os.environ.get("AI_GATEWAY_API_KEY"):
         table.add_row("vercel", "AI_GATEWAY_API_KEY", "[green]✓ Configured[/green]")
@@ -689,9 +689,9 @@ def show_providers(diagnose):
 def test_key(provider: str, api_key: Optional[str]):
     """Test if an API key works for a provider."""
     from .core.diagnostics import test_api_key
-    
+
     success, message = test_api_key(provider, api_key)
-    
+
     if success:
         console.print(f"[green]✓[/green] {message}")
     else:
@@ -750,7 +750,7 @@ def review(ctx, path, focus, provider, api_key, output):
     is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
     if is_placeholder:
         api_key = None  # Ignore placeholder, force get_api_key() to run
-    
+
     api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
 
     if not api_key:
@@ -764,9 +764,9 @@ def review(ctx, path, focus, provider, api_key, output):
 
     provider = provider or config_manager.get("api.provider", "anthropic")
     model = config_manager.get("api.model")
-    
+
     from .tools.reviewer import RepositoryReviewer
-    
+
     # Setup Council based on focus
     if focus == "design":
         council = Council.for_domain("creative", api_key=api_key, provider=provider, model=model)
@@ -782,17 +782,17 @@ def review(ctx, path, focus, provider, api_key, output):
             council.add_member("taleb")   # Risk
         except ValueError:
             pass # Fallback if specific personas missing
-            
+
     reviewer = RepositoryReviewer(council)
-    
+
     with console.status(f"[bold green]Scanning {path}...[/bold green]"):
         context = reviewer.gather_context(Path(path))
         context_str = reviewer.format_context(context)
-        
+
     console.print(f"[green]✓[/green] Scanned {len(context['key_files'])} key files.")
-    
+
     results = []
-    
+
     # Execute Reviews
     with Progress(
         SpinnerColumn(),
@@ -800,26 +800,26 @@ def review(ctx, path, focus, provider, api_key, output):
         console=console,
     ) as progress:
         task = progress.add_task("Reviewing...", total=None)
-        
+
         if focus in ["all", "code"]:
             progress.update(task, description="Reviewing Code Quality...")
             results.append(("Code Quality", reviewer.review_code_quality(context_str)))
-            
+
         if focus in ["all", "design"]:
             progress.update(task, description="Reviewing Design & UX...")
             results.append(("Design & UX", reviewer.review_design_ux(context_str)))
-            
+
         if focus in ["all", "security"]:
             progress.update(task, description="Auditing Security...")
             results.append(("Security Audit", reviewer.review_security(context_str)))
 
     # Output
     final_output = [f"# Repository Review: {context['project_name']}\n"]
-    
+
     for title, result in results:
         section = f"\n## {title}\n\n{result.to_markdown()}"
         final_output.append(section)
-        
+
         console.print(Panel(
             Markdown(result.synthesis or result.responses[0].content),
             title=title,
