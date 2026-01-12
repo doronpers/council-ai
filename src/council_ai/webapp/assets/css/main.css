@@ -297,6 +297,32 @@ details summary::-webkit-details-marker {
 .badge[data-persona="taleb"] { background: rgba(99, 102, 241, 0.2); color: #6366f1; }
 .badge[data-persona="grove"] { background: rgba(249, 115, 22, 0.2); color: #f97316; }
 
+/* Settings actions */
+.settings-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.settings-actions button {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+/* Field hints */
+.field-hint {
+  display: block;
+  margin-top: -12px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* Dark mode support (system preference) */
 @media (prefers-color-scheme: light) {
   :root {
