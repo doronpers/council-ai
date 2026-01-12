@@ -23,7 +23,7 @@ try:
         Path(__file__).parent.parent.parent.parent / ".env",  # Project root (if running from repo)
         Path.home() / ".council-ai" / ".env",  # User home directory
     ]
-    
+
     for env_path in env_paths_to_try:
         if env_path.exists():
             # Check if any API key env vars are placeholders - if so, override them
@@ -34,7 +34,7 @@ try:
                 if existing_val and ("your-" in existing_val.lower() or "here" in existing_val.lower()):
                     has_placeholder = True
                     break
-            
+
             # Override placeholders or use override=False to preserve real env vars
             load_dotenv(env_path, override=has_placeholder)
             _env_loaded = True
@@ -212,7 +212,7 @@ def get_api_key(provider: str = "anthropic") -> Optional[str]:
 def get_available_providers() -> list[tuple[str, Optional[str]]]:
     """
     Get list of available providers with their API keys.
-    
+
     Returns:
         List of (provider_name, api_key) tuples. api_key is None if not available.
     """
