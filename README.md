@@ -190,6 +190,9 @@ council interactive
 
 # Web app (for user testing)
 council web --reload
+
+# Repository review (code/design/security)
+council review . --focus all --output review.md
 ```
 
 ### Python API
