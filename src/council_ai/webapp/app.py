@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 from pathlib import Path
 from typing import List, Optional
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
@@ -12,17 +15,29 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from council_ai import Council
-from council_ai.core.config import ConfigManager, get_api_key
+from council_ai.core.config import ConfigManager, get_api_key, get_tts_api_key
 from council_ai.core.council import ConsultationMode
 from council_ai.core.history import ConsultationHistory
 from council_ai.core.persona import PersonaCategory, list_personas
 from council_ai.domains import list_domains
 from council_ai.providers import list_model_capabilities, list_providers
+from council_ai.providers.tts import TTSProviderFactory, generate_speech_with_fallback
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Council AI", version="1.0.0")
 
 # Initialize history (shared instance)
 _history = ConsultationHistory()
+
+# Initialize TTS providers (lazy - will be created when needed)
+_tts_primary = None
+_tts_fallback = None
+_tts_initialized = False
+
+# Audio storage directory
+AUDIO_DIR = Path.home() / ".cache" / "council-ai" / "audio"
+AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 # Determine if we're in production (built assets exist) or development
 WEBAPP_DIR = Path(__file__).parent
@@ -53,12 +68,24 @@ class ConsultRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    enable_tts: bool = False  # Enable TTS for this consultation
 
 
 class ConsultResponse(BaseModel):
     synthesis: Optional[str]
     responses: list[dict]
     mode: str
+
+
+class TTSRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=5000)
+    voice: Optional[str] = None
+    provider: Optional[str] = None
+
+
+class TTSResponse(BaseModel):
+    audio_url: str
+    filename: str
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -115,6 +142,14 @@ async def info() -> dict:
             "base_url": config.api.base_url,
             "domain": config.default_domain,
             "mode": config.default_mode,
+        },
+        "tts": {
+            "enabled": config.tts.enabled,
+            "provider": config.tts.provider,
+            "fallback_provider": config.tts.fallback_provider,
+            "voice": config.tts.voice,
+            "has_elevenlabs_key": bool(get_tts_api_key("elevenlabs")),
+            "has_openai_key": bool(get_tts_api_key("openai")),
         },
         "providers": list_providers(),
         "models": list_model_capabilities(),
@@ -327,3 +362,150 @@ async def history_search(q: str, limit: Optional[int] = None) -> dict:
     """Search consultations."""
     results = _history.search(q, limit=limit)
     return {"consultations": results, "query": q, "count": len(results)}
+
+
+# TTS Helper Functions
+
+
+def _initialize_tts_providers():
+    """Initialize TTS providers lazily."""
+    global _tts_primary, _tts_fallback, _tts_initialized
+
+    if _tts_initialized:
+        return
+
+    config = ConfigManager().config
+    if not config.tts.enabled:
+        _tts_initialized = True
+        return
+
+    try:
+        primary_key = config.tts.api_key or get_tts_api_key(config.tts.provider)
+        fallback_key = None
+        if config.tts.fallback_provider:
+            fallback_key = config.tts.fallback_api_key or get_tts_api_key(
+                config.tts.fallback_provider
+            )
+
+        _tts_primary, _tts_fallback = TTSProviderFactory.create_provider(
+            config.tts.provider,
+            api_key=primary_key,
+            fallback_provider=config.tts.fallback_provider,
+            fallback_api_key=fallback_key,
+        )
+        _tts_initialized = True
+        logger.info(
+            f"TTS providers initialized: primary={config.tts.provider}, "
+            f"fallback={config.tts.fallback_provider}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize TTS providers: {e}")
+        _tts_initialized = True
+
+
+async def _generate_tts_audio(text: str, voice: Optional[str] = None, provider: Optional[str] = None) -> str:
+    """
+    Generate TTS audio and save to file.
+
+    Returns:
+        Filename of generated audio
+    """
+    _initialize_tts_providers()
+
+    if not _tts_primary and not _tts_fallback:
+        raise HTTPException(
+            status_code=503, detail="TTS service not available. Check API keys configuration."
+        )
+
+    # Generate audio
+    try:
+        audio_data = await generate_speech_with_fallback(
+            text, _tts_primary, _tts_fallback, voice=voice
+        )
+    except Exception as e:
+        logger.error(f"TTS generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"TTS generation failed: {str(e)}")
+
+    # Save to file
+    filename = f"{uuid4()}.mp3"
+    filepath = AUDIO_DIR / filename
+
+    try:
+        with open(filepath, "wb") as f:
+            f.write(audio_data)
+        logger.info(f"TTS audio saved: {filename}")
+        return filename
+    except Exception as e:
+        logger.error(f"Failed to save TTS audio: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save audio file")
+
+
+# TTS API Endpoints
+
+
+@app.post("/api/tts/generate", response_model=TTSResponse)
+async def tts_generate(payload: TTSRequest) -> TTSResponse:
+    """Generate TTS audio from text."""
+    config = ConfigManager().config
+
+    # Check if TTS is enabled
+    if not config.tts.enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="TTS is disabled. Enable it in settings or configuration file.",
+        )
+
+    filename = await _generate_tts_audio(payload.text, voice=payload.voice, provider=payload.provider)
+    audio_url = f"/api/tts/audio/{filename}"
+
+    return TTSResponse(audio_url=audio_url, filename=filename)
+
+
+@app.get("/api/tts/audio/{filename}")
+async def tts_audio(filename: str) -> FileResponse:
+    """Serve TTS audio file."""
+    # Validate filename (security)
+    if not filename.endswith(".mp3") or "/" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    filepath = AUDIO_DIR / filename
+
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    return FileResponse(
+        str(filepath),
+        media_type="audio/mpeg",
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "Content-Disposition": f'inline; filename="{filename}"',
+        },
+    )
+
+
+@app.get("/api/tts/voices")
+async def tts_voices() -> dict:
+    """List available TTS voices."""
+    _initialize_tts_providers()
+
+    voices = {"primary": [], "fallback": []}
+
+    if _tts_primary:
+        try:
+            voices["primary"] = await _tts_primary.list_voices()
+        except Exception as e:
+            logger.error(f"Failed to list primary TTS voices: {e}")
+
+    if _tts_fallback:
+        try:
+            voices["fallback"] = await _tts_fallback.list_voices()
+        except Exception as e:
+            logger.error(f"Failed to list fallback TTS voices: {e}")
+
+    config = ConfigManager().config
+    return {
+        "voices": voices,
+        "default_voice": config.tts.voice,
+        "provider": config.tts.provider,
+        "fallback_provider": config.tts.fallback_provider,
+    }

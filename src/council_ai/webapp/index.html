@@ -154,6 +154,30 @@
               <span class="field-hint">⚠️ Session only - never stored</span>
             </div>
           </div>
+
+          <!-- TTS Settings -->
+          <div class="tts-settings">
+            <h3>🔊 Text-to-Speech (Beta)</h3>
+            <div class="tts-toggle-wrapper">
+              <label class="switch-label">
+                <input type="checkbox" id="enable_tts" />
+                <span class="switch-slider"></span>
+                <span class="switch-text">Enable voice responses</span>
+              </label>
+              <span class="field-hint">Convert text responses to audio</span>
+            </div>
+
+            <div id="tts-options" class="tts-options" style="display: none;">
+              <div>
+                <label for="tts_voice">Voice</label>
+                <select id="tts_voice">
+                  <option value="">Default voice</option>
+                </select>
+              </div>
+              <div class="tts-status">
+                <span id="tts-provider-status" class="field-hint"></span>
+              </div>
+            </div>
           
           <div class="settings-actions">
             <button id="save-settings" class="btn-secondary" type="button">💾 Save Settings</button>
@@ -184,6 +208,12 @@
       <section class="panel">
         <h2>Result</h2>
         <div id="status" class="muted">No consultation yet.</div>
+
+        <!-- Audio Player for Synthesis -->
+        <div id="synthesis-audio-player" class="audio-player" style="display: none;">
+          <audio id="synthesis-audio" controls></audio>
+        </div>
+
         <div id="synthesis"></div>
         <div id="responses" class="responses"></div>
       </section>

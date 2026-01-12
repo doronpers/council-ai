@@ -74,6 +74,7 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 - 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints
 - 💬 **Multiple Modes** - Individual, synthesis, debate, or vote
 - 🧭 **Standalone Web App** - A focused web UI for user testing
+- 🔊 **Text-to-Speech** - Voice responses via ElevenLabs and OpenAI TTS
 - 📦 **Portable Package** - pip-installable, use in any project
 
 ---
@@ -562,6 +563,51 @@ council web --reload
 
 Then open <http://127.0.0.1:8000>.
 
+### Text-to-Speech (TTS) Integration 🔊
+
+The web UI supports voice/audio responses powered by ElevenLabs (primary) and OpenAI TTS (fallback).
+
+**Setup:**
+
+1. **Add API Keys** - Add to your `.env` file:
+   ```bash
+   ELEVENLABS_API_KEY=your-elevenlabs-key-here
+   OPENAI_API_KEY=your-openai-key-here  # Fallback
+   ```
+
+2. **Enable TTS** - In the web UI, go to Advanced Settings and toggle "Enable voice responses"
+
+3. **Select Voice** (Optional) - Choose from available voices in the dropdown
+
+**Configuration:**
+
+Create or edit `~/.config/council-ai/config.yaml`:
+
+```yaml
+tts:
+  enabled: false  # Set to true to enable by default
+  provider: "elevenlabs"  # Primary provider
+  voice: "EXAVITQu4vr4xnSDxMaL"  # Optional: specific voice ID
+  fallback_provider: "openai"  # Fallback provider
+  fallback_voice: "alloy"  # Optional: fallback voice
+```
+
+See `config.yaml.example` for full configuration options.
+
+**Features:**
+
+- 🎙️ **High-Quality Voices** - ElevenLabs provides natural, human-like voices
+- 🔄 **Automatic Fallback** - Falls back to OpenAI TTS if ElevenLabs fails
+- 🎚️ **Voice Selection** - Choose from multiple voices per provider
+- 🔇 **Optional** - TTS is disabled by default, enable per-session or globally
+- 📱 **Browser-Native** - Uses HTML5 audio player for compatibility
+
+**Supported Providers:**
+
+| Provider | Quality | Speed | Voices | Cost |
+|----------|---------|-------|--------|------|
+| **ElevenLabs** | ⭐⭐⭐⭐⭐ | Fast | 50+ | $$ |
+| **OpenAI TTS** | ⭐⭐⭐⭐ | Very Fast | 6 | $ |
 ### Web App Features
 
 - **Auto-Save Settings**: Provider, domain, mode, model, and base URL are automatically saved to browser localStorage

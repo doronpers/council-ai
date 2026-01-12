@@ -20,6 +20,7 @@ class MemberResponse:
     content: str
     timestamp: datetime
     error: Optional[str] = None
+    audio_url: Optional[str] = None  # URL to audio file if TTS is enabled
 
     def to_dict(self) -> Dict[str, Any]:
         """Export to dictionary."""
@@ -29,6 +30,7 @@ class MemberResponse:
             "content": self.content,
             "timestamp": self.timestamp.isoformat(),
             "error": self.error,
+            "audio_url": self.audio_url,
         }
 
 
@@ -49,6 +51,7 @@ class ConsultationResult:
     action_items: List[Any] = field(default_factory=list)  # List[ActionItem]
     recommendations: List[Any] = field(default_factory=list)  # List[Recommendation]
     pros_cons: Optional[Any] = None  # ProsCons
+    synthesis_audio_url: Optional[str] = None  # URL to synthesis audio if TTS is enabled
 
     def to_dict(self) -> Dict[str, Any]:
         """Export to dictionary."""
@@ -60,6 +63,7 @@ class ConsultationResult:
             "timestamp": self.timestamp.isoformat(),
             "responses": [r.to_dict() for r in self.responses],
             "synthesis": self.synthesis,
+            "synthesis_audio_url": self.synthesis_audio_url,
             "tags": self.tags,
             "notes": self.notes,
             "structured_synthesis": (
@@ -104,6 +108,7 @@ class ConsultationResult:
                             r_data.get("timestamp", datetime.now().isoformat())
                         ),
                         error=r_data.get("error"),
+                        audio_url=r_data.get("audio_url"),
                     )
                 )
 
@@ -115,6 +120,7 @@ class ConsultationResult:
             timestamp=datetime.fromisoformat(data.get("timestamp", datetime.now().isoformat())),
             responses=responses,
             synthesis=data.get("synthesis"),
+            synthesis_audio_url=data.get("synthesis_audio_url"),
             tags=data.get("tags", []),
             notes=data.get("notes"),
         )

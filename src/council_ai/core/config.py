@@ -33,6 +33,7 @@ try:
                 "GEMINI_API_KEY",
                 "AI_GATEWAY_API_KEY",
                 "COUNCIL_API_KEY",
+                "ELEVENLABS_API_KEY",
             ]
             has_placeholder = False
             for var in api_key_vars:
@@ -64,10 +65,24 @@ class APIConfig(BaseModel):
     base_url: Optional[str] = None
 
 
+class TTSConfig(BaseModel):
+    """Text-to-Speech configuration."""
+
+    enabled: bool = False  # TTS disabled by default
+    provider: str = "elevenlabs"  # Primary provider
+    api_key: Optional[str] = None  # Primary API key
+    voice: Optional[str] = None  # Voice ID/name (uses provider default if not set)
+    model: Optional[str] = None  # TTS model (uses provider default if not set)
+    fallback_provider: Optional[str] = "openai"  # Fallback provider
+    fallback_api_key: Optional[str] = None  # Fallback API key
+    fallback_voice: Optional[str] = None  # Fallback voice
+
+
 class Config(BaseModel):
     """Main configuration."""
 
     api: APIConfig = Field(default_factory=APIConfig)
+    tts: TTSConfig = Field(default_factory=TTSConfig)
     default_mode: str = "synthesis"
     default_domain: str = "general"
     temperature: float = 0.7
@@ -229,3 +244,24 @@ def get_available_providers() -> list[tuple[str, Optional[str]]]:
         key = get_api_key(provider_name)
         providers.append((provider_name, key))
     return providers
+
+
+def get_tts_api_key(provider: str = "elevenlabs") -> Optional[str]:
+    """Get API key for a TTS provider from environment or config."""
+    # Try provider-specific env var first
+    provider_upper = provider.upper()
+    env_key = os.environ.get(f"{provider_upper}_API_KEY")
+    if env_key:
+        return env_key
+
+    # Try config file
+    try:
+        config = load_config()
+        if provider == config.tts.provider:
+            return config.tts.api_key
+        elif provider == config.tts.fallback_provider:
+            return config.tts.fallback_api_key
+    except Exception:
+        pass
+
+    return None
