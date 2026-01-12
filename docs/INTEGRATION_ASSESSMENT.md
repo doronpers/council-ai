@@ -3,6 +3,7 @@
 ## Executive Summary
 
 **YES** - Council AI can and should be integrated with feedback-loop. This creates a powerful synergy where:
+
 - feedback-loop provides **pattern-aware learning** from test failures
 - Council AI provides **multi-perspective decision making** with diverse expert personas
 
@@ -11,10 +12,12 @@
 ### 1. Enhanced Code Review (High Value)
 
 **Current State:**
+
 - feedback-loop has `CodeReviewer` with single LLM perspective
 - council-ai has multi-persona consultation system
 
 **Integration:**
+
 ```python
 # In feedback-loop's code_reviewer.py
 from council_ai import Council
@@ -62,6 +65,7 @@ class CouncilCodeReviewer(CodeReviewer):
 ```
 
 **Benefits:**
+
 - 4-7 expert perspectives instead of 1
 - Security (Holman), Design (Rams), Cognitive Load (Kahneman), Risk (Taleb)
 - More comprehensive reviews catching issues from different angles
@@ -174,6 +178,7 @@ def get_test_strategy(failure_info):
 ### Council AI - Should be **PUBLIC** ✅
 
 **Reasons:**
+
 1. **Generic Framework** - No proprietary business logic
 2. **Educational Value** - Helps developers make better decisions
 3. **Community Benefit** - Reusable by many projects
@@ -183,17 +188,19 @@ def get_test_strategy(failure_info):
 7. **Network Effect** - More users = more personas = better library
 
 **Make Private Only If:**
+
 - You plan to monetize as SaaS
 - Contains proprietary persona definitions (doesn't currently)
 - Has custom LLM training data (doesn't have any)
 
-**Recommendation: Keep PUBLIC**
+### Recommendation: Keep PUBLIC
 
 ---
 
 ### Feedback-Loop - Should be **PUBLIC** ✅
 
 **Reasons:**
+
 1. **Developer Tool** - Maximum value comes from wide adoption
 2. **Not Core IP** - The methodology is generic (pattern learning from tests)
 3. **Community Enhancement** - Others can contribute patterns and improvements
@@ -203,6 +210,7 @@ def get_test_strategy(failure_info):
 7. **Network Effect** - Shared pattern library benefits everyone
 
 **Consider PRIVATE Only If:**
+
 1. **Proprietary Patterns** - Your team's specific patterns contain trade secrets
    - Solution: Public framework + private pattern repository
 2. **Custom LLM Integration** - Specialized model training or prompts
@@ -210,7 +218,7 @@ def get_test_strategy(failure_info):
 3. **Monetization Strategy** - Plan to sell as enterprise tool
    - Solution: Open core model (public basic, paid enterprise features)
 
-**Recommendation: Keep PUBLIC**
+### Recommendation: Keep PUBLIC
 
 ---
 
@@ -218,7 +226,7 @@ def get_test_strategy(failure_info):
 
 If you have proprietary concerns, use this structure:
 
-```
+```text
 feedback-loop/           (PUBLIC)
 ├── Core framework
 ├── Generic patterns
@@ -245,22 +253,26 @@ council-ai-custom/       (PRIVATE - optional)
 ## Implementation Recommendations
 
 ### Phase 1: Basic Integration (1-2 days)
+
 1. Add council-ai as dependency to feedback-loop
 2. Create `CouncilCodeReviewer` class
 3. Add CLI command: `fl-council-review <file>`
 4. Test with existing feedback-loop patterns
 
 ### Phase 2: Pattern Curation (2-3 days)
+
 1. Add pattern validation via council
 2. Implement voting system for pattern quality
 3. Add confidence scores to patterns based on council consensus
 
 ### Phase 3: Decision Support (1-2 days)
+
 1. Create `fl-council-consult` CLI command
 2. Add architecture decision templates
 3. Document when to use council vs. single LLM
 
 ### Phase 4: Enhanced Integration (3-5 days)
+
 1. Multi-persona test strategy recommendations
 2. Council-based code generation
 3. Team decision tracking and history
@@ -323,11 +335,13 @@ class FeedbackLoopCouncil:
 ## Competitive Analysis
 
 ### Similar Tools
+
 - **GitHub Copilot** - Code generation (single perspective)
 - **Cursor AI** - IDE integration (single perspective)
 - **Codeium** - Code completion (single perspective)
 
 ### Your Advantage with Integration
+
 - **Multi-perspective** - 4-7 expert views vs 1
 - **Pattern-aware** - Learns from your specific codebase
 - **Continuous improvement** - Feedback loop makes it smarter
@@ -339,6 +353,7 @@ class FeedbackLoopCouncil:
 ## Business Model Considerations
 
 ### If Keeping Public (Recommended)
+
 - Build community and reputation
 - Offer consulting/customization services
 - Create paid training/workshops
@@ -346,13 +361,14 @@ class FeedbackLoopCouncil:
 - Write book/course on the methodology
 
 ### If Going Private
+
 - Direct SaaS monetization
 - Enterprise licensing
 - Lose community contributions
 - Harder to market/sell
 - Must build all features yourself
 
-**Recommendation: Public repos + paid services layer**
+### Recommendation: Public repos + paid services layer
 
 ---
 
