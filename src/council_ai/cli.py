@@ -44,6 +44,11 @@ def main(ctx, config):
     perspectives and expertise.
 
     \b
+    First Time Setup:
+      council init              # Guided setup wizard
+      council quickstart        # Explore features (no API key needed)
+
+    \b
     Quick Start:
       council consult "Should I take this job offer?"
       council consult --domain business "Review our Q1 strategy"
@@ -56,13 +61,141 @@ def main(ctx, config):
       council persona create
 
     \b
-    Configuration:
+    Configuration & Presets:
       council config set api.provider anthropic
-      council config set api.api_key YOUR_KEY
+      council config preset-save my-team --domain coding
+      council consult --preset my-team "Review this code"
     """
     ctx.ensure_object(dict)
     ctx.obj["config_path"] = config
     ctx.obj["config_manager"] = ConfigManager(config)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Init Command (Setup Wizard)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@main.command()
+@click.pass_context
+def init(ctx):
+    """
+    Initialize Council AI with a setup wizard.
+
+    Guides you through first-time setup including API keys and preferences.
+    """
+    config_manager = ctx.obj["config_manager"]
+
+    console.print(
+        Panel(
+            "[bold]🏛️ Welcome to Council AI![/bold]\n\n"
+            "This wizard will help you set up Council AI.\n"
+            "You can change these settings later with 'council config'.",
+            title="Setup Wizard",
+            border_style="blue",
+        )
+    )
+
+    # Step 1: Choose provider
+    console.print("\n[bold]Step 1: Choose your LLM provider[/bold]")
+    providers = list_providers()
+    console.print(f"Available providers: {', '.join(providers)}")
+    
+    provider = Prompt.ask(
+        "Which provider would you like to use?",
+        choices=providers,
+        default=config_manager.get("api.provider", "openai"),
+    )
+    config_manager.set("api.provider", provider)
+
+    # Step 2: API Key
+    console.print("\n[bold]Step 2: Configure API key[/bold]")
+    existing_key = get_api_key(provider)
+    
+    if existing_key and "your-" not in existing_key.lower():
+        console.print(f"[green]✓[/green] Found existing {provider.upper()} API key")
+        if not Confirm.ask("Do you want to update it?", default=False):
+            existing_key = None  # Skip update
+
+    if not existing_key or ("your-" in existing_key.lower()):
+        console.print(f"\n[dim]You can get an API key from:[/dim]")
+        if provider == "anthropic":
+            console.print("  https://console.anthropic.com/")
+        elif provider == "openai":
+            console.print("  https://platform.openai.com/api-keys")
+        elif provider == "gemini":
+            console.print("  https://ai.google.dev/")
+        
+        console.print(f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your environment")
+        
+        if Confirm.ask("Do you have an API key to configure now?", default=True):
+            api_key = Prompt.ask(f"{provider.capitalize()} API key", password=True)
+            if api_key:
+                config_manager.set("api.api_key", api_key)
+                console.print("[green]✓[/green] API key saved to config")
+
+    # Step 3: Default domain
+    console.print("\n[bold]Step 3: Choose default domain[/bold]")
+    domains = list_domains()
+    console.print("\nAvailable domains:")
+    for d in domains[:5]:  # Show first 5
+        console.print(f"  • {d.id}: {d.name}")
+    console.print(f"  ... and {len(domains) - 5} more")
+    
+    default_domain = Prompt.ask(
+        "Default domain",
+        default=config_manager.get("default_domain", "general"),
+    )
+    config_manager.set("default_domain", default_domain)
+
+    # Step 4: Save
+    config_manager.save()
+    
+    console.print(
+        Panel(
+            f"[green]✓ Setup complete![/green]\n\n"
+            f"Provider: {provider}\n"
+            f"Default domain: {default_domain}\n"
+            f"Config saved to: {config_manager.path}\n\n"
+            f"[bold]Next steps:[/bold]\n"
+            f"  • Run 'council consult \"your question\"' to get started\n"
+            f"  • Run 'council interactive' for a session\n"
+            f"  • Run 'council --help' to see all commands",
+            title="Setup Complete",
+            border_style="green",
+        )
+    )
+
+
+@main.command()
+def quickstart():
+    """
+    Run an interactive quickstart demo (no API key required).
+
+    Explore Council AI features and see examples without needing an API key.
+    """
+    import subprocess
+    import sys
+    
+    quickstart_path = Path(__file__).parent.parent.parent / "examples" / "quickstart.py"
+    
+    if not quickstart_path.exists():
+        # Try alternative path for installed package
+        quickstart_path = Path(__file__).parent / ".." / ".." / "examples" / "quickstart.py"
+    
+    if quickstart_path.exists():
+        try:
+            subprocess.run([sys.executable, str(quickstart_path)], check=True)
+        except subprocess.CalledProcessError:
+            console.print("[red]Error:[/red] Failed to run quickstart demo")
+            sys.exit(1)
+    else:
+        console.print(
+            "[yellow]Quickstart demo not found.[/yellow]\n\n"
+            "You can view personas and domains with:\n"
+            "  council persona list\n"
+            "  council domain list\n"
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -72,7 +205,8 @@ def main(ctx, config):
 
 @main.command()
 @click.argument("query")
-@click.option("--domain", "-d", default="general", help="Domain preset to use")
+@click.option("--preset", help="Use a saved preset configuration")
+@click.option("--domain", "-d", help="Domain preset to use")
 @click.option("--members", "-m", multiple=True, help="Specific personas to consult")
 @click.option("--provider", "-p", help="LLM provider (anthropic, openai)")
 @click.option("--api-key", "-k", envvar="COUNCIL_API_KEY", help="API key for provider")
@@ -80,13 +214,12 @@ def main(ctx, config):
 @click.option(
     "--mode",
     type=click.Choice(["individual", "sequential", "synthesis", "debate", "vote"]),
-    default="synthesis",
     help="Consultation mode",
 )
 @click.option("--output", "-o", type=click.Path(), help="Save output to file")
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def consult(ctx, query, domain, members, provider, api_key, context, mode, output, output_json):
+def consult(ctx, query, preset, domain, members, provider, api_key, context, mode, output, output_json):
     """
     Consult the council on a query.
 
@@ -95,8 +228,31 @@ def consult(ctx, query, domain, members, provider, api_key, context, mode, outpu
       council consult "Should we refactor this module?"
       council consult --domain startup "Is this the right time to raise?"
       council consult --members rams --members kahneman "Review this design"
+      council consult --preset my-team "What do you think?"
     """
     config_manager = ctx.obj["config_manager"]
+
+    # Load preset if specified
+    if preset:
+        if preset not in config_manager.config.presets:
+            console.print(f"[red]Error:[/red] Preset '{preset}' not found")
+            console.print("[dim]Use 'council config preset-list' to see available presets[/dim]")
+            sys.exit(1)
+        
+        preset_config = config_manager.config.presets[preset]
+        # Apply preset values if not overridden by CLI options
+        if not domain:
+            domain = preset_config.get("domain", "general")
+        if not members and "members" in preset_config:
+            members = preset_config["members"]
+        if not mode:
+            mode = preset_config.get("mode", "synthesis")
+    
+    # Apply defaults if still not set
+    if not domain:
+        domain = config_manager.get("default_domain", "general")
+    if not mode:
+        mode = config_manager.get("default_mode", "synthesis")
 
     # Get API key
     requested_provider = provider or config_manager.get("api.provider", "anthropic")
@@ -228,12 +384,14 @@ def interactive(ctx, domain, provider, api_key):
             f"Domain: {domain}\n"
             f"Members: {', '.join(m.name for m in council.list_members())}\n\n"
             f"Commands:\n"
+            f"  /help - Show this help message\n"
             f"  /members - List current members\n"
             f"  /add <id> - Add a member\n"
             f"  /remove <id> - Remove a member\n"
             f"  /domain <name> - Switch domain\n"
             f"  /mode <mode> - Change consultation mode\n"
-            f"  /quit - Exit session",
+            f"  /quit or /exit - Exit session\n\n"
+            f"[dim]Tip: Press Ctrl+C or Ctrl+D to exit anytime[/dim]",
             title="Welcome",
             border_style="blue",
         )
@@ -253,8 +411,23 @@ def interactive(ctx, domain, provider, api_key):
                 arg = parts[1] if len(parts) > 1 else None
 
                 if cmd == "quit" or cmd == "exit":
-                    console.print("[dim]Goodbye![/dim]")
+                    console.print("[green]✓[/green] Session ended. Goodbye!")
                     break
+                elif cmd == "help":
+                    console.print(
+                        Panel(
+                            "[bold]Available Commands:[/bold]\n\n"
+                            "  /help - Show this help message\n"
+                            "  /members - List current members\n"
+                            "  /add <id> - Add a member\n"
+                            "  /remove <id> - Remove a member\n"
+                            "  /domain <name> - Switch domain\n"
+                            "  /mode <mode> - Change consultation mode\n"
+                            "  /quit or /exit - Exit session",
+                            title="Help",
+                            border_style="blue",
+                        )
+                    )
                 elif cmd == "members":
                     _show_members(council)
                 elif cmd == "add" and arg:
@@ -291,8 +464,8 @@ def interactive(ctx, domain, provider, api_key):
             console.print()
             console.print(Markdown(result.to_markdown()))
 
-        except KeyboardInterrupt:
-            console.print("\n[dim]Goodbye![/dim]")
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[green]✓[/green] Session ended. Goodbye!")
             break
         except Exception as e:
             console.print(f"[red]Error:[/red] {e}")
@@ -604,6 +777,87 @@ def config_get(ctx, key):
         console.print(f"[yellow]{key} is not set[/yellow]")
     else:
         console.print(f"{key} = {value}")
+
+
+@config.command("preset-save")
+@click.argument("preset_name")
+@click.option("--domain", "-d", help="Domain to save in preset")
+@click.option("--members", "-m", help="Comma-separated member IDs")
+@click.option("--mode", help="Consultation mode")
+@click.pass_context
+def config_preset_save(ctx, preset_name, domain, members, mode):
+    """Save current or specified settings as a preset."""
+    config_manager = ctx.obj["config_manager"]
+    
+    preset = {}
+    
+    if domain:
+        preset["domain"] = domain
+    else:
+        preset["domain"] = config_manager.get("default_domain")
+    
+    if members:
+        preset["members"] = [m.strip() for m in members.split(",")]
+    
+    if mode:
+        preset["mode"] = mode
+    else:
+        preset["mode"] = config_manager.get("default_mode")
+    
+    # Save to presets
+    if "presets" not in config_manager.config.presets:
+        config_manager.config.presets = {}
+    
+    config_manager.config.presets[preset_name] = preset
+    config_manager.save()
+    
+    console.print(f"[green]✓[/green] Preset '{preset_name}' saved")
+    console.print(f"[dim]Use with: council consult --preset {preset_name}[/dim]")
+
+
+@config.command("preset-list")
+@click.pass_context
+def config_preset_list(ctx):
+    """List saved presets."""
+    config_manager = ctx.obj["config_manager"]
+    presets = config_manager.config.presets
+    
+    if not presets:
+        console.print("[dim]No presets saved.[/dim]")
+        console.print("[dim]Create one with: council config preset-save <name>[/dim]")
+        return
+    
+    table = Table(title="Saved Presets")
+    table.add_column("Name", style="cyan")
+    table.add_column("Domain")
+    table.add_column("Mode")
+    table.add_column("Members")
+    
+    for name, preset in presets.items():
+        members = ", ".join(preset.get("members", [])) if preset.get("members") else "[domain default]"
+        table.add_row(
+            name,
+            preset.get("domain", "general"),
+            preset.get("mode", "synthesis"),
+            members,
+        )
+    
+    console.print(table)
+
+
+@config.command("preset-delete")
+@click.argument("preset_name")
+@click.pass_context
+def config_preset_delete(ctx, preset_name):
+    """Delete a saved preset."""
+    config_manager = ctx.obj["config_manager"]
+    
+    if preset_name in config_manager.config.presets:
+        del config_manager.config.presets[preset_name]
+        config_manager.save()
+        console.print(f"[green]✓[/green] Preset '{preset_name}' deleted")
+    else:
+        console.print(f"[red]Error:[/red] Preset '{preset_name}' not found")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
