@@ -13,7 +13,7 @@ from .config import get_api_key
 def diagnose_api_keys() -> Dict[str, any]:
     """
     Diagnose API key configuration and provide troubleshooting information.
-    
+
     Returns:
         Dictionary with diagnostic information
     """
@@ -96,11 +96,11 @@ def diagnose_api_keys() -> Dict[str, any]:
 def test_api_key(provider: str, api_key: Optional[str] = None) -> Tuple[bool, str]:
     """
     Test if an API key works for a provider.
-    
+
     Args:
         provider: Provider name
         api_key: API key to test (uses get_api_key if None)
-        
+
     Returns:
         Tuple of (success: bool, message: str)
     """

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import List, Optional
 
@@ -9,14 +10,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-import json
 
 from council_ai import Council
 from council_ai.core.config import ConfigManager, get_api_key
 from council_ai.core.council import ConsultationMode
 from council_ai.core.history import ConsultationHistory
 from council_ai.core.persona import PersonaCategory, list_personas
-from council_ai.core.session import ConsultationResult
 from council_ai.domains import list_domains
 from council_ai.providers import list_providers
 
@@ -71,24 +70,26 @@ async def index() -> HTMLResponse:
 @app.get("/manifest.json")
 async def manifest() -> JSONResponse:
     """PWA manifest for mobile app installation."""
-    return JSONResponse({
-        "name": "Council AI",
-        "short_name": "Council AI",
-        "description": "AI-powered advisory council system with customizable personas",
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": "#0c0f14",
-        "theme_color": "#0c0f14",
-        "orientation": "portrait-primary",
-        "icons": [
-            {
-                "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>",
-                "sizes": "any",
-                "type": "image/svg+xml",
-                "purpose": "any maskable"
-            }
-        ]
-    })
+    return JSONResponse(
+        {
+            "name": "Council AI",
+            "short_name": "Council AI",
+            "description": "AI-powered advisory council system with customizable personas",
+            "start_url": "/",
+            "display": "standalone",
+            "background_color": "#0c0f14",
+            "theme_color": "#0c0f14",
+            "orientation": "portrait-primary",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>",
+                    "sizes": "any",
+                    "type": "image/svg+xml",
+                    "purpose": "any maskable",
+                }
+            ],
+        }
+    )
 
 
 @app.get("/api/info")
@@ -245,7 +246,7 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
                 elif "response" in update:
                     # Convert MemberResponse to dict
                     update["response"] = update["response"].to_dict()
-                
+
                 # Format as SSE
                 yield f"data: {json.dumps(update)}\n\n"
         except Exception as exc:
@@ -283,7 +284,9 @@ async def history_get(consultation_id: str) -> dict:
 
 
 @app.post("/api/history/{consultation_id}/save")
-async def history_save(consultation_id: str, tags: Optional[List[str]] = None, notes: Optional[str] = None) -> dict:
+async def history_save(
+    consultation_id: str, tags: Optional[List[str]] = None, notes: Optional[str] = None
+) -> dict:
     """Save/update a consultation (used after consultation completes)."""
     # This would typically be called after a consultation completes
     # For now, consultations are auto-saved, but this allows updating tags/notes

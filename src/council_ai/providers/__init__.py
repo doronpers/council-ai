@@ -45,7 +45,7 @@ class LLMProvider(ABC):
     ) -> AsyncIterator[str]:
         """
         Stream a completion token by token.
-        
+
         Default implementation collects stream and yields chunks.
         Providers should override for true streaming.
         """
@@ -53,7 +53,7 @@ class LLMProvider(ABC):
         # Yield in chunks for default implementation
         chunk_size = 10
         for i in range(0, len(result), chunk_size):
-            yield result[i:i + chunk_size]
+            yield result[i : i + chunk_size]
 
     async def complete_structured(
         self,
@@ -65,18 +65,20 @@ class LLMProvider(ABC):
     ) -> dict:
         """
         Generate a structured completion following a JSON schema.
-        
+
         Default implementation uses complete() and parses JSON.
         Providers should override for native structured output support.
         """
         import json
-        
+
         # Add schema instruction to prompt
-        schema_instruction = f"\n\nRespond with valid JSON matching this schema: {json.dumps(json_schema, indent=2)}"
+        schema_instruction = (
+            f"\n\nRespond with valid JSON matching this schema: {json.dumps(json_schema, indent=2)}"
+        )
         enhanced_prompt = user_prompt + schema_instruction
-        
+
         result = await self.complete(system_prompt, enhanced_prompt, max_tokens, temperature)
-        
+
         # Try to parse JSON from response
         try:
             # Extract JSON from markdown code blocks if present
@@ -88,12 +90,13 @@ class LLMProvider(ABC):
                 json_start = result.find("```") + 3
                 json_end = result.find("```", json_start)
                 result = result[json_start:json_end].strip()
-            
+
             return json.loads(result)
         except json.JSONDecodeError:
             # Fallback: try to extract JSON object
             import re
-            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', result, re.DOTALL)
+
+            json_match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", result, re.DOTALL)
             if json_match:
                 return json.loads(json_match.group())
             raise ValueError(f"Failed to parse structured JSON from response: {result[:200]}")
@@ -169,8 +172,8 @@ class AnthropicProvider(LLMProvider):
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}],
         ) as stream:
-        async for text_block in stream.text_stream:
-            yield text_block
+            async for text_block in stream.text_stream:
+                yield text_block
 
     async def complete_structured(
         self,
@@ -182,15 +185,16 @@ class AnthropicProvider(LLMProvider):
     ) -> dict:
         """Generate structured completion using Anthropic."""
         try:
-            import anthropic
             import json
+
+            import anthropic
         except ImportError:
             raise ImportError(
                 "anthropic package not installed. Install with: pip install anthropic"
             )
 
         client = anthropic.AsyncAnthropic(api_key=self.api_key)
-        
+
         # Anthropic supports response_format for structured output
         try:
             message = await client.messages.create(
@@ -205,7 +209,9 @@ class AnthropicProvider(LLMProvider):
             return json.loads(result_text)
         except Exception:
             # Fallback to base implementation
-            return await super().complete_structured(system_prompt, user_prompt, json_schema, max_tokens, temperature)
+            return await super().complete_structured(
+                system_prompt, user_prompt, json_schema, max_tokens, temperature
+            )
 
 
 class OpenAIProvider(LLMProvider):
@@ -221,15 +227,19 @@ class OpenAIProvider(LLMProvider):
     ):
         # Try OpenAI key first, then Vercel AI Gateway key
         resolved_key = (
-            api_key
-            or os.environ.get("OPENAI_API_KEY")
-            or os.environ.get("AI_GATEWAY_API_KEY")
+            api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("AI_GATEWAY_API_KEY")
         )
 
         # If using Vercel AI Gateway, set the base URL
-        if not base_url and os.environ.get("AI_GATEWAY_API_KEY") and not os.environ.get("OPENAI_API_KEY"):
+        if (
+            not base_url
+            and os.environ.get("AI_GATEWAY_API_KEY")
+            and not os.environ.get("OPENAI_API_KEY")
+        ):
             # Vercel AI Gateway endpoint (can be overridden)
-            base_url = base_url or os.environ.get("VERCEL_AI_GATEWAY_URL") or "https://api.vercel.ai/v1"
+            base_url = (
+                base_url or os.environ.get("VERCEL_AI_GATEWAY_URL") or "https://api.vercel.ai/v1"
+            )
 
         super().__init__(
             resolved_key,
@@ -273,7 +283,11 @@ class OpenAIProvider(LLMProvider):
             except openai.AuthenticationError as e:
                 error_msg = str(e)
                 # Provide helpful error messages
-                if "Invalid API key" in error_msg or "Incorrect API key" in error_msg or "401" in error_msg:
+                if (
+                    "Invalid API key" in error_msg
+                    or "Incorrect API key" in error_msg
+                    or "401" in error_msg
+                ):
                     raise ValueError(
                         f"OpenAI API key authentication failed. "
                         f"Please verify your OPENAI_API_KEY or AI_GATEWAY_API_KEY is correct and not expired. "
@@ -310,7 +324,7 @@ class OpenAIProvider(LLMProvider):
         if self.base_url:
             client_kwargs["base_url"] = self.base_url
         client = openai.AsyncOpenAI(**client_kwargs)
-        
+
         try:
             stream = await client.chat.completions.create(
                 model=self.model or self.DEFAULT_MODEL,
@@ -327,7 +341,11 @@ class OpenAIProvider(LLMProvider):
                     yield chunk.choices[0].delta.content
         except openai.AuthenticationError as e:
             error_msg = str(e)
-            if "Invalid API key" in error_msg or "Incorrect API key" in error_msg or "401" in error_msg:
+            if (
+                "Invalid API key" in error_msg
+                or "Incorrect API key" in error_msg
+                or "401" in error_msg
+            ):
                 raise ValueError(
                     f"OpenAI API key authentication failed. "
                     f"Please verify your OPENAI_API_KEY or AI_GATEWAY_API_KEY is correct and not expired. "
@@ -354,8 +372,9 @@ class OpenAIProvider(LLMProvider):
     ) -> dict:
         """Generate structured completion using OpenAI."""
         try:
-            import openai
             import json
+
+            import openai
         except ImportError:
             raise ImportError("openai package not installed. Install with: pip install openai")
 
@@ -363,7 +382,7 @@ class OpenAIProvider(LLMProvider):
         if self.base_url:
             client_kwargs["base_url"] = self.base_url
         client = openai.AsyncOpenAI(**client_kwargs)
-        
+
         try:
             # OpenAI supports response_format for JSON mode
             response = await client.chat.completions.create(
@@ -380,7 +399,9 @@ class OpenAIProvider(LLMProvider):
             return json.loads(result_text)
         except Exception:
             # Fallback to base implementation
-            return await super().complete_structured(system_prompt, user_prompt, json_schema, max_tokens, temperature)
+            return await super().complete_structured(
+                system_prompt, user_prompt, json_schema, max_tokens, temperature
+            )
 
 
 class GeminiProvider(LLMProvider):
@@ -450,7 +471,7 @@ class GeminiProvider(LLMProvider):
         genai.configure(api_key=self.api_key)
         model = genai.GenerativeModel(self.model or self.DEFAULT_MODEL)
         full_prompt = f"{system_prompt}\n\n{user_prompt}"
-        
+
         # Gemini streaming - need to use async wrapper
         def _stream():
             response = model.generate_content(
@@ -462,9 +483,9 @@ class GeminiProvider(LLMProvider):
                 stream=True,
             )
             return response
-        
+
         response = await asyncio.to_thread(_stream)
-        
+
         # Yield chunks as they arrive
         for chunk in response:
             if chunk.text:
@@ -537,7 +558,7 @@ class HTTPProvider(LLMProvider):
             }
             if self.model:
                 payload["model"] = self.model
-            
+
             async with client.stream(
                 "POST",
                 self.endpoint,
@@ -554,6 +575,7 @@ class HTTPProvider(LLMProvider):
                             break
                         try:
                             import json
+
                             chunk_data = json.loads(data)
                             if "completion" in chunk_data:
                                 yield chunk_data["completion"]

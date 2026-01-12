@@ -7,6 +7,7 @@ A comprehensive CLI for interacting with the Council AI system.
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 import click
 from rich.console import Console
@@ -114,7 +115,9 @@ def consult(ctx, query, domain, members, provider, api_key, context, mode, outpu
         sys.exit(1)
     if "your-" in api_key.lower() or "here" in api_key.lower():
         console.print("[red]Error:[/red] API key appears to be a placeholder value.")
-        console.print("Please update your .env file with your actual API key (not the example value).")
+        console.print(
+            "Please update your .env file with your actual API key (not the example value)."
+        )
         console.print("Run 'council providers --diagnose' for help.")
         sys.exit(1)
 
@@ -202,7 +205,9 @@ def interactive(ctx, domain, provider, api_key):
         sys.exit(1)
     if "your-" in api_key.lower() or "here" in api_key.lower():
         console.print("[red]Error:[/red] API key appears to be a placeholder value.")
-        console.print("Please update your .env file with your actual API key (not the example value).")
+        console.print(
+            "Please update your .env file with your actual API key (not the example value)."
+        )
         console.print("Run 'council providers --diagnose' for help.")
         sys.exit(1)
 
@@ -641,7 +646,7 @@ def show_providers(diagnose):
             table.add_row(
                 provider.upper(),
                 "[green]✓[/green]" if has_key else "[red]✗[/red]",
-                ", ".join(details) if details else "N/A"
+                ", ".join(details) if details else "N/A",
             )
 
         console.print(table)
@@ -728,7 +733,6 @@ def web(host: str, port: int, reload: bool):
     uvicorn.run("council_ai.webapp:app", host=host, port=port, reload=reload)
 
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Review Command
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -736,7 +740,13 @@ def web(host: str, port: int, reload: bool):
 
 @main.command("review")
 @click.argument("path", default=".", type=click.Path(exists=True))
-@click.option("--focus", "-f", type=click.Choice(["all", "code", "design", "security"]), default="all", help="Focus of the review")
+@click.option(
+    "--focus",
+    "-f",
+    type=click.Choice(["all", "code", "design", "security"]),
+    default="all",
+    help="Focus of the review",
+)
 @click.option("--provider", "-p", help="LLM provider")
 @click.option("--api-key", "-k", envvar="COUNCIL_API_KEY", help="API key")
 @click.option("--output", "-o", type=click.Path(), help="Save report to file")
@@ -744,7 +754,7 @@ def web(host: str, port: int, reload: bool):
 def review(ctx, path, focus, provider, api_key, output):
     """
     Review a repository or directory.
-    
+
     Performs a comprehensive AI-driven audit of the code at PATH.
     """
     config_manager = ctx.obj["config_manager"]
@@ -760,7 +770,9 @@ def review(ctx, path, focus, provider, api_key, output):
         sys.exit(1)
     if "your-" in api_key.lower() or "here" in api_key.lower():
         console.print("[red]Error:[/red] API key appears to be a placeholder value.")
-        console.print("Please update your .env file with your actual API key (not the example value).")
+        console.print(
+            "Please update your .env file with your actual API key (not the example value)."
+        )
         console.print("Run 'council providers --diagnose' for help.")
         sys.exit(1)
 
@@ -778,14 +790,14 @@ def review(ctx, path, focus, provider, api_key, output):
         # Custom mix for general review
         council = Council(api_key=api_key, provider=provider)
         try:
-            council.add_member("rams")    # Design
+            council.add_member("rams")  # Design
             council.add_member("holman")  # Security
-            council.add_member("kahneman") # Cognitive
-            council.add_member("taleb")   # Risk
+            council.add_member("kahneman")  # Cognitive
+            council.add_member("taleb")  # Risk
         except ValueError:
-            pass # Fallback if specific personas missing
+            pass  # Fallback if specific personas missing
 
-    reviewer = RepositoryReviewer(council)
+    _ = RepositoryReviewer(council)  # TODO: implement review logic
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -806,17 +818,17 @@ def history_list(limit, offset):
     """List saved consultations."""
     history = ConsultationHistory()
     consultations = history.list(limit=limit, offset=offset)
-    
+
     if not consultations:
         console.print("[dim]No consultations found.[/dim]")
         return
-    
+
     table = Table(title="Consultation History")
     table.add_column("ID", style="cyan", width=36)
     table.add_column("Query", style="white", max_width=50)
     table.add_column("Mode", style="yellow")
     table.add_column("Date", style="dim")
-    
+
     for cons in consultations:
         query_preview = cons["query"][:47] + "..." if len(cons["query"]) > 50 else cons["query"]
         date_str = cons["timestamp"][:10] if cons["timestamp"] else "N/A"
@@ -826,28 +838,35 @@ def history_list(limit, offset):
             cons["mode"],
             date_str,
         )
-    
+
     console.print(table)
     console.print(f"\n[dim]Total: {len(consultations)}[/dim]")
 
 
 @history_group.command("show")
 @click.argument("consultation_id")
-@click.option("--format", "-f", type=click.Choice(["markdown", "json"]), default="markdown", help="Output format")
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["markdown", "json"]),
+    default="markdown",
+    help="Output format",
+)
 def history_show(consultation_id, format):
     """Show a specific consultation."""
     history = ConsultationHistory()
     data = history.load(consultation_id)
-    
+
     if not data:
         console.print(f"[red]Consultation '{consultation_id}' not found.[/red]")
         sys.exit(1)
-    
+
     # Reconstruct ConsultationResult
     result = ConsultationResult.from_dict(data)
-    
+
     if format == "json":
         import json
+
         console.print(json.dumps(result.to_dict(), indent=2))
     else:
         console.print()
@@ -861,17 +880,17 @@ def history_search(query, limit):
     """Search consultations."""
     history = ConsultationHistory()
     results = history.search(query, limit=limit)
-    
+
     if not results:
         console.print(f"[dim]No consultations found matching '{query}'.[/dim]")
         return
-    
+
     table = Table(title=f"Search Results: '{query}'")
     table.add_column("ID", style="cyan", width=36)
     table.add_column("Query", style="white", max_width=50)
     table.add_column("Mode", style="yellow")
     table.add_column("Date", style="dim")
-    
+
     for cons in results:
         query_preview = cons["query"][:47] + "..." if len(cons["query"]) > 50 else cons["query"]
         date_str = cons["timestamp"][:10] if cons["timestamp"] else "N/A"
@@ -881,7 +900,7 @@ def history_search(query, limit):
             cons["mode"],
             date_str,
         )
-    
+
     console.print(table)
     console.print(f"\n[dim]Found: {len(results)}[/dim]")
 
@@ -889,34 +908,43 @@ def history_search(query, limit):
 @history_group.command("export")
 @click.argument("consultation_id")
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-@click.option("--format", "-f", type=click.Choice(["markdown", "json"]), default="markdown", help="Export format")
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["markdown", "json"]),
+    default="markdown",
+    help="Export format",
+)
 def history_export(consultation_id, output, format):
     """Export a consultation to a file."""
     history = ConsultationHistory()
     data = history.load(consultation_id)
-    
+
     if not data:
         console.print(f"[red]Consultation '{consultation_id}' not found.[/red]")
         sys.exit(1)
-    
+
     result = ConsultationResult.from_dict(data)
-    
+
     if format == "json":
         import json
+
         content = json.dumps(result.to_dict(), indent=2, ensure_ascii=False)
         ext = "json"
     else:
         content = result.to_markdown()
         ext = "md"
-    
+
     if output:
         output_path = Path(output)
     else:
         # Generate filename from query
-        safe_query = "".join(c if c.isalnum() or c in (" ", "-", "_") else "" for c in result.query[:30])
+        safe_query = "".join(
+            c if c.isalnum() or c in (" ", "-", "_") else "" for c in result.query[:30]
+        )
         safe_query = safe_query.replace(" ", "_").lower()
         output_path = Path(f"consultation_{consultation_id[:8]}_{safe_query}.{ext}")
-    
+
     output_path.write_text(content, encoding="utf-8")
     console.print(f"[green]✓[/green] Exported to {output_path}")
 
@@ -928,17 +956,17 @@ def history_delete(consultation_id, yes):
     """Delete a consultation."""
     history = ConsultationHistory()
     data = history.load(consultation_id)
-    
+
     if not data:
         console.print(f"[red]Consultation '{consultation_id}' not found.[/red]")
         sys.exit(1)
-    
+
     if not yes:
         query_preview = data["query"][:50] + "..." if len(data["query"]) > 50 else data["query"]
         if not Confirm.ask(f"Delete consultation: {query_preview}?"):
             console.print("[dim]Cancelled.[/dim]")
             return
-    
+
     if history.delete(consultation_id):
         console.print(f"[green]✓[/green] Deleted consultation '{consultation_id}'")
     else:
@@ -980,11 +1008,13 @@ def history_delete(consultation_id, yes):
         section = f"\n## {title}\n\n{result.to_markdown()}"
         final_output.append(section)
 
-        console.print(Panel(
-            Markdown(result.synthesis or result.responses[0].content),
-            title=title,
-            border_style="green"
-        ))
+        console.print(
+            Panel(
+                Markdown(result.synthesis or result.responses[0].content),
+                title=title,
+                border_style="green",
+            )
+        )
 
     if output:
         Path(output).write_text("\n".join(final_output))
