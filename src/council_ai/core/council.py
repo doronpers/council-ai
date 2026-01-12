@@ -292,6 +292,51 @@ class Council:
         if persona_id in self._members:
             self._members[persona_id].enabled = False
 
+    def _get_active_members(self, member_ids: Optional[List[str]] = None) -> List[Persona]:
+        """
+        Get the list of active members to consult.
+        
+        Args:
+            member_ids: Specific member IDs to consult (None = all enabled members)
+            
+        Returns:
+            List of Persona objects that are enabled and should be consulted
+        """
+        if member_ids:
+            # Return specific members if requested
+            active = []
+            for member_id in member_ids:
+                if member_id in self._members:
+                    member = self._members[member_id]
+                    if member.enabled:
+                        active.append(member)
+                else:
+                    raise ValueError(f"Member '{member_id}' not found in council")
+            return active
+        else:
+            # Return all enabled members
+            return [m for m in self._members.values() if m.enabled]
+
+    def _start_session(self, query: str, context: Optional[str] = None) -> Session:
+        """
+        Start a new consultation session.
+        
+        Args:
+            query: The consultation query
+            context: Optional context for the consultation
+            
+        Returns:
+            A new Session object
+        """
+        member_ids = [m.id for m in self._members.values() if m.enabled]
+        session = Session(
+            council_name=self.config.name,
+            members=member_ids,
+        )
+        self._sessions.append(session)
+        self._current_session = session
+        return session
+
     # ═══════════════════════════════════════════════════════════════════════════
     # Consultation
     # ═══════════════════════════════════════════════════════════════════════════
@@ -823,3 +868,199 @@ REASONING: [your reasoning]
         # Stream individual votes
         async for update in self._consult_individual_stream(provider, members, vote_query, context):
             yield update
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Synthesis Generation
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    async def _generate_synthesis(
+        self,
+        provider: LLMProvider,
+        query: str,
+        context: Optional[str],
+        responses: List[MemberResponse],
+    ) -> str:
+        """Generate a text synthesis from member responses."""
+        if not responses:
+            return "No responses to synthesize."
+
+        # Build synthesis prompt
+        responses_text = "\n\n".join(
+            f"{r.persona.emoji} **{r.persona.name}** ({r.persona.title}):\n{r.content}"
+            for r in responses
+        )
+
+        synthesis_prompt = self.config.synthesis_prompt or (
+            "You are synthesizing perspectives from an advisory council. "
+            "Review the following responses and provide a balanced, comprehensive synthesis "
+            "that highlights key points of agreement, important differences, and actionable insights."
+        )
+
+        system_prompt = f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+
+        user_prompt = f"""Original Query: {query}
+{f"Context: {context}\n" if context else ""}
+
+Council Responses:
+{responses_text}
+
+Please provide a comprehensive synthesis that:
+1. Summarizes the key perspectives
+2. Highlights areas of agreement and disagreement
+3. Provides actionable insights or recommendations
+4. Is concise but comprehensive (2-4 paragraphs)"""
+
+        try:
+            synthesis = await provider.complete(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                max_tokens=self.config.max_tokens_per_response * 2,  # Synthesis can be longer
+                temperature=self.config.temperature,
+            )
+            return synthesis
+        except Exception as e:
+            logger.error(f"Failed to generate synthesis: {e}")
+            # Fallback: simple concatenation
+            return "\n\n".join(
+                f"**{r.persona.name}**: {r.content[:200]}..." if len(r.content) > 200 else f"**{r.persona.name}**: {r.content}"
+                for r in responses
+            )
+
+    async def _generate_structured_synthesis(
+        self,
+        provider: LLMProvider,
+        query: str,
+        context: Optional[str],
+        responses: List[MemberResponse],
+    ) -> Optional[SynthesisSchema]:
+        """Generate structured synthesis using JSON schema."""
+        if not responses:
+            return None
+
+        try:
+            responses_text = "\n\n".join(
+                f"{r.persona.emoji} **{r.persona.name}** ({r.persona.title}):\n{r.content}"
+                for r in responses
+            )
+
+            system_prompt = (
+                "You are synthesizing perspectives from an advisory council. "
+                "Provide a structured analysis in JSON format."
+            )
+
+            user_prompt = f"""Original Query: {query}
+{f"Context: {context}\n" if context else ""}
+
+Council Responses:
+{responses_text}
+
+Analyze these responses and provide a structured synthesis in JSON format matching the SynthesisSchema."""
+
+            # Try to get structured output from provider
+            schema = SynthesisSchema.model_json_schema()
+            result = await provider.complete(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                max_tokens=self.config.max_tokens_per_response * 3,
+                temperature=self.config.temperature,
+                response_format={"type": "json_object"} if hasattr(provider, "complete") else None,
+            )
+
+            # Parse JSON response
+            import json
+
+            try:
+                data = json.loads(result)
+                return SynthesisSchema(**data)
+            except (json.JSONDecodeError, Exception):
+                # If JSON parsing fails, return None to fallback to text synthesis
+                return None
+        except Exception as e:
+            logger.error(f"Failed to generate structured synthesis: {e}")
+            return None
+
+    def _format_structured_synthesis(self, structured: SynthesisSchema) -> str:
+        """Convert structured synthesis to readable text."""
+        parts = []
+
+        if structured.key_points_of_agreement:
+            parts.append("**Key Points of Agreement:**")
+            for point in structured.key_points_of_agreement:
+                parts.append(f"• {point}")
+
+        if structured.key_points_of_tension:
+            parts.append("\n**Key Points of Tension:**")
+            for point in structured.key_points_of_tension:
+                parts.append(f"• {point}")
+
+        if structured.synthesized_recommendation:
+            parts.append(f"\n**Synthesized Recommendation:**\n{structured.synthesized_recommendation}")
+
+        if structured.action_items:
+            parts.append("\n**Action Items:**")
+            for item in structured.action_items:
+                parts.append(f"• {item.description} (Priority: {item.priority})")
+
+        if structured.recommendations:
+            parts.append("\n**Recommendations:**")
+            for rec in structured.recommendations:
+                parts.append(f"• **{rec.title}**: {rec.description} (Confidence: {rec.confidence})")
+
+        if structured.pros_cons:
+            parts.append("\n**Pros and Cons:**")
+            if structured.pros_cons.pros:
+                parts.append("**Pros:**")
+                for pro in structured.pros_cons.pros:
+                    parts.append(f"• {pro}")
+            if structured.pros_cons.cons:
+                parts.append("**Cons:**")
+                for con in structured.pros_cons.cons:
+                    parts.append(f"• {con}")
+            parts.append(f"\n**Net Assessment:** {structured.pros_cons.net_assessment}")
+
+        return "\n".join(parts)
+
+    async def _generate_synthesis_stream(
+        self,
+        provider: LLMProvider,
+        query: str,
+        context: Optional[str],
+        responses: List[MemberResponse],
+    ) -> AsyncIterator[str]:
+        """Stream synthesis generation."""
+        if not responses:
+            yield "No responses to synthesize."
+            return
+
+        responses_text = "\n\n".join(
+            f"{r.persona.emoji} **{r.persona.name}** ({r.persona.title}):\n{r.content}"
+            for r in responses
+        )
+
+        synthesis_prompt = self.config.synthesis_prompt or (
+            "You are synthesizing perspectives from an advisory council. "
+            "Review the following responses and provide a balanced, comprehensive synthesis."
+        )
+
+        system_prompt = f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+
+        user_prompt = f"""Original Query: {query}
+{f"Context: {context}\n" if context else ""}
+
+Council Responses:
+{responses_text}
+
+Please provide a comprehensive synthesis."""
+
+        try:
+            async for chunk in provider.stream_complete(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                max_tokens=self.config.max_tokens_per_response * 2,
+                temperature=self.config.temperature,
+            ):
+                yield chunk
+        except Exception as e:
+            logger.error(f"Failed to stream synthesis: {e}")
+            # Fallback
+            yield f"Error generating synthesis: {str(e)}"
