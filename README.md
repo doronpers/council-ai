@@ -348,6 +348,41 @@ result = council.consult(query, mode=ConsultationMode.VOTE)
 
 ---
 
+## Structured Synthesis, Weighting, and Failure Behavior
+
+Council AI can optionally request a structured, JSON-schema-backed synthesis. When enabled,
+the council first attempts structured synthesis; if that step raises an exception, it falls
+back to the normal free-form synthesis. If the structured call returns no data (or returns
+`None`), the formatted synthesis text will be empty. Streaming mode always uses free-form
+synthesis, even when structured output is enabled, and will still emit synthesis events even
+if the synthesis content is empty. Individual member failures are surfaced in their response
+content, and only successful responses are included in the synthesis prompt, so if every
+member fails you will see only error responses and an empty/low-signal synthesis.
+
+Persona weights are stored on each persona (0.0–2.0) and can be adjusted per council member.
+The synthesis prompt explicitly asks the model to weight advisor input by expertise relevance,
+so weights act as guidance metadata you can use directly (or via custom hooks) rather than
+changing generation parameters by default.
+
+```python
+from council_ai import Council, CouncilConfig
+
+config = CouncilConfig()
+config.use_structured_output = True  # Enable structured synthesis output
+
+council = Council.for_domain("business", api_key="your-key", config=config)
+
+# Adjust persona influence weights (0.0–2.0)
+council.set_member_weight("grove", 1.5)
+council.set_member_weight("kahneman", 0.8)
+
+result = council.consult("Should we expand into Europe?")
+print(result.structured_synthesis)  # Structured schema (if available)
+print(result.synthesis)             # Markdown-formatted synthesis text
+```
+
+---
+
 ## Configuration
 
 ### Config File
