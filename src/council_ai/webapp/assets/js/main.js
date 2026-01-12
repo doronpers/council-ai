@@ -24,6 +24,8 @@ const statusEl = document.getElementById("status");
 const synthesisEl = document.getElementById("synthesis");
 const responsesEl = document.getElementById("responses");
 const historyListEl = document.getElementById("history-list");
+const saveSettingsEl = document.getElementById("save-settings");
+const resetSettingsEl = document.getElementById("reset-settings");
 
 // TTS DOM elements
 const enableTtsEl = document.getElementById("enable_tts");
@@ -35,6 +37,54 @@ const synthesisAudioEl = document.getElementById("synthesis-audio");
 
 // Active request controller for cancellation
 let activeController = null;
+
+// Settings keys for localStorage
+const SETTINGS_KEY = 'council_ai_settings';
+
+// Load settings from localStorage
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem(SETTINGS_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (err) {
+    console.error('Failed to load settings:', err);
+  }
+  return null;
+}
+
+// Save settings to localStorage
+function saveSettings(settings) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    return true;
+  } catch (err) {
+    console.error('Failed to save settings:', err);
+    return false;
+  }
+}
+
+// Apply saved settings to form
+function applySavedSettings(savedSettings) {
+  if (!savedSettings) return;
+  
+  if (savedSettings.provider && providerEl) {
+    providerEl.value = savedSettings.provider;
+  }
+  if (savedSettings.model && modelEl) {
+    modelEl.value = savedSettings.model;
+  }
+  if (savedSettings.base_url && baseUrlEl) {
+    baseUrlEl.value = savedSettings.base_url;
+  }
+  if (savedSettings.domain && domainEl) {
+    domainEl.value = savedSettings.domain;
+  }
+  if (savedSettings.mode && modeEl) {
+    modeEl.value = savedSettings.mode;
+  }
+}
 
 // Lazy load render module
 let renderModule = null;
@@ -81,6 +131,19 @@ async function initForm() {
       if (hasKeys) {
         loadTtsVoices();
       }
+    
+    // Load saved settings or use defaults
+    const savedSettings = loadSettings();
+    
+    if (savedSettings) {
+      applySavedSettings(savedSettings);
+    } else {
+      // Apply server defaults
+      providerEl.value = data.defaults.provider || "openai";
+      modelEl.value = data.defaults.model || "";
+      baseUrlEl.value = data.defaults.base_url || "";
+      modeEl.value = data.defaults.mode || "synthesis";
+      domainEl.value = data.defaults.domain || "general";
     }
   } catch (err) {
     statusEl.textContent = "Failed to load form data.";
@@ -166,6 +229,55 @@ async function generateSynthesisTTS(synthesisText) {
   } catch (err) {
     console.error("TTS generation error:", err);
     synthesisAudioPlayerEl.style.display = "none";
+// Handle save settings button
+function handleSaveSettings() {
+  const settings = {
+    provider: providerEl.value,
+    model: modelEl.value,
+    base_url: baseUrlEl.value,
+    domain: domainEl.value,
+    mode: modeEl.value,
+  };
+  
+  if (saveSettings(settings)) {
+    // Show success feedback
+    const originalText = saveSettingsEl.textContent;
+    saveSettingsEl.textContent = "✓ Settings Saved!";
+    saveSettingsEl.style.background = "#10b981";
+    
+    setTimeout(() => {
+      saveSettingsEl.textContent = originalText;
+      saveSettingsEl.style.background = "";
+    }, 2000);
+  } else {
+    // Show error feedback consistent with success feedback
+    const originalText = saveSettingsEl.textContent;
+    saveSettingsEl.textContent = "❌ Failed to Save";
+    saveSettingsEl.style.background = "#ef4444";
+    
+    setTimeout(() => {
+      saveSettingsEl.textContent = originalText;
+      saveSettingsEl.style.background = "";
+    }, 3000);
+  }
+}
+
+// Handle reset settings button
+function handleResetSettings() {
+  if (confirm("Reset all settings to defaults? This will clear your saved settings.")) {
+    localStorage.removeItem(SETTINGS_KEY);
+    
+    // Show feedback
+    const originalText = resetSettingsEl.textContent;
+    resetSettingsEl.textContent = "✓ Settings Reset!";
+    resetSettingsEl.style.background = "#10b981";
+    
+    setTimeout(() => {
+      resetSettingsEl.textContent = originalText;
+      resetSettingsEl.style.background = "";
+      // Reload to apply defaults
+      location.reload();
+    }, 1500);
   }
 }
 
@@ -331,6 +443,12 @@ async function initApp() {
     enableTtsEl.addEventListener("change", () => {
       ttsOptionsEl.style.display = enableTtsEl.checked ? "block" : "none";
     });
+  // Settings buttons
+  if (saveSettingsEl) {
+    saveSettingsEl.addEventListener("click", handleSaveSettings);
+  }
+  if (resetSettingsEl) {
+    resetSettingsEl.addEventListener("click", handleResetSettings);
   }
 
   // Ctrl+Enter to submit from query or context textareas
