@@ -289,20 +289,16 @@ def consult(
 
     mode_enum = ConsultationMode(mode)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        progress.add_task("Assembling council...", total=None)
-
+    # Only show progress spinner if not JSON output (for clean JSON output)
+    if output_json:
+        # Assemble council
         if members:
             council = Council(api_key=api_key, provider=provider, model=model, base_url=base_url)
             for member_id in members:
                 try:
                     council.add_member(member_id)
                 except ValueError as e:
-                    console.print(f"[yellow]Warning:[/yellow] {e}")
+                    console.print(f"[yellow]Warning:[/yellow] {e}", file=sys.stderr)
         else:
             council = Council.for_domain(
                 domain,
@@ -312,13 +308,45 @@ def consult(
                 base_url=base_url,
             )
 
-        progress.update(progress.task_ids[0], description="Consulting council...")
-
         try:
             result = council.consult(query, context=context, mode=mode_enum)
         except Exception as e:
-            console.print(f"[red]Error:[/red] {e}")
+            console.print(f"[red]Error:[/red] {e}", file=sys.stderr)
             sys.exit(1)
+    else:
+        # Show progress with spinner for interactive mode
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            progress.add_task("Assembling council...", total=None)
+
+            if members:
+                council = Council(
+                    api_key=api_key, provider=provider, model=model, base_url=base_url
+                )
+                for member_id in members:
+                    try:
+                        council.add_member(member_id)
+                    except ValueError as e:
+                        console.print(f"[yellow]Warning:[/yellow] {e}")
+            else:
+                council = Council.for_domain(
+                    domain,
+                    api_key=api_key,
+                    provider=provider,
+                    model=model,
+                    base_url=base_url,
+                )
+
+            progress.update(progress.task_ids[0], description="Consulting council...")
+
+            try:
+                result = council.consult(query, context=context, mode=mode_enum)
+            except Exception as e:
+                console.print(f"[red]Error:[/red] {e}")
+                sys.exit(1)
 
     # Output
     if output_json:

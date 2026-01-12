@@ -4,12 +4,13 @@ Text-to-Speech (TTS) provider implementations for Council AI.
 Supports ElevenLabs (primary) and OpenAI (fallback) TTS providers.
 """
 
-import os
-import logging
-from abc import ABC, abstractmethod
-from typing import Optional, AsyncIterator
-import aiohttp
 import asyncio
+import logging
+import os
+from abc import ABC, abstractmethod
+from typing import AsyncIterator, Optional
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +20,7 @@ class TTSProvider(ABC):
 
     @abstractmethod
     async def generate_speech(
-        self,
-        text: str,
-        voice: Optional[str] = None,
-        model: Optional[str] = None
+        self, text: str, voice: Optional[str] = None, model: Optional[str] = None
     ) -> bytes:
         """
         Generate speech audio from text.
@@ -39,10 +37,7 @@ class TTSProvider(ABC):
 
     @abstractmethod
     async def stream_speech(
-        self,
-        text: str,
-        voice: Optional[str] = None,
-        model: Optional[str] = None
+        self, text: str, voice: Optional[str] = None, model: Optional[str] = None
     ) -> AsyncIterator[bytes]:
         """
         Stream speech audio from text.
@@ -90,27 +85,18 @@ class ElevenLabsTTSProvider(TTSProvider):
         self.base_url = "https://api.elevenlabs.io/v1"
 
     async def generate_speech(
-        self,
-        text: str,
-        voice: Optional[str] = None,
-        model: Optional[str] = None
+        self, text: str, voice: Optional[str] = None, model: Optional[str] = None
     ) -> bytes:
         """Generate speech using ElevenLabs API."""
         voice = voice or self.DEFAULT_VOICE
         model = model or self.DEFAULT_MODEL
 
         url = f"{self.base_url}/text-to-speech/{voice}"
-        headers = {
-            "xi-api-key": self.api_key,
-            "Content-Type": "application/json"
-        }
+        headers = {"xi-api-key": self.api_key, "Content-Type": "application/json"}
         payload = {
             "text": text,
             "model_id": model,
-            "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.75
-            }
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
         }
 
         try:
@@ -126,27 +112,18 @@ class ElevenLabsTTSProvider(TTSProvider):
             raise
 
     async def stream_speech(
-        self,
-        text: str,
-        voice: Optional[str] = None,
-        model: Optional[str] = None
+        self, text: str, voice: Optional[str] = None, model: Optional[str] = None
     ) -> AsyncIterator[bytes]:
         """Stream speech using ElevenLabs API."""
         voice = voice or self.DEFAULT_VOICE
         model = model or self.DEFAULT_MODEL
 
         url = f"{self.base_url}/text-to-speech/{voice}/stream"
-        headers = {
-            "xi-api-key": self.api_key,
-            "Content-Type": "application/json"
-        }
+        headers = {"xi-api-key": self.api_key, "Content-Type": "application/json"}
         payload = {
             "text": text,
             "model_id": model,
-            "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.75
-            }
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
         }
 
         try:
@@ -179,12 +156,14 @@ class ElevenLabsTTSProvider(TTSProvider):
                     data = await response.json()
                     voices = []
                     for voice in data.get("voices", []):
-                        voices.append({
-                            "id": voice["voice_id"],
-                            "name": voice["name"],
-                            "category": voice.get("category", "premade"),
-                            "labels": voice.get("labels", {})
-                        })
+                        voices.append(
+                            {
+                                "id": voice["voice_id"],
+                                "name": voice["name"],
+                                "category": voice.get("category", "premade"),
+                                "labels": voice.get("labels", {}),
+                            }
+                        )
                     return voices
         except Exception as e:
             logger.error(f"Failed to fetch ElevenLabs voices: {e}")
@@ -222,26 +201,15 @@ class OpenAITTSProvider(TTSProvider):
         self.base_url = "https://api.openai.com/v1"
 
     async def generate_speech(
-        self,
-        text: str,
-        voice: Optional[str] = None,
-        model: Optional[str] = None
+        self, text: str, voice: Optional[str] = None, model: Optional[str] = None
     ) -> bytes:
         """Generate speech using OpenAI TTS API."""
         voice = voice or self.DEFAULT_VOICE
         model = model or self.DEFAULT_MODEL
 
         url = f"{self.base_url}/audio/speech"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": model,
-            "input": text,
-            "voice": voice,
-            "response_format": "mp3"
-        }
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        payload = {"model": model, "input": text, "voice": voice, "response_format": "mp3"}
 
         try:
             async with aiohttp.ClientSession() as session:
@@ -256,10 +224,7 @@ class OpenAITTSProvider(TTSProvider):
             raise
 
     async def stream_speech(
-        self,
-        text: str,
-        voice: Optional[str] = None,
-        model: Optional[str] = None
+        self, text: str, voice: Optional[str] = None, model: Optional[str] = None
     ) -> AsyncIterator[bytes]:
         """
         Stream speech using OpenAI TTS API.
@@ -270,7 +235,7 @@ class OpenAITTSProvider(TTSProvider):
         # Chunk the audio data for pseudo-streaming
         chunk_size = 4096
         for i in range(0, len(audio_data), chunk_size):
-            yield audio_data[i:i + chunk_size]
+            yield audio_data[i : i + chunk_size]
             await asyncio.sleep(0.01)  # Small delay to simulate streaming
 
     async def list_voices(self) -> list[dict]:
@@ -294,7 +259,7 @@ class TTSProviderFactory:
         provider_name: str,
         api_key: Optional[str] = None,
         fallback_provider: Optional[str] = None,
-        fallback_api_key: Optional[str] = None
+        fallback_api_key: Optional[str] = None,
     ) -> tuple[TTSProvider, Optional[TTSProvider]]:
         """
         Create TTS provider with optional fallback.
@@ -330,7 +295,9 @@ class TTSProviderFactory:
                 elif fallback_provider.lower() == "openai":
                     fallback = OpenAITTSProvider(fallback_api_key)
             except Exception as e:
-                logger.warning(f"Failed to initialize fallback TTS provider {fallback_provider}: {e}")
+                logger.warning(
+                    f"Failed to initialize fallback TTS provider {fallback_provider}: {e}"
+                )
 
         return primary, fallback
 
@@ -340,7 +307,7 @@ async def generate_speech_with_fallback(
     primary: Optional[TTSProvider],
     fallback: Optional[TTSProvider],
     voice: Optional[str] = None,
-    model: Optional[str] = None
+    model: Optional[str] = None,
 ) -> bytes:
     """
     Generate speech with automatic fallback.

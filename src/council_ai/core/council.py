@@ -25,14 +25,11 @@ from ..providers import (
 )
 from .config import get_api_key
 from .persona import Persona, PersonaManager, get_persona_manager
-from .schemas import SynthesisSchema
 from .session import ConsultationResult, MemberResponse, Session
 
 logger = logging.getLogger(__name__)
 
-ALL_MEMBERS_FAILED_MESSAGE = (
-    "All council members failed to respond; see individual error messages."
-)
+ALL_MEMBERS_FAILED_MESSAGE = "All council members failed to respond; see individual error messages."
 
 
 class ConsultationMode(str, Enum):
@@ -118,9 +115,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[
-            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
-        ] = []
+        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
+            []
+        )
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -282,6 +279,29 @@ class Council:
             raise ValueError(f"Member '{persona_id}' not in council")
         self._members[persona_id].weight = weight
 
+    def _get_active_members(self, member_ids: Optional[List[str]] = None) -> List[Persona]:
+        """
+        Get active members for a consultation.
+        
+        Args:
+            member_ids: Optional list of member IDs to use. If None, uses all enabled members.
+            
+        Returns:
+            List of Persona objects to consult
+        """
+        if member_ids:
+            # Get specified members
+            members = []
+            for member_id in member_ids:
+                member = self.get_member(member_id)
+                if member is None:
+                    raise ValueError(f"Member '{member_id}' not found in council")
+                members.append(member)
+            return members
+        else:
+            # Get all enabled members
+            return [m for m in self.list_members() if m.enabled]
+
     def enable_member(self, persona_id: str) -> None:
         """Enable a member."""
         if persona_id in self._members:
@@ -291,6 +311,21 @@ class Council:
         """Disable a member (they won't respond but stay in council)."""
         if persona_id in self._members:
             self._members[persona_id].enabled = False
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Session Management
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def _start_session(self, query: str, context: Optional[str]) -> Session:
+        """Start a new consultation session."""
+        session = Session(
+            council_name=self.config.name,
+            members=[m.id for m in self.list_members()],
+            started_at=datetime.now(),
+        )
+        self._sessions.append(session)
+        self._current_session = session
+        return session
 
     # ═══════════════════════════════════════════════════════════════════════════
     # Consultation
@@ -823,3 +858,186 @@ REASONING: [your reasoning]
         # Stream individual votes
         async for update in self._consult_individual_stream(provider, members, vote_query, context):
             yield update
+
+    async def _generate_synthesis(
+        self,
+        provider: LLMProvider,
+        query: str,
+        context: Optional[str],
+        responses: List[MemberResponse],
+    ) -> str:
+        """Generate a synthesis of all member responses."""
+        # Build synthesis prompt
+        responses_text = "\n\n".join(
+            [
+                f"**{resp.persona.emoji} {resp.persona.name}** ({resp.persona.title}):\n{resp.content}"
+                for resp in responses
+                if not resp.error
+            ]
+        )
+
+        synthesis_prompt = self.config.synthesis_prompt or (
+            "You are synthesizing advice from a council of experts. "
+            "Provide a comprehensive summary that:\n"
+            "1. Identifies key themes and consensus points\n"
+            "2. Highlights important differences or tensions\n"
+            "3. Offers actionable recommendations\n"
+            "4. Notes any risks or considerations\n\n"
+            "Be concise but thorough."
+        )
+
+        user_prompt = f"""
+Query: {query}
+{f"Context: {context}" if context else ""}
+
+Council Responses:
+{responses_text}
+
+Please synthesize these perspectives into a cohesive summary.
+"""
+
+        # Generate synthesis
+        result = await provider.complete(
+            system_prompt=synthesis_prompt,
+            user_prompt=user_prompt,
+            max_tokens=self.config.max_tokens_per_response,
+            temperature=self.config.temperature,
+        )
+
+        return result
+
+    async def _generate_synthesis_stream(
+        self,
+        provider: LLMProvider,
+        query: str,
+        context: Optional[str],
+        responses: List[MemberResponse],
+    ) -> AsyncIterator[str]:
+        """Generate a synthesis of all member responses (streaming)."""
+        # Build synthesis prompt (same as non-streaming version)
+        responses_text = "\n\n".join(
+            [
+                f"**{resp.persona.emoji} {resp.persona.name}** ({resp.persona.title}):\n{resp.content}"
+                for resp in responses
+                if not resp.error
+            ]
+        )
+
+        synthesis_prompt = self.config.synthesis_prompt or (
+            "You are synthesizing advice from a council of experts. "
+            "Provide a comprehensive summary that:\n"
+            "1. Identifies key themes and consensus points\n"
+            "2. Highlights important differences or tensions\n"
+            "3. Offers actionable recommendations\n"
+            "4. Notes any risks or considerations\n\n"
+            "Be concise but thorough."
+        )
+
+        user_prompt = f"""
+Query: {query}
+{f"Context: {context}" if context else ""}
+
+Council Responses:
+{responses_text}
+
+Please synthesize these perspectives into a cohesive summary.
+"""
+
+        # Stream synthesis
+        async for chunk in provider.stream(
+            system_prompt=synthesis_prompt,
+            user_prompt=user_prompt,
+            max_tokens=self.config.max_tokens_per_response,
+            temperature=self.config.temperature,
+        ):
+            yield chunk
+
+    async def _generate_structured_synthesis(
+        self,
+        provider: LLMProvider,
+        query: str,
+        context: Optional[str],
+        responses: List[MemberResponse],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate a structured synthesis using the provider's structured output capability.
+        
+        Returns None if the provider doesn't support structured output or if it fails.
+        """
+        # Check if provider supports structured output
+        if not hasattr(provider, "complete_structured"):
+            return None
+
+        # Build synthesis prompt
+        responses_text = "\n\n".join(
+            [
+                f"**{resp.persona.emoji} {resp.persona.name}** ({resp.persona.title}):\n{resp.content}"
+                for resp in responses
+                if not resp.error
+            ]
+        )
+
+        synthesis_prompt = (
+            "You are synthesizing advice from a council of experts. "
+            "Provide a structured summary with the following fields."
+        )
+
+        user_prompt = f"""
+Query: {query}
+{f"Context: {context}" if context else ""}
+
+Council Responses:
+{responses_text}
+
+Please synthesize these perspectives into a structured summary.
+"""
+
+        # Define JSON schema for structured output
+        from .schemas import SynthesisSchema
+
+        try:
+            result = await provider.complete_structured(
+                system_prompt=synthesis_prompt,
+                user_prompt=user_prompt,
+                json_schema=SynthesisSchema.model_json_schema(),
+                max_tokens=self.config.max_tokens_per_response,
+                temperature=self.config.temperature,
+            )
+            return result
+        except Exception:
+            # If structured output fails, return None to trigger fallback
+            return None
+
+    def _format_structured_synthesis(self, structured: Dict[str, Any]) -> str:
+        """Format a structured synthesis into readable text."""
+        parts = []
+
+        if "summary" in structured:
+            parts.append(f"**Summary:**\n{structured['summary']}")
+
+        if "key_points" in structured and structured["key_points"]:
+            parts.append("\n**Key Points:**")
+            for point in structured["key_points"]:
+                parts.append(f"- {point}")
+
+        if "consensus" in structured and structured["consensus"]:
+            parts.append("\n**Consensus:**")
+            for item in structured["consensus"]:
+                parts.append(f"- {item}")
+
+        if "disagreements" in structured and structured["disagreements"]:
+            parts.append("\n**Points of Disagreement:**")
+            for item in structured["disagreements"]:
+                parts.append(f"- {item}")
+
+        if "recommendations" in structured and structured["recommendations"]:
+            parts.append("\n**Recommendations:**")
+            for i, rec in enumerate(structured["recommendations"], 1):
+                parts.append(f"{i}. {rec}")
+
+        if "risks" in structured and structured["risks"]:
+            parts.append("\n**Risks & Considerations:**")
+            for risk in structured["risks"]:
+                parts.append(f"- {risk}")
+
+        return "\n".join(parts)

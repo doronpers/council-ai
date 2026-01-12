@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from pathlib import Path
 from typing import List, Optional
 from uuid import uuid4
@@ -403,7 +402,9 @@ def _initialize_tts_providers():
         _tts_initialized = True
 
 
-async def _generate_tts_audio(text: str, voice: Optional[str] = None, provider: Optional[str] = None) -> str:
+async def _generate_tts_audio(
+    text: str, voice: Optional[str] = None, provider: Optional[str] = None
+) -> str:
     """
     Generate TTS audio and save to file.
 
@@ -455,7 +456,9 @@ async def tts_generate(payload: TTSRequest) -> TTSResponse:
             detail="TTS is disabled. Enable it in settings or configuration file.",
         )
 
-    filename = await _generate_tts_audio(payload.text, voice=payload.voice, provider=payload.provider)
+    filename = await _generate_tts_audio(
+        payload.text, voice=payload.voice, provider=payload.provider
+    )
     audio_url = f"/api/tts/audio/{filename}"
 
     return TTSResponse(audio_url=audio_url, filename=filename)

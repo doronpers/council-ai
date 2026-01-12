@@ -1,5 +1,7 @@
 """Tests for the Council AI web app."""
 
+from unittest.mock import patch
+
 import pytest
 
 pytest.importorskip("fastapi")
@@ -17,9 +19,6 @@ def test_info_endpoint():
     assert "models" in payload
     assert "domains" in payload
     assert "personas" in payload
-
-
-from unittest.mock import patch
 
 
 def test_consult_requires_api_key():
