@@ -12,6 +12,12 @@
 Want to explore Council AI before setting up an API key? Run:
 
 ```bash
+# Install the package
+pip install -e ".[dev]"
+
+# Run the interactive quickstart demo
+council quickstart
+# or
 python examples/quickstart.py
 ```
 
@@ -21,6 +27,21 @@ This interactive demo shows you:
 - 12 domain presets and what they're for
 - How to set up and use councils
 - Example usage patterns
+
+### First-Time Setup
+
+For first-time users, we provide a guided setup wizard:
+
+```bash
+# Run the interactive setup wizard
+council init
+```
+
+This will guide you through:
+- Choosing your LLM provider
+- Configuring your API key
+- Setting your default domain
+- Understanding next steps
 
 To actually consult the council (requires API key):
 
@@ -130,6 +151,12 @@ export GEMINI_API_KEY="your-key"       # For Gemini
 council config set api.api_key your-key
 ```
 
+### Option 4: Setup Wizard (Recommended for First-Time Users)
+
+```bash
+council init
+```
+
 **Priority Order:**
 
 1. CLI flags (`--api-key`)
@@ -140,6 +167,12 @@ council config set api.api_key your-key
 ### CLI Usage
 
 ```bash
+# First time? Run the setup wizard
+council init
+
+# Explore features without an API key
+council quickstart
+
 # Simple consultation
 council consult "Should I take this job offer?"
 
@@ -403,8 +436,9 @@ max_tokens_per_response: 1000
 
 presets:
   my_team:
-    name: My Review Team
+    domain: coding
     members: [rams, holman, grove]
+    mode: synthesis
 ```
 
 ### CLI Configuration
@@ -415,6 +449,36 @@ council config set api.provider openai
 
 # Set default domain
 council config set default_domain startup
+
+# Set temperature
+council config set temperature 0.8
+
+# View config
+council config show
+```
+
+### Configuration Presets
+
+Save commonly-used configurations as presets for quick access:
+
+```bash
+# Save a preset
+council config preset-save my-review-team --domain coding --members rams,holman,kahneman --mode synthesis
+
+# List all presets
+council config preset-list
+
+# Use a preset in consultation
+council consult --preset my-review-team "Review this code"
+
+# Delete a preset
+council config preset-delete my-review-team
+```
+
+**Presets are perfect for:**
+- Different project types (frontend, backend, devops)
+- Different consultation styles (quick reviews vs deep analysis)
+- Team-specific member combinations
 
 # Set temperature
 council config set temperature 0.8
@@ -494,6 +558,18 @@ council web --reload
 ```
 
 Then open <http://127.0.0.1:8000>.
+
+### Web App Features
+
+- **Auto-Save Settings**: Provider, domain, mode, model, and base URL are automatically saved to browser localStorage
+- **Clear Persistence Indicators**: Each field shows whether it's saved to browser or session-only
+- **Manual Save/Reset**: Use the "💾 Save Settings" and "🔄 Reset to Defaults" buttons in Advanced Settings
+- **Security**: API keys are never stored - only used for the current session
+- **History**: Recent consultations are automatically saved and displayed
+
+**Settings Persistence:**
+- ✅ Saved to browser: Provider, Model, Base URL, Domain, Mode
+- ❌ Session only: Custom Members, API Key
 
 ---
 

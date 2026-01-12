@@ -100,7 +100,7 @@ def init(ctx):
     console.print("\n[bold]Step 1: Choose your LLM provider[/bold]")
     providers = list_providers()
     console.print(f"Available providers: {', '.join(providers)}")
-    
+
     provider = Prompt.ask(
         "Which provider would you like to use?",
         choices=providers,
@@ -111,23 +111,25 @@ def init(ctx):
     # Step 2: API Key
     console.print("\n[bold]Step 2: Configure API key[/bold]")
     existing_key = get_api_key(provider)
-    
+
     if existing_key and "your-" not in existing_key.lower():
         console.print(f"[green]✓[/green] Found existing {provider.upper()} API key")
         if not Confirm.ask("Do you want to update it?", default=False):
             existing_key = None  # Skip update
 
     if not existing_key or ("your-" in existing_key.lower()):
-        console.print(f"\n[dim]You can get an API key from:[/dim]")
+        console.print("\n[dim]You can get an API key from:[/dim]")
         if provider == "anthropic":
             console.print("  https://console.anthropic.com/")
         elif provider == "openai":
             console.print("  https://platform.openai.com/api-keys")
         elif provider == "gemini":
             console.print("  https://ai.google.dev/")
-        
-        console.print(f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your environment")
-        
+
+        console.print(
+            f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your environment"
+        )
+
         if Confirm.ask("Do you have an API key to configure now?", default=True):
             api_key = Prompt.ask(f"{provider.capitalize()} API key", password=True)
             if api_key:
@@ -141,7 +143,7 @@ def init(ctx):
     for d in domains[:5]:  # Show first 5
         console.print(f"  • {d.id}: {d.name}")
     console.print(f"  ... and {len(domains) - 5} more")
-    
+
     default_domain = Prompt.ask(
         "Default domain",
         default=config_manager.get("default_domain", "general"),
@@ -150,7 +152,7 @@ def init(ctx):
 
     # Step 4: Save
     config_manager.save()
-    
+
     console.print(
         Panel(
             f"[green]✓ Setup complete![/green]\n\n"
@@ -176,13 +178,13 @@ def quickstart():
     """
     import subprocess
     import sys
-    
+
     quickstart_path = Path(__file__).parent.parent.parent / "examples" / "quickstart.py"
-    
+
     if not quickstart_path.exists():
         # Try alternative path for installed package
         quickstart_path = Path(__file__).parent / ".." / ".." / "examples" / "quickstart.py"
-    
+
     if quickstart_path.exists():
         try:
             subprocess.run([sys.executable, str(quickstart_path)], check=True)
@@ -219,7 +221,9 @@ def quickstart():
 @click.option("--output", "-o", type=click.Path(), help="Save output to file")
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def consult(ctx, query, preset, domain, members, provider, api_key, context, mode, output, output_json):
+def consult(
+    ctx, query, preset, domain, members, provider, api_key, context, mode, output, output_json
+):
     """
     Consult the council on a query.
 
@@ -238,7 +242,7 @@ def consult(ctx, query, preset, domain, members, provider, api_key, context, mod
             console.print(f"[red]Error:[/red] Preset '{preset}' not found")
             console.print("[dim]Use 'council config preset-list' to see available presets[/dim]")
             sys.exit(1)
-        
+
         preset_config = config_manager.config.presets[preset]
         # Apply preset values if not overridden by CLI options
         if not domain:
@@ -247,7 +251,7 @@ def consult(ctx, query, preset, domain, members, provider, api_key, context, mod
             members = preset_config["members"]
         if not mode:
             mode = preset_config.get("mode", "synthesis")
-    
+
     # Apply defaults if still not set
     if not domain:
         domain = config_manager.get("default_domain", "general")
@@ -788,29 +792,29 @@ def config_get(ctx, key):
 def config_preset_save(ctx, preset_name, domain, members, mode):
     """Save current or specified settings as a preset."""
     config_manager = ctx.obj["config_manager"]
-    
+
     preset = {}
-    
+
     if domain:
         preset["domain"] = domain
     else:
         preset["domain"] = config_manager.get("default_domain")
-    
+
     if members:
         preset["members"] = [m.strip() for m in members.split(",")]
-    
+
     if mode:
         preset["mode"] = mode
     else:
         preset["mode"] = config_manager.get("default_mode")
-    
+
     # Save to presets
     if "presets" not in config_manager.config.presets:
         config_manager.config.presets = {}
-    
+
     config_manager.config.presets[preset_name] = preset
     config_manager.save()
-    
+
     console.print(f"[green]✓[/green] Preset '{preset_name}' saved")
     console.print(f"[dim]Use with: council consult --preset {preset_name}[/dim]")
 
@@ -821,27 +825,29 @@ def config_preset_list(ctx):
     """List saved presets."""
     config_manager = ctx.obj["config_manager"]
     presets = config_manager.config.presets
-    
+
     if not presets:
         console.print("[dim]No presets saved.[/dim]")
         console.print("[dim]Create one with: council config preset-save <name>[/dim]")
         return
-    
+
     table = Table(title="Saved Presets")
     table.add_column("Name", style="cyan")
     table.add_column("Domain")
     table.add_column("Mode")
     table.add_column("Members")
-    
+
     for name, preset in presets.items():
-        members = ", ".join(preset.get("members", [])) if preset.get("members") else "[domain default]"
+        members = (
+            ", ".join(preset.get("members", [])) if preset.get("members") else "[domain default]"
+        )
         table.add_row(
             name,
             preset.get("domain", "general"),
             preset.get("mode", "synthesis"),
             members,
         )
-    
+
     console.print(table)
 
 
@@ -851,7 +857,7 @@ def config_preset_list(ctx):
 def config_preset_delete(ctx, preset_name):
     """Delete a saved preset."""
     config_manager = ctx.obj["config_manager"]
-    
+
     if preset_name in config_manager.config.presets:
         del config_manager.config.presets[preset_name]
         config_manager.save()
