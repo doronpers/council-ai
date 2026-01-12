@@ -114,7 +114,7 @@ def test_api_key(provider: str, api_key: Optional[str] = None) -> Tuple[bool, st
         from ..providers import get_provider
 
         # Try to create provider instance (this validates the key format)
-        test_provider = get_provider(provider, api_key=api_key)
+        get_provider(provider, api_key=api_key)
 
         # Basic validation - key should not be empty
         if len(api_key.strip()) < 10:

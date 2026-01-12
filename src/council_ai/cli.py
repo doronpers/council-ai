@@ -799,6 +799,53 @@ def review(ctx, path, focus, provider, api_key, output):
 
     _ = RepositoryReviewer(council)  # TODO: implement review logic
 
+    with console.status(f"[bold green]Scanning {path}...[/bold green]"):
+        context = reviewer.gather_context(Path(path))
+        context_str = reviewer.format_context(context)
+
+    console.print(f"[green]✓[/green] Scanned {len(context['key_files'])} key files.")
+
+    results = []
+
+    # Execute Reviews
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Reviewing...", total=None)
+
+        if focus in ["all", "code"]:
+            progress.update(task, description="Reviewing Code Quality...")
+            results.append(("Code Quality", reviewer.review_code_quality(context_str)))
+
+        if focus in ["all", "design"]:
+            progress.update(task, description="Reviewing Design & UX...")
+            results.append(("Design & UX", reviewer.review_design_ux(context_str)))
+
+        if focus in ["all", "security"]:
+            progress.update(task, description="Auditing Security...")
+            results.append(("Security Audit", reviewer.review_security(context_str)))
+
+    # Output
+    final_output = [f"# Repository Review: {context['project_name']}\n"]
+
+    for title, result in results:
+        section = f"\n## {title}\n\n{result.to_markdown()}"
+        final_output.append(section)
+
+        console.print(
+            Panel(
+                Markdown(result.synthesis or result.responses[0].content),
+                title=title,
+                border_style="green",
+            )
+        )
+
+    if output:
+        Path(output).write_text("\n".join(final_output))
+        console.print(f"\n[green]✓[/green] Report saved to {output}")
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # History Commands
