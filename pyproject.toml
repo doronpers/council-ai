@@ -46,6 +46,7 @@ gemini = ["google-generativeai>=0.3.0"]
 web = [
     "fastapi>=0.109.0",
     "uvicorn>=0.27.0",
+    "vite>=5.4.20",
 ]
 all = [
     "anthropic>=0.18.0",
@@ -76,7 +77,13 @@ Issues = "https://github.com/doronpers/council-ai/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-council_ai = ["personas/*.yaml", "domains/*.yaml", "templates/*.md"]
+council_ai = [
+    "personas/*.yaml",
+    "domains/*.yaml",
+    "templates/*.md",
+    "webapp/index.html",
+    "webapp/assets/**/*",
+]
 
 [tool.black]
 line-length = 100

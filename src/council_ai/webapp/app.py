@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from typing import List, Optional
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from council_ai import Council
@@ -16,6 +20,19 @@ from council_ai.domains import list_domains
 from council_ai.providers import list_providers
 
 app = FastAPI(title="Council AI", version="1.0.0")
+
+# Determine if we're in production (built assets exist) or development
+WEBAPP_DIR = Path(__file__).parent
+STATIC_DIR = WEBAPP_DIR / "static"
+BUILT_HTML = STATIC_DIR / "index.html"
+IS_PRODUCTION = BUILT_HTML.exists()
+
+# Mount static files if in production
+if IS_PRODUCTION:
+    # Mount assets directory
+    assets_dir = STATIC_DIR / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
 
 class ConsultRequest(BaseModel):
@@ -38,7 +55,13 @@ class ConsultResponse(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 async def index() -> HTMLResponse:
-    return HTMLResponse(_INDEX_HTML)
+    """Serve the main HTML page."""
+    if IS_PRODUCTION:
+        # Serve built HTML from static directory
+        return FileResponse(str(BUILT_HTML))
+    else:
+        # Development mode: serve inline HTML (fallback)
+        return HTMLResponse(_INDEX_HTML)
 
 
 @app.get("/manifest.json")
