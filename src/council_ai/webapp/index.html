@@ -127,62 +127,65 @@
         <!-- Advanced settings - collapsible -->
         <details class="advanced-settings">
           <summary>Advanced Settings</summary>
-          <div class="grid">
-            <div>
-              <label for="provider">Provider</label>
-              <select id="provider"></select>
-              <span class="field-hint">Saved to browser</span>
-            </div>
-            <div>
-              <label for="model">Model</label>
-              <input id="model" placeholder="Default model for provider" />
-              <span class="field-hint">Saved to browser</span>
-            </div>
-            <div>
-              <label for="base_url">Base URL</label>
-              <input id="base_url" placeholder="Default endpoint" />
-              <span class="field-hint">Saved to browser</span>
-            </div>
-            <div>
-              <label for="members">Custom Members</label>
-              <input id="members" placeholder="rams, kahneman (leave empty for domain defaults)" />
-              <span class="field-hint">Session only - not saved</span>
-            </div>
-            <div>
-              <label for="api_key">API Key</label>
-              <input id="api_key" placeholder="Uses env/config if empty" type="password" />
-              <span class="field-hint">⚠️ Session only - never stored</span>
-            </div>
-          </div>
-
-          <!-- TTS Settings -->
-          <div class="tts-settings">
-            <h3>🔊 Text-to-Speech (Beta)</h3>
-            <div class="tts-toggle-wrapper">
-              <label class="switch-label">
-                <input type="checkbox" id="enable_tts" />
-                <span class="switch-slider"></span>
-                <span class="switch-text">Enable voice responses</span>
-              </label>
-              <span class="field-hint">Convert text responses to audio</span>
-            </div>
-
-            <div id="tts-options" class="tts-options" style="display: none;">
+          <form id="settings-form" onsubmit="return false;">
+            <div class="grid">
               <div>
-                <label for="tts_voice">Voice</label>
-                <select id="tts_voice">
-                  <option value="">Default voice</option>
-                </select>
+                <label for="provider">Provider</label>
+                <select id="provider"></select>
+                <span class="field-hint">Saved to browser</span>
               </div>
-              <div class="tts-status">
-                <span id="tts-provider-status" class="field-hint"></span>
+              <div>
+                <label for="model">Model</label>
+                <input id="model" placeholder="Default model for provider" />
+                <span class="field-hint">Saved to browser</span>
+              </div>
+              <div>
+                <label for="base_url">Base URL</label>
+                <input id="base_url" placeholder="Default endpoint" />
+                <span class="field-hint">Saved to browser</span>
+              </div>
+              <div>
+                <label for="members">Custom Members</label>
+                <input id="members" placeholder="rams, kahneman (leave empty for domain defaults)" />
+                <span class="field-hint">Session only - not saved</span>
+              </div>
+              <div>
+                <label for="api_key">API Key</label>
+                <input id="api_key" placeholder="Uses env/config if empty" type="password" />
+                <span class="field-hint">⚠️ Session only - never stored</span>
               </div>
             </div>
-          
-          <div class="settings-actions">
-            <button id="save-settings" class="btn-secondary" type="button">💾 Save Settings</button>
-            <button id="reset-settings" class="btn-secondary" type="button">🔄 Reset to Defaults</button>
-          </div>
+            
+            <!-- TTS Settings -->
+            <div class="tts-settings">
+              <h3>🔊 Text-to-Speech (Beta)</h3>
+              <div class="tts-toggle-wrapper">
+                <label class="switch-label">
+                  <input type="checkbox" id="enable_tts" />
+                  <span class="switch-slider"></span>
+                  <span class="switch-text">Enable voice responses</span>
+                </label>
+                <span class="field-hint">Convert text responses to audio</span>
+              </div>
+
+              <div id="tts-options" class="tts-options" style="display: none;">
+                <div>
+                  <label for="tts_voice">Voice</label>
+                  <select id="tts_voice">
+                    <option value="">Default voice</option>
+                  </select>
+                </div>
+                <div class="tts-status">
+                  <span id="tts-provider-status" class="field-hint"></span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="settings-actions">
+              <button id="save-settings" class="btn-secondary" type="button">💾 Save Settings</button>
+              <button id="reset-settings" class="btn-secondary" type="button">🔄 Reset to Defaults</button>
+            </div>
+          </form>
         </details>
 
         <label for="query">Query</label>
