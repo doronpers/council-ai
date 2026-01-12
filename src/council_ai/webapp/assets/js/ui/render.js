@@ -23,14 +23,15 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       break;
       
     case "response_start":
-      // Create response card
+      // Create response card with persona-specific data attribute for styling
       const card = document.createElement("div");
       card.className = "response";
       card.id = `response-${update.persona_id}`;
+      card.dataset.persona = update.persona_id || "";
       const personaName = escapeHtml(update.persona_name || update.persona_id || "Unknown");
       const emoji = update.persona_emoji || "👤";
       card.innerHTML = `
-        <div class="badge">${emoji} ${personaName}</div>
+        <div class="badge" data-persona="${escapeHtml(update.persona_id || "")}">${emoji} ${personaName}</div>
         <p class="streaming-content"></p>
       `;
       responsesEl.appendChild(card);
@@ -47,7 +48,8 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       const responseState = streamingState.activeResponses.get(update.persona_id);
       if (responseState) {
         responseState.content += update.content;
-        responseState.contentEl.textContent = escapeHtml(responseState.content);
+        // textContent automatically treats content as text (no HTML), so don't escape
+        responseState.contentEl.textContent = responseState.content;
         // Auto-scroll to latest response
         responseState.card.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
@@ -73,14 +75,16 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       streamingState.synthesisContent += update.content;
       const synthesisP = synthesisEl.querySelector(".streaming-synthesis");
       if (synthesisP) {
-        synthesisP.textContent = escapeHtml(streamingState.synthesisContent);
+        // textContent automatically treats content as text (no HTML), so don't escape
+        synthesisP.textContent = streamingState.synthesisContent;
       }
       break;
-      
+
     case "synthesis_complete":
       const synthesisPComplete = synthesisEl.querySelector(".streaming-synthesis");
       if (synthesisPComplete) {
-        synthesisPComplete.textContent = escapeHtml(update.synthesis || streamingState.synthesisContent);
+        // textContent automatically treats content as text (no HTML), so don't escape
+        synthesisPComplete.textContent = update.synthesis || streamingState.synthesisContent;
       }
       streamingState.synthesisContent = "";
       break;
@@ -98,7 +102,8 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       break;
       
     case "error":
-      statusEl.textContent = `Error: ${escapeHtml(update.error || "Unknown error")}`;
+      // textContent doesn't need escaping, but innerHTML does
+      statusEl.textContent = `Error: ${update.error || "Unknown error"}`;
       statusEl.className = "error";
       synthesisEl.innerHTML = `<div class="error">${escapeHtml(update.error || "Unknown error")}</div>`;
       break;
@@ -208,13 +213,18 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
     result.responses.forEach(r => {
       const card = document.createElement("div");
       card.className = "response";
+      // Add persona data attribute for styling
+      const personaId = r.persona_id || "";
+      card.dataset.persona = personaId;
+      // Escape once for innerHTML - don't double-escape
       const personaName = escapeHtml(r.persona_name || r.persona_id || "Unknown");
-      const content = escapeHtml(r.content || "");
+      const emoji = r.persona_emoji || "👤";
+      const content = r.content ? escapeHtml(r.content) : "";
       const error = r.error ? escapeHtml(r.error) : "";
       card.innerHTML = `
-        <div class="badge">${personaName}</div>
-        ${content ? `<p>${escapeHtml(content)}</p>` : ""}
-        ${error ? `<div class="error">Error: ${escapeHtml(error)}</div>` : ""}
+        <div class="badge" data-persona="${escapeHtml(personaId)}">${emoji} ${personaName}</div>
+        ${content ? `<p>${content}</p>` : ""}
+        ${error ? `<div class="error">Error: ${error}</div>` : ""}
       `;
       responsesEl.appendChild(card);
     });

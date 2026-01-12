@@ -2,8 +2,6 @@
  * API client functions
  */
 
-import { escapeHtml } from './utils.js';
-
 let cachedInfo = null;
 
 /**

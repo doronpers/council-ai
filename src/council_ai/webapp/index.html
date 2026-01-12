@@ -111,43 +111,67 @@
     <main>
       <section class="panel">
         <h2>Consultation Setup</h2>
-        <div class="grid">
-          <div>
-            <label for="provider">Provider</label>
-            <select id="provider"></select>
-          </div>
-          <div>
-            <label for="model">Model</label>
-            <input id="model" placeholder="gpt-4-turbo-preview" />
-          </div>
-          <div>
-            <label for="base_url">Base URL</label>
-            <input id="base_url" placeholder="https://api.openai.com/v1" />
-          </div>
-          <div>
-            <label for="mode">Mode</label>
-            <select id="mode"></select>
-          </div>
+
+        <!-- Essential settings - always visible -->
+        <div class="grid essential-settings">
           <div>
             <label for="domain">Domain</label>
             <select id="domain"></select>
           </div>
           <div>
-            <label for="members">Members (comma separated IDs)</label>
-            <input id="members" placeholder="rams, kahneman" />
-          </div>
-          <div>
-            <label for="api_key">API Key (optional)</label>
-            <input id="api_key" placeholder="Leave empty to use env/config" type="password" />
+            <label for="mode">Mode</label>
+            <select id="mode"></select>
           </div>
         </div>
+
+        <!-- Advanced settings - collapsible -->
+        <details class="advanced-settings">
+          <summary>Advanced Settings</summary>
+          <div class="grid">
+            <div>
+              <label for="provider">Provider</label>
+              <select id="provider"></select>
+            </div>
+            <div>
+              <label for="model">Model</label>
+              <input id="model" placeholder="Default model for provider" />
+            </div>
+            <div>
+              <label for="base_url">Base URL</label>
+              <input id="base_url" placeholder="Default endpoint" />
+            </div>
+            <div>
+              <label for="members">Custom Members</label>
+              <input id="members" placeholder="rams, kahneman (leave empty for domain defaults)" />
+            </div>
+            <div>
+              <label for="api_key">API Key</label>
+              <input id="api_key" placeholder="Uses env/config if empty" type="password" />
+              <span class="field-hint">Not stored - only used for this session</span>
+            </div>
+          </div>
+        </details>
+
         <label for="query">Query</label>
         <textarea id="query" placeholder="Ask the council a question..."></textarea>
         <label for="context">Context (optional)</label>
         <textarea id="context" placeholder="Add background or constraints..."></textarea>
-        <button id="submit">Consult the Council</button>
-        <p class="muted">Tip: leave Members empty to use the domain defaults.</p>
+
+        <div class="button-group">
+          <button id="submit">Consult the Council</button>
+          <button id="cancel" class="btn-secondary" style="display: none;">Cancel</button>
+        </div>
+        <p class="muted keyboard-hint">Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to submit</p>
       </section>
+
+      <!-- History panel - collapsible -->
+      <details class="panel history-panel">
+        <summary><h2>Recent Consultations</h2></summary>
+        <div id="history-list" class="history-list">
+          <p class="muted">Loading history...</p>
+        </div>
+      </details>
+
       <section class="panel">
         <h2>Result</h2>
         <div id="status" class="muted">No consultation yet.</div>
