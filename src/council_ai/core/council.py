@@ -807,12 +807,17 @@ Based on the individual council member responses below, provide:
 4. **Action Items**: Concrete next steps based on the collective wisdom
 
 Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
+Weight higher-weighted advisors more heavily.
 """
         )
 
         responses_text = "\n\n".join(
             [
-                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
+                (
+                    "### "
+                    f"{r.persona.emoji} {r.persona.name} "
+                    f"({r.persona.title}, weight: {r.persona.weight:g}):\n{r.content}"
+                )
                 for r in responses
                 if not r.error
             ]
@@ -862,12 +867,17 @@ Based on the individual council member responses below, provide a structured ana
 6. Pros and Cons (if applicable)
 
 Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
+Weight higher-weighted advisors more heavily.
 """
         )
 
         responses_text = "\n\n".join(
             [
-                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
+                (
+                    "### "
+                    f"{r.persona.emoji} {r.persona.name} "
+                    f"({r.persona.title}, weight: {r.persona.weight:g}):\n{r.content}"
+                )
                 for r in responses
                 if not r.error
             ]
@@ -998,12 +1008,17 @@ Based on the individual council member responses below, provide:
 4. **Action Items**: Concrete next steps based on the collective wisdom
 
 Be concise but comprehensive. Weight each advisor's input according to their expertise relevance.
+Weight higher-weighted advisors more heavily.
 """
         )
 
         responses_text = "\n\n".join(
             [
-                f"### {r.persona.emoji} {r.persona.name} ({r.persona.title}):\n{r.content}"
+                (
+                    "### "
+                    f"{r.persona.emoji} {r.persona.name} "
+                    f"({r.persona.title}, weight: {r.persona.weight:g}):\n{r.content}"
+                )
                 for r in responses
                 if not r.error
             ]
