@@ -343,8 +343,23 @@ async def get_session(session_id: str):
     return session.to_dict()
 
 
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session and all its consultations."""
+    if _history.delete_session(session_id):
+        return {"status": "deleted", "id": session_id}
+    raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+
+
+@app.get("/api/history/search")
+async def history_search(q: str, limit: Optional[int] = None) -> dict:
+    """Search consultations."""
+    results = _history.search(q, limit=limit)
+    return {"consultations": results, "query": q, "count": len(results)}
+
+
 @app.get("/api/history/{consultation_id}")
-async def history_get(consultation_id: str) -> dict:
+async def history_get(consultation_id: str) -> Any:
     """Get a specific consultation."""
     data = _history.load(consultation_id)
     if not data:
@@ -372,11 +387,10 @@ async def history_delete(consultation_id: str) -> dict:
     raise HTTPException(status_code=404, detail="Consultation not found")
 
 
-@app.get("/api/history/search")
-async def history_search(q: str, limit: Optional[int] = None) -> dict:
-    """Search consultations."""
-    results = _history.search(q, limit=limit)
-    return {"consultations": results, "query": q, "count": len(results)}
+@app.get("/api/history/search_legacy")
+async def history_search_legacy(q: str, limit: Optional[int] = None) -> dict:
+    # This was the old search route, keep it for now if needed or just remove it
+    return await history_search(q, limit)
 
 
 # TTS Helper Functions

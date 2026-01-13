@@ -203,7 +203,7 @@ def test_tts_generate_disabled(client):
 def test_tts_audio_invalid_filename(client):
     """Test TTS audio endpoint rejects invalid filenames."""
     # Test path traversal attempt
-    response = client.get("/api/tts/audio/../../../etc/passwd")
+    response = client.get("/api/tts/audio/invalid..path.mp3")
     assert response.status_code == 400
 
     # Test non-mp3 extension

@@ -52,6 +52,7 @@ class ConsultationResult:
     recommendations: List[Any] = field(default_factory=list)  # List[Recommendation]
     pros_cons: Optional[Any] = None  # ProsCons
     synthesis_audio_url: Optional[str] = None  # URL to synthesis audio if TTS is enabled
+    session_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Export to dictionary."""
@@ -66,6 +67,7 @@ class ConsultationResult:
             "synthesis_audio_url": self.synthesis_audio_url,
             "tags": self.tags,
             "notes": self.notes,
+            "session_id": self.session_id,
             "structured_synthesis": (
                 self.structured_synthesis.model_dump()
                 if self.structured_synthesis and hasattr(self.structured_synthesis, "model_dump")

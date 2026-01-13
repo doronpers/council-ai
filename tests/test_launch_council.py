@@ -104,23 +104,19 @@ class TestPythonVersionCheck:
 class TestPackageChecks:
     """Test package installation checks."""
 
-    @patch("launch_council.sys.modules", {})
     def test_check_council_installed_not_installed(self):
         """Test check_council_installed when not installed."""
-        with patch("builtins.__import__", side_effect=ImportError()):
+        with patch("importlib.util.find_spec", return_value=None):
             is_installed, is_editable = launch_council.check_council_installed()
             assert is_installed is False
 
-    @patch("launch_council.sys.modules", {"council_ai": MagicMock()})
     def test_check_council_installed_installed(self):
         """Test check_council_installed when installed."""
-        with patch("importlib.util.find_spec", return_value=None):
-            # Mock the import to succeed
-            with patch("builtins.__import__", return_value=MagicMock()):
-                is_installed, is_editable = launch_council.check_council_installed()
-                # Should detect as installed
-                assert isinstance(is_installed, bool)
-                assert isinstance(is_editable, bool)
+        mock_spec = MagicMock()
+        mock_spec.origin = "/some/path/council_ai/__init__.py"
+        with patch("importlib.util.find_spec", return_value=mock_spec):
+            is_installed, is_editable = launch_council.check_council_installed()
+            assert is_installed is True
 
     def test_check_web_dependencies(self):
         """Test check_web_dependencies."""
@@ -158,6 +154,10 @@ class TestAPIKeyChecks:
 
     def test_check_api_keys_placeholder(self, monkeypatch):
         """Test check_api_keys ignores placeholder values."""
+        # Clear all API key env vars first
+        for key in ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "COUNCIL_API_KEY"]:
+            monkeypatch.delenv(key, raising=False)
+            
         monkeypatch.setenv("ANTHROPIC_API_KEY", "your-key-here")
         has_key, provider = launch_council.check_api_keys()
         assert has_key is False
@@ -228,7 +228,6 @@ class TestArgumentParsing:
 
 
 # Integration tests
-@pytest.mark.integration
 @pytest.mark.skipif(launch_council is None, reason="launch-council.py not found")
 class TestIntegration:
     """Integration tests."""

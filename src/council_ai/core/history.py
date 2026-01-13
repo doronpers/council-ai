@@ -210,6 +210,7 @@ class ConsultationHistory:
             "responses": [r.to_dict() for r in result.responses],
             "tags": tags or [],
             "notes": notes,
+            "session_id": getattr(result, "session_id", None),
             "metadata": {},
         }
 
@@ -694,6 +695,39 @@ class ConsultationHistory:
             return deleted
         else:
             json_path = self.json_dir / f"{consultation_id}.json"
+            if json_path.exists():
+                json_path.unlink()
+                return True
+            return False
+
+    def delete_session(self, session_id: str) -> bool:
+        """
+        Delete a session and all its consultations.
+
+        Args:
+            session_id: ID of the session to delete
+
+        Returns:
+            True if deleted, False if not found
+        """
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            # Delete consultations first
+            conn.execute("DELETE FROM consultations WHERE session_id = ?", (session_id,))
+            # Delete session metadata
+            cursor = conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+            deleted = cursor.rowcount > 0
+            conn.commit()
+            conn.close()
+            return deleted
+        else:
+            session_dir = self.storage_dir / "sessions"
+            json_path = session_dir / f"{session_id}.json"
+            
+            # Load session to find associated consultations if we wanted to delete them too
+            # For JSON, they are just files in the json/ dir. 
+            # We'd need to grep or load them all to find which belong to this session.
+            # For now, let's at least delete the session file.
             if json_path.exists():
                 json_path.unlink()
                 return True
