@@ -104,19 +104,19 @@ class TestPythonVersionCheck:
 class TestPackageChecks:
     """Test package installation checks."""
 
-    @patch('launch_council.sys.modules', {})
+    @patch("launch_council.sys.modules", {})
     def test_check_council_installed_not_installed(self):
         """Test check_council_installed when not installed."""
-        with patch('builtins.__import__', side_effect=ImportError()):
+        with patch("builtins.__import__", side_effect=ImportError()):
             is_installed, is_editable = launch_council.check_council_installed()
             assert is_installed is False
 
-    @patch('launch_council.sys.modules', {'council_ai': MagicMock()})
+    @patch("launch_council.sys.modules", {"council_ai": MagicMock()})
     def test_check_council_installed_installed(self):
         """Test check_council_installed when installed."""
-        with patch('importlib.util.find_spec', return_value=None):
+        with patch("importlib.util.find_spec", return_value=None):
             # Mock the import to succeed
-            with patch('builtins.__import__', return_value=MagicMock()):
+            with patch("builtins.__import__", return_value=MagicMock()):
                 is_installed, is_editable = launch_council.check_council_installed()
                 # Should detect as installed
                 assert isinstance(is_installed, bool)
@@ -124,11 +124,14 @@ class TestPackageChecks:
 
     def test_check_web_dependencies(self):
         """Test check_web_dependencies."""
-        if importlib.util.find_spec("uvicorn") and importlib.util.find_spec("fastapi"):
-            result = launch_council.check_web_dependencies()
+        has_deps = (
+            importlib.util.find_spec("uvicorn") is not None
+            and importlib.util.find_spec("fastapi") is not None
+        )
+        result = launch_council.check_web_dependencies()
+        if has_deps:
             assert result is True
-        except ImportError:
-            result = launch_council.check_web_dependencies()
+        else:
             assert result is False
 
 
@@ -197,27 +200,30 @@ class TestArgumentParsing:
     def test_parse_host_port(self):
         """Test --host and --port flag parsing."""
         import argparse
+
         parser = argparse.ArgumentParser()
-        parser.add_argument('--host', default='127.0.0.1')
-        parser.add_argument('--port', type=int, default=8000)
-        args = parser.parse_args(['--host', '0.0.0.0', '--port', '8080'])
-        assert args.host == '0.0.0.0'
+        parser.add_argument("--host", default="127.0.0.1")
+        parser.add_argument("--port", type=int, default=8000)
+        args = parser.parse_args(["--host", "0.0.0.0", "--port", "8080"])
+        assert args.host == "0.0.0.0"
         assert args.port == 8080
 
     def test_parse_open_flag(self):
         """Test --open flag parsing."""
         import argparse
+
         parser = argparse.ArgumentParser()
-        parser.add_argument('--open', action='store_true')
-        args = parser.parse_args(['--open'])
+        parser.add_argument("--open", action="store_true")
+        args = parser.parse_args(["--open"])
         assert args.open is True
 
     def test_parse_install_flag(self):
         """Test --install flag parsing."""
         import argparse
+
         parser = argparse.ArgumentParser()
-        parser.add_argument('--install', action='store_true')
-        args = parser.parse_args(['--install'])
+        parser.add_argument("--install", action="store_true")
+        args = parser.parse_args(["--install"])
         assert args.install is True
 
 

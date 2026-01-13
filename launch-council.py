@@ -7,13 +7,13 @@ Launches the Council AI web interface for end users.
 """
 
 import argparse
+import importlib.util
 import os
 import platform
 import socket
 import subprocess
 import sys
-import importlib.util
-    from pathlib import Path
+from pathlib import Path
 from typing import Optional, Tuple
 
 # Platform detection
@@ -26,6 +26,7 @@ try:
     if IS_WINDOWS:
         try:
             import colorama
+
             colorama.init()
         except ImportError:
             pass
@@ -68,10 +69,12 @@ def print_warning(message: str):
     print_status(f"⚠️  {message}", YELLOW)
 
 
-def run_command(cmd: list, check: bool = True, capture_output: bool = False) -> Tuple[int, str, str]:
+def run_command(
+    cmd: list, check: bool = True, capture_output: bool = False
+) -> Tuple[int, str, str]:
     """
     Run a command and return the result.
-    
+
     Returns:
         (returncode, stdout, stderr)
     """
@@ -81,7 +84,7 @@ def run_command(cmd: list, check: bool = True, capture_output: bool = False) -> 
             check=check,
             capture_output=capture_output,
             text=True,
-            shell=IS_WINDOWS and len(cmd) == 1
+            shell=IS_WINDOWS and len(cmd) == 1,
         )
         stdout = result.stdout if capture_output else ""
         stderr = result.stderr if capture_output else ""
@@ -108,7 +111,7 @@ def check_python_version() -> bool:
 def check_council_installed() -> Tuple[bool, bool]:
     """
     Check if council-ai is installed.
-    
+
     Returns:
         (is_installed, is_editable)
     """
@@ -118,13 +121,14 @@ def check_council_installed() -> Tuple[bool, bool]:
 
         # Check if it's installed in editable mode (development)
         try:
-            import importlib.util
             spec = importlib.util.find_spec("council_ai")
             if spec and spec.origin:
                 # Check if it's from the current directory (editable install)
                 current_dir = Path(__file__).parent.resolve()
                 origin_path = Path(spec.origin).parent.parent
-                is_editable = current_dir in origin_path.parents or current_dir == origin_path.parent
+                is_editable = (
+                    current_dir in origin_path.parents or current_dir == origin_path.parent
+                )
             else:
                 is_editable = False
         except Exception:
@@ -138,9 +142,10 @@ def check_council_installed() -> Tuple[bool, bool]:
 
 def check_web_dependencies() -> bool:
     """Check if web dependencies (uvicorn, fastapi) are installed."""
-    has_fastapi = importlib.util.find_spec("fastapi") is not None
-    has_uvicorn = importlib.util.find_spec("uvicorn") is not None
-    return has_fastapi and has_uvicorn
+    try:
+        has_fastapi = importlib.util.find_spec("fastapi") is not None
+        has_uvicorn = importlib.util.find_spec("uvicorn") is not None
+        return has_fastapi and has_uvicorn
     except ImportError:
         return False
 
@@ -148,7 +153,7 @@ def check_web_dependencies() -> bool:
 def check_api_keys() -> Tuple[bool, Optional[str]]:
     """
     Check if at least one API key is configured.
-    
+
     Returns:
         (has_key, provider_name)
     """
@@ -173,8 +178,6 @@ def check_api_keys() -> Tuple[bool, Optional[str]]:
 
 def install_council(editable: bool = True) -> bool:
     """Install council-ai package."""
-    root = Path(__file__).parent
-
     print_info("Installing council-ai...")
 
     if editable:
@@ -219,7 +222,9 @@ def open_browser(url: str) -> bool:
         return False
 
 
-def launch_web_app(host: str = "127.0.0.1", port: int = 8000, reload: bool = True, open_browser_flag: bool = False) -> int:
+def launch_web_app(
+    host: str = "127.0.0.1", port: int = 8000, reload: bool = True, open_browser_flag: bool = False
+) -> int:
     """Launch the Council AI web app."""
     url = f"http://{host}:{port}"
 
@@ -262,6 +267,7 @@ def launch_web_app(host: str = "127.0.0.1", port: int = 8000, reload: bool = Tru
         print_info("Opening browser...")
         # Small delay to let server start
         import time
+
         time.sleep(1)
         if not open_browser(url):
             print_warning("Could not open browser automatically")
@@ -283,41 +289,25 @@ def launch_web_app(host: str = "127.0.0.1", port: int = 8000, reload: bool = Tru
     except Exception as e:
         print_error(f"Failed to launch web app: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Launch the Council AI web app"
+    parser = argparse.ArgumentParser(description="Launch the Council AI web app")
+    parser.add_argument(
+        "--host", default="127.0.0.1", help="Host to bind the web server (default: 127.0.0.1)"
     )
     parser.add_argument(
-        "--host",
-        default="127.0.0.1",
-        help="Host to bind the web server (default: 127.0.0.1)"
+        "--port", type=int, default=8000, help="Port to bind the web server (default: 8000)"
     )
     parser.add_argument(
-        "--port",
-        type=int,
-        default=8000,
-        help="Port to bind the web server (default: 8000)"
+        "--no-reload", action="store_true", help="Disable auto-reload (production mode)"
     )
-    parser.add_argument(
-        "--no-reload",
-        action="store_true",
-        help="Disable auto-reload (production mode)"
-    )
-    parser.add_argument(
-        "--open",
-        action="store_true",
-        help="Open browser automatically"
-    )
-    parser.add_argument(
-        "--install",
-        action="store_true",
-        help="Install council-ai if not found"
-    )
+    parser.add_argument("--open", action="store_true", help="Open browser automatically")
+    parser.add_argument("--install", action="store_true", help="Install council-ai if not found")
     args = parser.parse_args()
 
     print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
@@ -370,10 +360,7 @@ def main():
 
     # Launch web app
     return launch_web_app(
-        host=args.host,
-        port=args.port,
-        reload=not args.no_reload,
-        open_browser_flag=args.open
+        host=args.host, port=args.port, reload=not args.no_reload, open_browser_flag=args.open
     )
 
 
@@ -387,5 +374,6 @@ if __name__ == "__main__":
     except Exception as e:
         print_error(f"Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

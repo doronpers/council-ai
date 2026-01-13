@@ -9,19 +9,21 @@ import sys
 def test_imports():
     """Test that all major imports work."""
     print("Testing imports...")
-    import importlib.util
+    try:
+        import importlib.util
 
-    modules = [
-        "council_ai",
-        "council_ai.core.council",
-        "council_ai.core.persona",
-        "council_ai.domains",
-    ]
+        modules = [
+            "council_ai",
+            "council_ai.core.council",
+            "council_ai.core.persona",
+            "council_ai.domains",
+        ]
 
-    for module in modules:
-        if importlib.util.find_spec(module) is None:
-            print(f"❌ Failed to find module: {module}")
-            sys.exit(1)
+        for module in modules:
+            if importlib.util.find_spec(module) is None:
+                print(f"❌ Failed to find module: {module}")
+                return False
+
         print("✓ All imports successful")
         return True
     except ImportError as e:
@@ -67,8 +69,20 @@ def test_domains():
             return False
 
         # Test getting specific domains
-        required_domains = ["coding", "business", "startup", "product", "leadership",
-                          "creative", "writing", "career", "decisions", "devops", "data", "general"]
+        required_domains = [
+            "coding",
+            "business",
+            "startup",
+            "product",
+            "leadership",
+            "creative",
+            "writing",
+            "career",
+            "decisions",
+            "devops",
+            "data",
+            "general",
+        ]
         for did in required_domains:
             domain = get_domain(did)
             if not domain:
@@ -112,12 +126,8 @@ def test_cli():
     print("\nTesting CLI...")
     try:
         import subprocess
-        result = subprocess.run(
-            ["council", "--version"],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
+
+        result = subprocess.run(["council", "--version"], capture_output=True, text=True, timeout=5)
         if result.returncode == 0:
             print("✓ CLI is available and working")
             return True
