@@ -37,7 +37,8 @@ try:
     MAGENTA = "\033[35m"
     RESET = "\033[0m"
     BOLD = "\033[1m"
-except:
+except Exception:
+    # Failed to set up colors (e.g., unsupported terminal)
     GREEN = YELLOW = RED = BLUE = CYAN = MAGENTA = RESET = BOLD = ""
 
 
@@ -126,7 +127,8 @@ def check_council_installed() -> Tuple[bool, bool]:
                 is_editable = current_dir in origin_path.parents or current_dir == origin_path.parent
             else:
                 is_editable = False
-        except:
+        except Exception:
+            # Could not determine install type
             is_editable = False
         
         return (is_installed, is_editable)

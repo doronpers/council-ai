@@ -2,10 +2,13 @@
 Repository Reviewer Tool
 """
 
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from ..core.council import ConsultationResult, Council
+
+logger = logging.getLogger(__name__)
 
 
 class RepositoryReviewer:
@@ -100,8 +103,8 @@ class RepositoryReviewer:
                 content = content[: self.max_file_content_length] + "\n... (truncated)"
 
             context["key_files"].append({"path": rel_path, "content": content})
-        except Exception:
-            pass  # Skip unreadable files
+        except Exception as e:
+            logger.debug(f"Skipping unreadable file {file_path}: {e}")
 
     def _list_directory_structure(
         self, path: Path, max_depth: int = 1, current_depth: int = 0
@@ -121,8 +124,8 @@ class RepositoryReviewer:
                 elif item.is_dir():
                     sub_items = self._list_directory_structure(item, max_depth, current_depth + 1)
                     structure.append({item.name: sub_items})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Error listing directory {path}: {e}")
 
         return structure
 

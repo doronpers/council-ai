@@ -58,8 +58,8 @@ else:
 
 
 class ConsultRequest(BaseModel):
-    query: str = Field(..., min_length=1)
-    context: Optional[str] = None
+    query: str = Field(..., min_length=1, max_length=50000)
+    context: Optional[str] = Field(default=None, max_length=50000)
     domain: Optional[str] = None
     members: List[str] = Field(default_factory=list)
     mode: str = "synthesis"
@@ -76,6 +76,69 @@ class ConsultResponse(BaseModel):
     synthesis: Optional[str]
     responses: list[dict]
     mode: str
+
+
+def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
+    """
+    Build a Council instance from a ConsultRequest.
+
+    Returns:
+        Tuple of (council, mode) ready for consultation.
+
+    Raises:
+        HTTPException: If API key is missing or configuration is invalid.
+    """
+    from council_ai.core.council import CouncilConfig
+
+    config = ConfigManager().config
+    provider = payload.provider or config.api.provider
+    model = payload.model or config.api.model
+    base_url = payload.base_url or config.api.base_url
+    api_key = payload.api_key or get_api_key(provider)
+
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key is required for consultation.")
+
+    try:
+        mode = ConsultationMode(payload.mode)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    council_config = CouncilConfig(
+        temperature=payload.temperature,
+        max_tokens_per_response=payload.max_tokens,
+    )
+
+    if payload.members:
+        council = Council(
+            api_key=api_key,
+            provider=provider,
+            model=model,
+            base_url=base_url,
+            config=council_config,
+        )
+        for member_id in payload.members:
+            try:
+                council.add_member(member_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+    else:
+        domain = payload.domain or config.default_domain
+        try:
+            council = Council.for_domain(
+                domain,
+                api_key=api_key,
+                provider=provider,
+                model=model,
+                base_url=base_url,
+                config=council_config,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # Enable history for auto-save
+    council._history = _history
+    return council, mode
 
 
 class TTSRequest(BaseModel):
@@ -185,56 +248,9 @@ async def info() -> dict:
 
 @app.post("/api/consult", response_model=ConsultResponse)
 async def consult(payload: ConsultRequest) -> ConsultResponse:
-    config = ConfigManager().config
-    provider = payload.provider or config.api.provider
-    model = payload.model or config.api.model
-    base_url = payload.base_url or config.api.base_url
-    api_key = payload.api_key or get_api_key(provider)
-    if not api_key:
-        raise HTTPException(status_code=400, detail="API key is required for consultation.")
+    council, mode = _build_council(payload)
 
     try:
-        mode = ConsultationMode(payload.mode)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    # Create council config with temperature and max_tokens
-    from council_ai.core.council import CouncilConfig
-    council_config = CouncilConfig(
-        temperature=payload.temperature,
-        max_tokens_per_response=payload.max_tokens,
-    )
-
-    if payload.members:
-        council = Council(
-            api_key=api_key,
-            provider=provider,
-            model=model,
-            base_url=base_url,
-            config=council_config,
-        )
-        for member_id in payload.members:
-            try:
-                council.add_member(member_id)
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail=str(exc)) from exc
-    else:
-        domain = payload.domain or config.default_domain
-        try:
-            council = Council.for_domain(
-                domain,
-                api_key=api_key,
-                provider=provider,
-                model=model,
-                base_url=base_url,
-                config=council_config,
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    try:
-        # Enable history for auto-save
-        council._history = _history
         result = await council.consult_async(payload.query, context=payload.context, mode=mode)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -249,55 +265,7 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
 @app.post("/api/consult/stream")
 async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
     """Stream consultation results as Server-Sent Events (SSE)."""
-    config = ConfigManager().config
-    provider = payload.provider or config.api.provider
-    model = payload.model or config.api.model
-    base_url = payload.base_url or config.api.base_url
-    api_key = payload.api_key or get_api_key(provider)
-    if not api_key:
-        raise HTTPException(status_code=400, detail="API key is required for consultation.")
-
-    try:
-        mode = ConsultationMode(payload.mode)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    # Create council config with temperature and max_tokens
-    from council_ai.core.council import CouncilConfig
-    council_config = CouncilConfig(
-        temperature=payload.temperature,
-        max_tokens_per_response=payload.max_tokens,
-    )
-
-    if payload.members:
-        council = Council(
-            api_key=api_key,
-            provider=provider,
-            model=model,
-            base_url=base_url,
-            config=council_config,
-        )
-        for member_id in payload.members:
-            try:
-                council.add_member(member_id)
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail=str(exc)) from exc
-    else:
-        domain = payload.domain or config.default_domain
-        try:
-            council = Council.for_domain(
-                domain,
-                api_key=api_key,
-                provider=provider,
-                model=model,
-                base_url=base_url,
-                config=council_config,
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    # Enable history for auto-save
-    council._history = _history
+    council, mode = _build_council(payload)
 
     async def generate_stream():
         try:
