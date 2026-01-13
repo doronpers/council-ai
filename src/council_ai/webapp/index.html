@@ -4,240 +4,128 @@
     <meta charset="utf-8" />
     <title>Council AI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
-    <meta name="description" content="AI-powered advisory council system with customizable personas" />
-    <meta name="theme-color" content="#0c0f14" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Council AI" />
+    <meta name="description" content="AI-powered advisory council system." />
+    <meta name="theme-color" content="#f4f4f4" />
     <link rel="manifest" href="/manifest.json" />
     
-    <!-- Critical CSS - inline for instant rendering -->
-    <style>
-      :root { 
-        color-scheme: light dark; 
-        --primary: #3b82f6;
-        --primary-hover: #2563eb;
-        --bg-primary: #0c0f14;
-        --bg-secondary: #141824;
-        --bg-tertiary: #0e1118;
-        --border: #1f2430;
-        --text-primary: #f6f7fb;
-        --text-secondary: #d4d7dd;
-        --text-muted: #9aa3b2;
-      }
-      * { box-sizing: border-box; }
-      body { 
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; 
-        margin: 0; 
-        background: var(--bg-primary); 
-        color: var(--text-primary);
-        line-height: 1.6;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-      header { 
-        padding: 20px 16px; 
-        border-bottom: 1px solid var(--border); 
-        background: #0f1219;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        backdrop-filter: blur(10px);
-      }
-      header h1 { 
-        margin: 0 0 4px; 
-        font-size: 24px; 
-        font-weight: 700;
-      }
-      header p { 
-        margin: 0; 
-        color: var(--text-muted); 
-        font-size: 14px;
-      }
-      main { 
-        display: grid; 
-        gap: 20px; 
-        padding: 20px 16px; 
-        max-width: 1100px; 
-        margin: 0 auto;
-        padding-bottom: 40px;
-      }
-      .panel { 
-        background: var(--bg-secondary); 
-        border: 1px solid var(--border); 
-        border-radius: 12px; 
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-      .panel h2 {
-        margin: 0 0 16px;
-        font-size: 20px;
-        font-weight: 600;
-      }
-      button { 
-        background: var(--primary); 
-        color: white; 
-        border: none; 
-        padding: 14px 24px; 
-        border-radius: 8px; 
-        font-weight: 600; 
-        cursor: pointer;
-        font-size: 16px;
-        width: 100%;
-        transition: background 0.2s, transform 0.1s;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-      }
-      button:active {
-        transform: scale(0.98);
-      }
-      button:hover:not(:disabled) { 
-        background: var(--primary-hover);
-      }
-      button:disabled { 
-        opacity: 0.6; 
-        cursor: not-allowed;
-        transform: none;
-      }
-    </style>
-    
-    <!-- CSS will be imported by main.js for Vite processing -->
+    <!-- Preconnect to fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   </head>
   <body>
     <header>
-      <h1>🏛️ Council AI</h1>
-      <p class="muted">Get expert perspectives from AI advisors with specialized expertise in design, strategy, psychology, and more.</p>
+      <h1>Council AI</h1>
+      <p>Intelligent Advisory System</p>
     </header>
+    
     <main>
       <section class="panel">
-        <h2>Consultation Setup</h2>
+        <h2>Configuration</h2>
 
-        <!-- Essential settings - always visible -->
         <div class="grid essential-settings">
           <div>
-            <label for="domain">Domain <span class="help-icon" title="Select the area of expertise for your consultation">ℹ️</span></label>
+            <label for="domain">Domain</label>
             <select id="domain"></select>
-            <span class="field-hint">Choose the focus area for your council members</span>
           </div>
           <div>
-            <label for="mode">Mode <span class="help-icon" title="How should the council present their advice?">ℹ️</span></label>
+            <label for="mode">Consultation Mode</label>
             <select id="mode"></select>
-            <span class="field-hint">Synthesis combines all views, Individual shows each separately</span>
           </div>
         </div>
 
-        <!-- Advanced settings - collapsible -->
         <details class="advanced-settings">
           <summary>Advanced Settings</summary>
           <form id="settings-form" onsubmit="return false;">
             <div class="grid">
               <div>
-                <label for="provider">AI Provider <span class="help-icon" title="Which AI service to use for generating responses">ℹ️</span></label>
+                <label for="provider">AI Provider</label>
                 <select id="provider"></select>
-                <span class="field-hint">Choose your AI provider (Anthropic, OpenAI, Gemini, etc.)</span>
               </div>
               <div>
-                <label for="model">Model <span class="help-icon" title="Specific AI model to use">ℹ️</span></label>
+                <label for="model">Model</label>
                 <select id="model">
-                  <option value="">Default model for provider</option>
+                  <option value="">Default model</option>
                 </select>
-                <span class="field-hint">Higher capability models provide better responses</span>
               </div>
               <div>
-                <label for="temperature">Temperature <span class="help-icon" title="Controls creativity: lower is more focused, higher is more creative">ℹ️</span></label>
+                <label for="temperature">Creativity (Temperature)</label>
                 <div class="slider-container">
                   <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7" />
                   <output id="temperature-value">0.7</output>
                 </div>
-                <span class="field-hint">0.0 = Focused and deterministic, 2.0 = Creative and varied</span>
               </div>
               <div>
-                <label for="max_tokens">Max Tokens <span class="help-icon" title="Maximum length of each response">ℹ️</span></label>
+                <label for="max_tokens">Response Length</label>
                 <select id="max_tokens">
-                  <option value="500">500 (Short)</option>
-                  <option value="1000" selected>1000 (Medium)</option>
-                  <option value="2000">2000 (Long)</option>
-                  <option value="4000">4000 (Very Long)</option>
+                  <option value="500">Short</option>
+                  <option value="1000" selected>Medium</option>
+                  <option value="2000">Long</option>
+                  <option value="4000">Extensive</option>
                 </select>
-                <span class="field-hint">Controls response length (more tokens = longer responses)</span>
               </div>
               <div>
-                <label for="base_url">Base URL <span class="help-icon" title="Custom API endpoint (for advanced users)">ℹ️</span></label>
-                <input id="base_url" placeholder="Default endpoint" />
-                <span class="field-hint">Leave empty to use provider's default endpoint</span>
+                <label for="members">Custom Members (IDs)</label>
+                <input id="members" placeholder="e.g., rams, kahneman" />
               </div>
               <div>
-                <label for="members">Custom Members <span class="help-icon" title="Override default council members">ℹ️</span></label>
-                <input id="members" placeholder="e.g., rams, kahneman, grove" />
-                <span class="field-hint">Leave empty to use domain's default experts</span>
-              </div>
-              <div>
-                <label for="api_key">API Key <span class="help-icon" title="Your provider's API key">ℹ️</span></label>
+                <label for="api_key">API Key</label>
                 <input id="api_key" placeholder="Uses environment variable if empty" type="password" />
-                <span class="field-hint">⚠️ Never stored - only used for this session</span>
               </div>
             </div>
             
             <!-- TTS Settings -->
             <div class="tts-settings">
-              <h3>🔊 Text-to-Speech (Beta)</h3>
+              <h3>Voice Output</h3>
               <div class="tts-toggle-wrapper">
                 <label class="switch-label">
                   <input type="checkbox" id="enable_tts" />
                   <span class="switch-slider"></span>
-                  <span class="switch-text">Enable voice responses</span>
+                  <span class="switch-text">Enable voice synthesis</span>
                 </label>
-                <span class="field-hint">Convert text responses to audio</span>
               </div>
 
               <div id="tts-options" class="tts-options" style="display: none;">
                 <div>
-                  <label for="tts_voice">Voice</label>
+                  <label for="tts_voice">Voice Persona</label>
                   <select id="tts_voice">
                     <option value="">Default voice</option>
                   </select>
-                </div>
-                <div class="tts-status">
-                  <span id="tts-provider-status" class="field-hint"></span>
                 </div>
               </div>
             </div>
             
             <div class="settings-actions">
-              <button id="save-settings" class="btn-secondary" type="button">💾 Save Settings</button>
-              <button id="reset-settings" class="btn-secondary" type="button">🔄 Reset to Defaults</button>
+              <button id="save-settings" class="btn-secondary" type="button">Save Settings</button>
+              <button id="reset-settings" class="btn-secondary" type="button">Reset</button>
             </div>
           </form>
         </details>
 
-        <label for="query">Your Question <span class="help-icon" title="What would you like advice on?">ℹ️</span></label>
-        <textarea id="query" placeholder="Example: Should we redesign our mobile app's navigation? What's the best approach to launch our new product?"></textarea>
-        <span class="field-hint">Ask for advice, feedback, or strategic guidance on any topic</span>
+        <label for="query">Question</label>
+        <textarea id="query" placeholder="Ask for advice, strategy, or critique..."></textarea>
 
-        <label for="context">Additional Context (optional) <span class="help-icon" title="Provide background information to help the council give better advice">ℹ️</span></label>
-        <textarea id="context" placeholder="Example: Our app has 10,000 daily users, we've received feedback that navigation is confusing, budget is $50k..."></textarea>
-        <span class="field-hint">Add relevant details, constraints, or background information</span>
+        <label for="context">Context (Optional)</label>
+        <textarea id="context" placeholder="Background info, constraints, or specific details..."></textarea>
 
         <div class="button-group">
-          <button id="submit">Consult the Council</button>
+          <button id="submit">Consult Council</button>
           <button id="cancel" class="btn-secondary" style="display: none;">Cancel</button>
         </div>
-        <p class="muted keyboard-hint">Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to submit</p>
       </section>
 
-      <!-- History panel - collapsible -->
+      <!-- History panel -->
       <details class="panel history-panel">
-        <summary><h2>Recent Consultations</h2></summary>
+        <summary><h2>History</h2></summary>
         <div id="history-list" class="history-list">
-          <p class="muted">Loading history...</p>
+          <p class="muted">Loading...</p>
         </div>
       </details>
 
       <section class="panel">
-        <h2>Result</h2>
-        <div id="status" class="muted">No consultation yet.</div>
+        <h2>Advice</h2>
+        <div id="status" class="muted">Ready for consultation.</div>
 
-        <!-- Audio Player for Synthesis -->
         <div id="synthesis-audio-player" class="audio-player" style="display: none;">
           <audio id="synthesis-audio" controls></audio>
         </div>
@@ -247,7 +135,6 @@
       </section>
     </main>
     
-    <!-- Main JavaScript - Vite will process this and handle code splitting -->
     <script type="module" src="/assets/js/main.js"></script>
   </body>
 </html>

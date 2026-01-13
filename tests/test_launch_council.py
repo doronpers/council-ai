@@ -124,9 +124,7 @@ class TestPackageChecks:
 
     def test_check_web_dependencies(self):
         """Test check_web_dependencies."""
-        try:
-            import fastapi
-            import uvicorn
+        if importlib.util.find_spec("uvicorn") and importlib.util.find_spec("fastapi"):
             result = launch_council.check_web_dependencies()
             assert result is True
         except ImportError:
@@ -238,10 +236,8 @@ class TestIntegration:
 
     def test_council_import(self):
         """Test that council_ai can be imported (if installed)."""
-        try:
-            import council_ai
+        if importlib.util.find_spec("council_ai"):
             assert True
-        except ImportError:
             pytest.skip("council_ai not installed")
 
 

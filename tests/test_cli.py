@@ -333,7 +333,7 @@ class TestProviderCommands:
         assert result.exit_code == 0
         assert "Available LLM Providers" in result.output
 
-    @patch("council_ai.cli.diagnose_api_keys")
+    @patch("council_ai.core.diagnostics.diagnose_api_keys")
     def test_providers_diagnose(self, mock_diagnose, runner):
         """Test provider diagnostics."""
         mock_diagnose.return_value = {
@@ -347,7 +347,7 @@ class TestProviderCommands:
         assert result.exit_code == 0
         assert "API Key Diagnostics" in result.output
 
-    @patch("council_ai.cli.test_api_key")
+    @patch("council_ai.core.diagnostics.test_api_key")
     def test_test_key(self, mock_test_key, runner):
         """Test API key testing."""
         mock_test_key.return_value = (True, "API key is valid")
@@ -355,7 +355,7 @@ class TestProviderCommands:
         assert result.exit_code == 0
         assert "valid" in result.output
 
-    @patch("council_ai.cli.test_api_key")
+    @patch("council_ai.core.diagnostics.test_api_key")
     def test_test_key_invalid(self, mock_test_key, runner):
         """Test invalid API key."""
         mock_test_key.return_value = (False, "Invalid API key")
@@ -367,7 +367,7 @@ class TestProviderCommands:
 class TestReviewCommand:
     """Test review command."""
 
-    @patch("council_ai.cli.RepositoryReviewer")
+    @patch("council_ai.tools.reviewer.RepositoryReviewer")
     @patch("council_ai.cli.Council")
     @patch("council_ai.cli.get_api_key")
     def test_review_basic(
@@ -543,18 +543,17 @@ class TestHistoryCommands:
 class TestWebCommand:
     """Test web command."""
 
-    @patch("council_ai.cli.uvicorn")
-    def test_web_command(self, mock_uvicorn, runner):
+    def test_web_command(self, runner):
         """Test web command starts server."""
-        # This will try to start uvicorn, so we'll just check it doesn't crash immediately
-        # In a real test, we'd need to handle the server startup differently
-        result = runner.invoke(main, ["web", "--help"])
-        assert result.exit_code == 0
+        # Mock uvicorn
+        mock_uvicorn = MagicMock()
+        with patch.dict("sys.modules", {"uvicorn": mock_uvicorn}):
+            result = runner.invoke(main, ["web", "--help"])
+            assert result.exit_code == 0
 
-    @patch("council_ai.cli.uvicorn")
     def test_web_command_no_uvicorn(self, runner):
         """Test web command fails without uvicorn."""
-        with patch("council_ai.cli.uvicorn", side_effect=ImportError("No module named uvicorn")):
+        with patch.dict("sys.modules", {"uvicorn": None}):
             result = runner.invoke(main, ["web"])
             assert result.exit_code == 1
             assert "uvicorn is not installed" in result.output
@@ -565,7 +564,7 @@ class TestInteractiveCommand:
 
     @patch("council_ai.cli.Council")
     @patch("council_ai.cli.get_api_key")
-    def test_interactive_no_api_key(self, mock_get_key, runner):
+    def test_interactive_no_api_key(self, mock_get_key, mock_council, runner):
         """Test interactive fails without API key."""
         mock_get_key.return_value = None
         result = runner.invoke(main, ["interactive"])
@@ -574,7 +573,7 @@ class TestInteractiveCommand:
 
     @patch("council_ai.cli.Council")
     @patch("council_ai.cli.get_api_key")
-    def test_interactive_placeholder_key(self, mock_get_key, runner):
+    def test_interactive_placeholder_key(self, mock_get_key, mock_council, runner):
         """Test interactive fails with placeholder key."""
         mock_get_key.return_value = "your-api-key-here"
         result = runner.invoke(main, ["interactive"])

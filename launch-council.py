@@ -12,7 +12,8 @@ import platform
 import socket
 import subprocess
 import sys
-from pathlib import Path
+import importlib.util
+    from pathlib import Path
 from typing import Optional, Tuple
 
 # Platform detection
@@ -112,9 +113,8 @@ def check_council_installed() -> Tuple[bool, bool]:
         (is_installed, is_editable)
     """
     try:
-        # Try importing
-        import council_ai
-        is_installed = True
+        # Try finding spec
+        is_installed = importlib.util.find_spec("council_ai") is not None
 
         # Check if it's installed in editable mode (development)
         try:
@@ -138,10 +138,9 @@ def check_council_installed() -> Tuple[bool, bool]:
 
 def check_web_dependencies() -> bool:
     """Check if web dependencies (uvicorn, fastapi) are installed."""
-    try:
-        import fastapi
-        import uvicorn
-        return True
+    has_fastapi = importlib.util.find_spec("fastapi") is not None
+    has_uvicorn = importlib.util.find_spec("uvicorn") is not None
+    return has_fastapi and has_uvicorn
     except ImportError:
         return False
 

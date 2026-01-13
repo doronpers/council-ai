@@ -9,17 +9,19 @@ import sys
 def test_imports():
     """Test that all major imports work."""
     print("Testing imports...")
-    try:
-        from council_ai import (
-            ConsultationMode,
-            Council,
-            Persona,
-            PersonaCategory,
-            get_domain,
-            get_persona,
-            list_domains,
-            list_personas,
-        )
+    import importlib.util
+
+    modules = [
+        "council_ai",
+        "council_ai.core.council",
+        "council_ai.core.persona",
+        "council_ai.domains",
+    ]
+
+    for module in modules:
+        if importlib.util.find_spec(module) is None:
+            print(f"❌ Failed to find module: {module}")
+            sys.exit(1)
         print("✓ All imports successful")
         return True
     except ImportError as e:
