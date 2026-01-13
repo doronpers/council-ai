@@ -106,7 +106,7 @@
   <body>
     <header>
       <h1>🏛️ Council AI</h1>
-      <p class="muted">A minimal web console for running multi-persona consultations.</p>
+      <p class="muted">Get expert perspectives from AI advisors with specialized expertise in design, strategy, psychology, and more.</p>
     </header>
     <main>
       <section class="panel">
@@ -115,12 +115,14 @@
         <!-- Essential settings - always visible -->
         <div class="grid essential-settings">
           <div>
-            <label for="domain">Domain</label>
+            <label for="domain">Domain <span class="help-icon" title="Select the area of expertise for your consultation">ℹ️</span></label>
             <select id="domain"></select>
+            <span class="field-hint">Choose the focus area for your council members</span>
           </div>
           <div>
-            <label for="mode">Mode</label>
+            <label for="mode">Mode <span class="help-icon" title="How should the council present their advice?">ℹ️</span></label>
             <select id="mode"></select>
+            <span class="field-hint">Synthesis combines all views, Individual shows each separately</span>
           </div>
         </div>
 
@@ -130,29 +132,49 @@
           <form id="settings-form" onsubmit="return false;">
             <div class="grid">
               <div>
-                <label for="provider">Provider</label>
+                <label for="provider">AI Provider <span class="help-icon" title="Which AI service to use for generating responses">ℹ️</span></label>
                 <select id="provider"></select>
-                <span class="field-hint">Saved to browser</span>
+                <span class="field-hint">Choose your AI provider (Anthropic, OpenAI, Gemini, etc.)</span>
               </div>
               <div>
-                <label for="model">Model</label>
-                <input id="model" placeholder="Default model for provider" />
-                <span class="field-hint">Saved to browser</span>
+                <label for="model">Model <span class="help-icon" title="Specific AI model to use">ℹ️</span></label>
+                <select id="model">
+                  <option value="">Default model for provider</option>
+                </select>
+                <span class="field-hint">Higher capability models provide better responses</span>
               </div>
               <div>
-                <label for="base_url">Base URL</label>
+                <label for="temperature">Temperature <span class="help-icon" title="Controls creativity: lower is more focused, higher is more creative">ℹ️</span></label>
+                <div class="slider-container">
+                  <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7" />
+                  <output id="temperature-value">0.7</output>
+                </div>
+                <span class="field-hint">0.0 = Focused and deterministic, 2.0 = Creative and varied</span>
+              </div>
+              <div>
+                <label for="max_tokens">Max Tokens <span class="help-icon" title="Maximum length of each response">ℹ️</span></label>
+                <select id="max_tokens">
+                  <option value="500">500 (Short)</option>
+                  <option value="1000" selected>1000 (Medium)</option>
+                  <option value="2000">2000 (Long)</option>
+                  <option value="4000">4000 (Very Long)</option>
+                </select>
+                <span class="field-hint">Controls response length (more tokens = longer responses)</span>
+              </div>
+              <div>
+                <label for="base_url">Base URL <span class="help-icon" title="Custom API endpoint (for advanced users)">ℹ️</span></label>
                 <input id="base_url" placeholder="Default endpoint" />
-                <span class="field-hint">Saved to browser</span>
+                <span class="field-hint">Leave empty to use provider's default endpoint</span>
               </div>
               <div>
-                <label for="members">Custom Members</label>
-                <input id="members" placeholder="rams, kahneman (leave empty for domain defaults)" />
-                <span class="field-hint">Session only - not saved</span>
+                <label for="members">Custom Members <span class="help-icon" title="Override default council members">ℹ️</span></label>
+                <input id="members" placeholder="e.g., rams, kahneman, grove" />
+                <span class="field-hint">Leave empty to use domain's default experts</span>
               </div>
               <div>
-                <label for="api_key">API Key</label>
-                <input id="api_key" placeholder="Uses env/config if empty" type="password" />
-                <span class="field-hint">⚠️ Session only - never stored</span>
+                <label for="api_key">API Key <span class="help-icon" title="Your provider's API key">ℹ️</span></label>
+                <input id="api_key" placeholder="Uses environment variable if empty" type="password" />
+                <span class="field-hint">⚠️ Never stored - only used for this session</span>
               </div>
             </div>
             
@@ -188,10 +210,13 @@
           </form>
         </details>
 
-        <label for="query">Query</label>
-        <textarea id="query" placeholder="Ask the council a question..."></textarea>
-        <label for="context">Context (optional)</label>
-        <textarea id="context" placeholder="Add background or constraints..."></textarea>
+        <label for="query">Your Question <span class="help-icon" title="What would you like advice on?">ℹ️</span></label>
+        <textarea id="query" placeholder="Example: Should we redesign our mobile app's navigation? What's the best approach to launch our new product?"></textarea>
+        <span class="field-hint">Ask for advice, feedback, or strategic guidance on any topic</span>
+
+        <label for="context">Additional Context (optional) <span class="help-icon" title="Provide background information to help the council give better advice">ℹ️</span></label>
+        <textarea id="context" placeholder="Example: Our app has 10,000 daily users, we've received feedback that navigation is confusing, budget is $50k..."></textarea>
+        <span class="field-hint">Add relevant details, constraints, or background information</span>
 
         <div class="button-group">
           <button id="submit">Consult the Council</button>

@@ -1,9 +1,99 @@
 /* Main application styles */
-label { 
-  display: block; 
-  margin-bottom: 8px; 
-  color: var(--text-secondary); 
+label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
   font-weight: 600;
+  font-size: 14px;
+}
+
+/* Help icons */
+.help-icon {
+  cursor: help;
+  font-size: 12px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  margin-left: 4px;
+}
+
+.help-icon:hover {
+  opacity: 1;
+}
+
+/* Field hints */
+.field-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: -12px;
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+.field-hint.success {
+  color: #10b981;
+}
+
+.field-hint.error {
+  color: #ef4444;
+}
+
+/* Slider container */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.slider-container input[type="range"] {
+  flex: 1;
+  margin-bottom: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  outline: none;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--primary-hover);
+}
+
+.slider-container input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--primary);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.slider-container input[type="range"]::-moz-range-thumb:hover {
+  background: var(--primary-hover);
+}
+
+.slider-container output {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  padding: 4px 8px;
+  border-radius: 4px;
   font-size: 14px;
 }
 
