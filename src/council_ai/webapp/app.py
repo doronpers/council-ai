@@ -68,6 +68,8 @@ class ConsultRequest(BaseModel):
     base_url: Optional[str] = None
     api_key: Optional[str] = None
     enable_tts: bool = False  # Enable TTS for this consultation
+    temperature: Optional[float] = 0.7  # Sampling temperature
+    max_tokens: Optional[int] = 1000  # Max tokens per response
 
 
 class ConsultResponse(BaseModel):
@@ -196,12 +198,20 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    # Create council config with temperature and max_tokens
+    from council_ai.core.council import CouncilConfig
+    council_config = CouncilConfig(
+        temperature=payload.temperature,
+        max_tokens_per_response=payload.max_tokens,
+    )
+
     if payload.members:
         council = Council(
             api_key=api_key,
             provider=provider,
             model=model,
             base_url=base_url,
+            config=council_config,
         )
         for member_id in payload.members:
             try:
@@ -217,6 +227,7 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
                 provider=provider,
                 model=model,
                 base_url=base_url,
+                config=council_config,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -251,12 +262,20 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    # Create council config with temperature and max_tokens
+    from council_ai.core.council import CouncilConfig
+    council_config = CouncilConfig(
+        temperature=payload.temperature,
+        max_tokens_per_response=payload.max_tokens,
+    )
+
     if payload.members:
         council = Council(
             api_key=api_key,
             provider=provider,
             model=model,
             base_url=base_url,
+            config=council_config,
         )
         for member_id in payload.members:
             try:
@@ -272,6 +291,7 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
                 provider=provider,
                 model=model,
                 base_url=base_url,
+                config=council_config,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
