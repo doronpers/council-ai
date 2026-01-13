@@ -192,16 +192,16 @@ class Council:
                                     model=self._model,
                                     base_url=self._base_url,
                                 )
-                                import sys
-
-                                print(
-                                    f"Warning: {self._provider_name} provider failed ({str(e)}). "
-                                    f"Falling back to {fallback_provider}.",
-                                    file=sys.stderr,
+                                logger.warning(
+                                    f"{self._provider_name} provider failed ({e}). "
+                                    f"Falling back to {fallback_provider}."
                                 )
                                 self._provider_name = fallback_provider
                                 break
-                            except Exception:
+                            except Exception as fallback_error:
+                                logger.debug(
+                                    f"Fallback to {fallback_provider} also failed: {fallback_error}"
+                                )
                                 continue
 
                     if self._provider is None:
