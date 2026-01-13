@@ -1,6 +1,6 @@
 """Tests for the Council AI web app."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 

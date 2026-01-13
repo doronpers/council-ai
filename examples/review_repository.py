@@ -83,7 +83,7 @@ def main():
     print("\n🛡️ Auditing Security...")
     sec_result = reviewer.review_security(context_str)
     print(sec_result.synthesis)
-    
+
     print("\n✨ Done! (See 'council review --help' for the CLI version)")
 
 

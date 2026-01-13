@@ -11,14 +11,14 @@ def test_imports():
     print("Testing imports...")
     try:
         from council_ai import (
-            Council,
             ConsultationMode,
+            Council,
             Persona,
             PersonaCategory,
-            get_persona,
-            list_personas,
             get_domain,
+            get_persona,
             list_domains,
+            list_personas,
         )
         print("✓ All imports successful")
         return True
@@ -31,13 +31,13 @@ def test_personas():
     """Test persona loading."""
     print("\nTesting persona loading...")
     try:
-        from council_ai import list_personas, get_persona
-        
+        from council_ai import get_persona, list_personas
+
         personas = list_personas()
         if len(personas) < 7:
             print(f"✗ Expected at least 7 personas, got {len(personas)}")
             return False
-        
+
         # Test getting specific personas
         required_personas = ["rams", "kahneman", "grove", "taleb", "holman", "dempsey", "treasure"]
         for pid in required_personas:
@@ -45,7 +45,7 @@ def test_personas():
             if not persona:
                 print(f"✗ Persona '{pid}' not found")
                 return False
-        
+
         print(f"✓ All {len(personas)} personas loaded successfully")
         return True
     except Exception as e:
@@ -57,22 +57,22 @@ def test_domains():
     """Test domain loading."""
     print("\nTesting domain loading...")
     try:
-        from council_ai import list_domains, get_domain
-        
+        from council_ai import get_domain, list_domains
+
         domains = list_domains()
         if len(domains) < 12:
             print(f"✗ Expected at least 12 domains, got {len(domains)}")
             return False
-        
+
         # Test getting specific domains
-        required_domains = ["coding", "business", "startup", "product", "leadership", 
+        required_domains = ["coding", "business", "startup", "product", "leadership",
                           "creative", "writing", "career", "decisions", "devops", "data", "general"]
         for did in required_domains:
             domain = get_domain(did)
             if not domain:
                 print(f"✗ Domain '{did}' not found")
                 return False
-        
+
         print(f"✓ All {len(domains)} domains loaded successfully")
         return True
     except Exception as e:
@@ -85,20 +85,20 @@ def test_council_creation():
     print("\nTesting council creation...")
     try:
         from council_ai import Council
-        
+
         # Create empty council
         council1 = Council(api_key="test-key")
         if len(council1.list_members()) != 0:
             print("✗ Empty council should have no members")
             return False
-        
+
         # Create domain-based council
         council2 = Council.for_domain("business", api_key="test-key")
         if len(council2.list_members()) == 0:
             print("✗ Business council should have members")
             return False
-        
-        print(f"✓ Council creation successful")
+
+        print("✓ Council creation successful")
         return True
     except Exception as e:
         print(f"✗ Council creation failed: {e}")
@@ -117,7 +117,7 @@ def test_cli():
             timeout=5
         )
         if result.returncode == 0:
-            print(f"✓ CLI is available and working")
+            print("✓ CLI is available and working")
             return True
         else:
             print(f"✗ CLI returned error code {result.returncode}")
@@ -135,7 +135,7 @@ def main():
     print("=" * 60)
     print("  Council AI - Package Validation")
     print("=" * 60)
-    
+
     tests = [
         test_imports,
         test_personas,
@@ -143,16 +143,16 @@ def main():
         test_council_creation,
         test_cli,
     ]
-    
+
     results = []
     for test in tests:
         results.append(test())
-    
+
     # Summary
     print("\n" + "=" * 60)
     passed = sum(results)
     total = len(results)
-    
+
     if passed == total:
         print(f"✓ All {total} validation tests passed!")
         print("\nCouncil AI is properly installed and ready to use.")
