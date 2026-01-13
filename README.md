@@ -38,6 +38,7 @@ council init
 ```
 
 This will guide you through:
+
 - Choosing your LLM provider
 - Configuring your API key
 - Setting your default domain
@@ -480,14 +481,20 @@ council config preset-delete my-review-team
 ```
 
 **Presets are perfect for:**
+
 - Different project types (frontend, backend, devops)
 - Different consultation styles (quick reviews vs deep analysis)
 - Team-specific member combinations
 
-# Set temperature
-council config set temperature 0.8
+### Set temperature
 
-# View config
+```bash
+council config set temperature 0.8
+```
+
+### View config
+
+```bash
 council config show
 ```
 
@@ -570,14 +577,15 @@ The web UI supports voice/audio responses powered by ElevenLabs (primary) and Op
 **Setup:**
 
 1. **Add API Keys** - Add to your `.env` file:
-   ```bash
-   ELEVENLABS_API_KEY=your-elevenlabs-key-here
-   OPENAI_API_KEY=your-openai-key-here  # Fallback
-   ```
 
-2. **Enable TTS** - In the web UI, go to Advanced Settings and toggle "Enable voice responses"
+```bash
+ELEVENLABS_API_KEY=your-elevenlabs-key-here
+OPENAI_API_KEY=your-openai-key-here  # Fallback
+```
 
-3. **Select Voice** (Optional) - Choose from available voices in the dropdown
+1. **Enable TTS** - In the web UI, go to Advanced Settings and toggle "Enable voice responses"
+
+2. **Select Voice** (Optional) - Choose from available voices in the dropdown
 
 **Configuration:**
 
@@ -605,9 +613,10 @@ See `config.yaml.example` for full configuration options.
 **Supported Providers:**
 
 | Provider | Quality | Speed | Voices | Cost |
-|----------|---------|-------|--------|------|
+| :--- | :--- | :--- | :--- | :--- |
 | **ElevenLabs** | ⭐⭐⭐⭐⭐ | Fast | 50+ | $$ |
 | **OpenAI TTS** | ⭐⭐⭐⭐ | Very Fast | 6 | $ |
+
 ### Web App Features
 
 - **Auto-Save Settings**: Provider, domain, mode, model, and base URL are automatically saved to browser localStorage
@@ -617,6 +626,7 @@ See `config.yaml.example` for full configuration options.
 - **History**: Recent consultations are automatically saved and displayed
 
 **Settings Persistence:**
+
 - ✅ Saved to browser: Provider, Model, Base URL, Domain, Mode
 - ❌ Session only: Custom Members, API Key
 
