@@ -70,6 +70,8 @@ class ConsultRequest(BaseModel):
     enable_tts: bool = False  # Enable TTS for this consultation
     temperature: Optional[float] = 0.7  # Sampling temperature
     max_tokens: Optional[int] = 1000  # Max tokens per response
+    session_id: Optional[str] = None
+    auto_recall: bool = False
 
 
 class ConsultResponse(BaseModel):
@@ -251,7 +253,13 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
     council, mode = _build_council(payload)
 
     try:
-        result = await council.consult_async(payload.query, context=payload.context, mode=mode)
+        result = await council.consult_async(
+            payload.query,
+            context=payload.context,
+            mode=mode,
+            session_id=payload.session_id,
+            auto_recall=payload.auto_recall,
+        )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -270,7 +278,11 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
     async def generate_stream():
         try:
             async for update in council.consult_stream(
-                payload.query, context=payload.context, mode=mode
+                payload.query,
+                context=payload.context,
+                mode=mode,
+                session_id=payload.session_id,
+                auto_recall=payload.auto_recall,
             ):
                 # Convert update to SSE format
                 if "result" in update:
@@ -313,6 +325,22 @@ async def history_list(limit: Optional[int] = None, offset: int = 0) -> dict:
     """List saved consultations."""
     consultations = _history.list(limit=limit, offset=offset)
     return {"consultations": consultations, "total": len(consultations)}
+
+
+@app.get("/api/sessions")
+async def list_sessions(limit: int = 50):
+    """List recent consultation sessions."""
+    sessions = _history.list_sessions(limit=limit)
+    return {"sessions": sessions}
+
+
+@app.get("/api/sessions/{session_id}")
+async def get_session(session_id: str):
+    """Get session details and full history."""
+    session = _history.load_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    return session.to_dict()
 
 
 @app.get("/api/history/{consultation_id}")
