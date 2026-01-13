@@ -1008,16 +1008,32 @@ def test_key(provider: str, api_key: Optional[str]):
 @click.option("--host", default="127.0.0.1", help="Host to bind the web server")
 @click.option("--port", default=8000, type=int, help="Port to bind the web server")
 @click.option("--reload", is_flag=True, help="Enable auto-reload (dev only)")
-def web(host: str, port: int, reload: bool):
+@click.option("--no-open", is_flag=True, help="Don't auto-open browser")
+def web(host: str, port: int, reload: bool, no_open: bool):
     """Run the Council AI web app."""
     try:
         import uvicorn
+        import webbrowser
+        import threading
+        import time
     except ImportError:
         console.print(
             '[red]Error:[/red] uvicorn is not installed. Install with: pip install -e ".[web]"'
         )
         sys.exit(1)
 
+    url = f"http://{host}:{port}"
+    
+    # Auto-open browser after a short delay
+    if not no_open:
+        def open_browser():
+            time.sleep(1.5)  # Wait for server to start
+            webbrowser.open(url)
+        
+        threading.Thread(target=open_browser, daemon=True).start()
+        console.print(f"[green]✓[/green] Server starting at [cyan]{url}[/cyan]")
+        console.print("[dim]Opening browser automatically...[/dim]")
+    
     uvicorn.run("council_ai.webapp:app", host=host, port=port, reload=reload)
 
 
