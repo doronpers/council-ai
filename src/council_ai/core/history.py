@@ -5,6 +5,7 @@ Consultation History - Persistent storage for consultations.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 from pathlib import Path
@@ -12,6 +13,8 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from .session import ConsultationResult
+
+logger = logging.getLogger(__name__)
 
 
 class ConsultationHistory:
@@ -275,7 +278,8 @@ class ConsultationHistory:
                                 "synthesis": data.get("synthesis"),
                             }
                         )
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"Failed to read consultation file {json_path}: {e}")
                     continue
 
             return results
@@ -339,7 +343,8 @@ class ConsultationHistory:
                             )
                             if limit and len(results) >= limit:
                                 break
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"Failed to read consultation file {json_path}: {e}")
                     continue
 
         return results

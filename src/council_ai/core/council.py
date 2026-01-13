@@ -426,8 +426,9 @@ class Council:
                     else:
                         # Convert structured to text for backward compatibility
                         synthesis = self._format_structured_synthesis(structured_synthesis)
-                except Exception:
+                except Exception as e:
                     # Fallback to free-form synthesis
+                    logger.debug(f"Structured synthesis failed, falling back to free-form: {e}")
                     synthesis = await self._generate_synthesis(provider, query, context, responses)
             else:
                 synthesis = await self._generate_synthesis(provider, query, context, responses)
@@ -454,11 +455,9 @@ class Council:
         if self._history:
             try:
                 self._history.save(result)
-            except Exception:
+            except Exception as e:
                 # Don't fail consultation if history save fails
-                import sys
-
-                print("Warning: Failed to save consultation to history", file=sys.stderr)
+                logger.warning(f"Failed to save consultation to history: {e}")
 
         return result
 
@@ -575,11 +574,9 @@ class Council:
         if self._history:
             try:
                 self._history.save(result)
-            except Exception:
+            except Exception as e:
                 # Don't fail consultation if history save fails
-                import sys
-
-                print("Warning: Failed to save consultation to history", file=sys.stderr)
+                logger.warning(f"Failed to save consultation to history: {e}")
 
         yield {"type": "complete", "result": result}
 

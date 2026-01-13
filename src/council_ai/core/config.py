@@ -4,12 +4,15 @@ Configuration Management
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 # Load .env file automatically if python-dotenv is available
 try:
@@ -150,8 +153,8 @@ class ConfigManager:
                 os.chmod(self.path, 0o600)
             except OSError:
                 pass
-        except OSError:
-            pass  # Silently fail if we can't save
+        except OSError as e:
+            logger.warning(f"Failed to save configuration to {self.path}: {e}")
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value by dot-notation key."""

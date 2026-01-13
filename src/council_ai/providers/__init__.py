@@ -7,11 +7,14 @@ Supports multiple LLM providers (Anthropic, OpenAI, custom endpoints).
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from abc import ABC, abstractmethod
 from typing import Any, AsyncIterator, Dict, List, Optional, Type
 
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 
 class ModelParameterSpec(BaseModel):
@@ -249,8 +252,9 @@ class AnthropicProvider(LLMProvider):
             )
             result_text = message.content[0].text
             return json.loads(result_text)
-        except Exception:
+        except Exception as e:
             # Fallback to base implementation
+            logger.debug(f"Anthropic structured output failed, falling back to base: {e}")
             return await super().complete_structured(
                 system_prompt, user_prompt, json_schema, max_tokens, temperature
             )
@@ -439,8 +443,9 @@ class OpenAIProvider(LLMProvider):
             )
             result_text = response.choices[0].message.content
             return json.loads(result_text)
-        except Exception:
+        except Exception as e:
             # Fallback to base implementation
+            logger.debug(f"OpenAI structured output failed, falling back to base: {e}")
             return await super().complete_structured(
                 system_prompt, user_prompt, json_schema, max_tokens, temperature
             )
