@@ -5,13 +5,18 @@ Consultation History - Persistent storage for consultations.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 from pathlib import Path
+import sys
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from .session import ConsultationResult
+from .session import ConsultationResult, Session
+
+logger = logging.getLogger(__name__)
 
 
 class ConsultationHistory:
@@ -55,9 +60,31 @@ class ConsultationHistory:
         if use_sqlite:
             self.db_path = self.storage_dir / "consultations.db"
             self._init_db()
-        else:
-            self.json_dir = self.storage_dir / "json"
-            self.json_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.json_dir = self.storage_dir / "json"
+        self.json_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.memu_service = None
+        self._init_memu()
+
+    def _init_memu(self) -> None:
+        """Initialize MemU service if available."""
+        memu_path = "/Volumes/Treehorn/Gits/memu"
+        if os.path.exists(memu_path):
+            sys.path.append(os.path.join(memu_path, "src"))
+            try:
+                from memu.app import MemoryService
+                self.memu_service = MemoryService(
+                    database_config={
+                        "metadata_store": {"provider": "sqlite", "path": str(self.storage_dir / "memu_metadata.db")},
+                        "vector_index": {"provider": "faiss", "path": str(self.storage_dir / "memu_vectors")},
+                    }
+                )
+                logger.info(f"MemU service initialized from {memu_path}")
+            except ImportError as e:
+                logger.warning(f"Failed to import memu from {memu_path}: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize MemU: {e}")
 
     def _init_db(self) -> None:
         """Initialize SQLite database."""
@@ -66,6 +93,7 @@ class ConsultationHistory:
             """
             CREATE TABLE IF NOT EXISTS consultations (
                 id TEXT PRIMARY KEY,
+                session_id TEXT,
                 query TEXT NOT NULL,
                 context TEXT,
                 mode TEXT NOT NULL,
@@ -78,6 +106,64 @@ class ConsultationHistory:
             )
         """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                member_ids TEXT,
+                started_at TEXT NOT NULL,
+                metadata TEXT
+            )
+        """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_consultation_session ON consultations(session_id)
+        """
+        )
+        # Create FTS5 virtual table for searching
+        try:
+            conn.execute(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS consultations_fts USING fts5(
+                    query,
+                    synthesis,
+                    content="consultations",
+                    content_rowid="rowid"
+                )
+            """
+            )
+            # Create triggers to keep FTS index in sync
+            conn.execute("DROP TRIGGER IF EXISTS consultations_ai")
+            conn.execute(
+                """
+                CREATE TRIGGER consultations_ai AFTER INSERT ON consultations BEGIN
+                  INSERT INTO consultations_fts(rowid, query, synthesis) VALUES (new.rowid, new.query, new.synthesis);
+                END
+            """
+            )
+            conn.execute("DROP TRIGGER IF EXISTS consultations_ad")
+            conn.execute(
+                """
+                CREATE TRIGGER consultations_ad AFTER DELETE ON consultations BEGIN
+                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis) VALUES('delete', old.rowid, old.query, old.synthesis);
+                END
+            """
+            )
+            conn.execute("DROP TRIGGER IF EXISTS consultations_au")
+            conn.execute(
+                """
+                CREATE TRIGGER consultations_au AFTER UPDATE ON consultations BEGIN
+                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis) VALUES('delete', old.rowid, old.query, old.synthesis);
+                  INSERT INTO consultations_fts(rowid, query, synthesis) VALUES (new.rowid, new.query, new.synthesis);
+                END
+            """
+            )
+        except sqlite3.OperationalError as e:
+            logger.warning(f"FTS5 not available, falling back to LIKE: {e}")
+        
+        conn.commit()
         conn.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_timestamp ON consultations(timestamp)
@@ -124,19 +210,24 @@ class ConsultationHistory:
             "responses": [r.to_dict() for r in result.responses],
             "tags": tags or [],
             "notes": notes,
+            "session_id": getattr(result, "session_id", None),
             "metadata": {},
         }
 
         if self.use_sqlite:
             conn = sqlite3.connect(self.db_path)
+            # Try to get session_id if it exists on the result object
+            session_id = getattr(result, "session_id", None)
+            
             conn.execute(
                 """
                 INSERT OR REPLACE INTO consultations
-                (id, query, context, mode, timestamp, synthesis, responses, tags, notes, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, session_id, query, context, mode, timestamp, synthesis, responses, tags, notes, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     consultation_id,
+                    session_id,
                     data["query"],
                     data["context"],
                     data["mode"],
@@ -150,18 +241,59 @@ class ConsultationHistory:
             )
             conn.commit()
             conn.close()
-        else:
-            # Save as JSON file
-            json_path = self.json_dir / f"{consultation_id}.json"
+        # Save as JSON file
+        json_path = self.json_dir / f"{consultation_id}.json"
+        # Skip permission error on read-only or restricted systems
+        try:
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            # Set file permissions
+            os.chmod(json_path, 0o600)
+        except (OSError, PermissionError):
+            pass
+
+        # Also memorize with MemU if available
+        if self.memu_service:
             try:
-                os.chmod(json_path, 0o600)
-            except OSError:
-                pass
+                import asyncio
+                # Background memorization could be risky in sync context,
+                # but for simplicity we'll just run it in a new event loop or thread if needed,
+                # however council-ai usually runs in an async environment.
+                # Since 'save' is often called from sync code, we use a utility.
+                self._memorize_async(data)
+            except Exception as e:
+                logger.warning(f"MemU memorization failed: {e}")
 
         return consultation_id
+
+    def _memorize_async(self, data: Dict[str, Any]) -> None:
+        """Helper to run MemU memorization in a background thread or task."""
+        if not self.memu_service:
+            return
+
+        def _run_memu():
+            try:
+                # We need an event loop to run MemU's async methods
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                # Format data for MemU resource
+                resource_data = json.dumps(data)
+                
+                async def _task():
+                    await self.memu_service.memorize(
+                        resource_content=resource_data,
+                        modality="conversation",
+                        user={"session_id": data.get("session_id", "default")}
+                    )
+                
+                loop.run_until_complete(_task())
+                loop.close()
+            except Exception as e:
+                logger.warning(f"Background MemU memorization failed: {e}")
+
+        import threading
+        threading.Thread(target=_run_memu, daemon=True).start()
 
     def load(self, consultation_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -184,15 +316,16 @@ class ConsultationHistory:
 
             return {
                 "id": row[0],
-                "query": row[1],
-                "context": row[2],
-                "mode": row[3],
-                "timestamp": row[4],
-                "synthesis": row[5],
-                "responses": json.loads(row[6]),
-                "tags": json.loads(row[7]) if row[7] else [],
-                "notes": row[8],
-                "metadata": json.loads(row[9]) if row[9] else {},
+                "session_id": row[1],
+                "query": row[2],
+                "context": row[3],
+                "mode": row[4],
+                "timestamp": row[5],
+                "synthesis": row[6],
+                "responses": json.loads(row[7]),
+                "tags": json.loads(row[8]) if row[8] else [],
+                "notes": row[9],
+                "metadata": json.loads(row[10]) if row[10] else {},
             }
         else:
             json_path = self.json_dir / f"{consultation_id}.json"
@@ -275,7 +408,8 @@ class ConsultationHistory:
                                 "synthesis": data.get("synthesis"),
                             }
                         )
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"Failed to read consultation file {json_path}: {e}")
                     continue
 
             return results
@@ -296,26 +430,84 @@ class ConsultationHistory:
 
         if self.use_sqlite:
             conn = sqlite3.connect(self.db_path)
-            cursor = conn.execute("SELECT * FROM consultations")
-            rows = cursor.fetchall()
+            try:
+                # Try FTS5 search first
+                cursor = conn.execute(
+                    """
+                    SELECT c.* FROM consultations c
+                    JOIN consultations_fts f ON c.rowid = f.rowid
+                    WHERE consultations_fts MATCH ?
+                    ORDER BY rank
+                    LIMIT ?
+                """,
+                    (query, limit or 50),
+                )
+                rows = cursor.fetchall()
+            except sqlite3.OperationalError:
+                # Fallback to LIKE search
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM consultations
+                    WHERE query LIKE ? OR synthesis LIKE ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                """,
+                    (f"%{query}%", f"%{query}%", limit or 50),
+                )
+                rows = cursor.fetchall()
+            
             conn.close()
-
-            for row in rows:
-                # Search in query, context, synthesis, responses
-                searchable = f"{row[1]} {row[2] or ''} {row[5] or ''} {row[6]}".lower()
-                if query_lower in searchable:
-                    results.append(
-                        {
-                            "id": row[0],
-                            "query": row[1],
-                            "mode": row[3],
-                            "timestamp": row[4],
-                            "synthesis": row[5],
-                        }
+            return [
+                {
+                    "id": row[0],
+                    "session_id": row[1],
+                    "query": row[2],
+                    "context": row[3],
+                    "mode": row[4],
+                    "timestamp": row[5],
+                    "synthesis": row[6],
+                    "responses": json.loads(row[7]),
+                    "tags": json.loads(row[8]) if row[8] else [],
+                    "notes": row[9],
+                    "metadata": json.loads(row[10]) if row[10] else {},
+                }
+                for row in rows
+            ]
+        
+        # If SQLite search didn't return enough or if we want to augment with MemU
+        if self.memu_service:
+            try:
+                import asyncio
+                # This is tricky because search() is sync.
+                # In a real app, search() should be async.
+                # For now, we'll try to run retrieve in a one-off loop if possible.
+                loop = asyncio.new_event_loop()
+                
+                async def _retrieve_task():
+                    # We use the query directly for semantic search
+                    return await self.memu_service.retrieve(
+                        queries=[{"role": "user", "content": {"text": query}}],
+                        method="rag"
                     )
-                    if limit and len(results) >= limit:
-                        break
-        else:
+                
+                memu_result = loop.run_until_complete(_retrieve_task())
+                loop.close()
+                
+                # Add MemU findings to results
+                for item in memu_result.get("items", []):
+                    results.append({
+                        "id": f"memu_{item.get('id')}",
+                        "query": f"[MemU] {item.get('summary')}",
+                        "mode": "semantic",
+                        "timestamp": datetime.now().isoformat(),
+                        "synthesis": item.get("content", ""),
+                        "metadata": {"type": "memu_item"}
+                    })
+            except Exception as e:
+                logger.debug(f"MemU retrieval failed during search: {e}")
+
+        # List JSON files (fallback for non-sqlite)
+        if not self.use_sqlite:
             for json_path in self.json_dir.glob("*.json"):
                 try:
                     with open(json_path, "r", encoding="utf-8") as f:
@@ -339,10 +531,150 @@ class ConsultationHistory:
                             )
                             if limit and len(results) >= limit:
                                 break
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"Failed to read consultation file {json_path}: {e}")
                     continue
 
-        return results
+            return results
+
+    def save_session(self, session: Session) -> None:
+        """Save session metadata."""
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO sessions
+                (id, name, member_ids, started_at, metadata)
+                VALUES (?, ?, ?, ?, ?)
+            """,
+                (
+                    session.session_id,
+                    session.council_name,
+                    json.dumps(session.members),
+                    session.started_at.isoformat(),
+                    json.dumps(session.metadata),
+                ),
+            )
+            conn.commit()
+            conn.close()
+        else:
+            # Sessions in JSON could be a separate directory or just metadata files
+            session_dir = self.storage_dir / "sessions"
+            session_dir.mkdir(parents=True, exist_ok=True)
+            json_path = session_dir / f"{session.session_id}.json"
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(session.to_dict(), f, indent=2, ensure_ascii=False)
+
+    def load_session(self, session_id: str) -> Optional[Session]:
+        """Load a session by ID."""
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                conn.close()
+                return None
+            
+            session = Session(
+                session_id=row[0],
+                council_name=row[1],
+                members=json.loads(row[2]),
+                started_at=datetime.fromisoformat(row[3]),
+                metadata=json.loads(row[4]) if row[4] else {},
+            )
+            
+            # Load consultations for this session
+            cursor = conn.execute(
+                "SELECT id FROM consultations WHERE session_id = ? ORDER BY timestamp ASC",
+                (session_id,),
+            )
+            consult_ids = [r[0] for r in cursor.fetchall()]
+            conn.close()
+            
+            for cid in consult_ids:
+                data = self.load(cid)
+                if data:
+                    from .session import ConsultationResult
+                    session.add_consultation(ConsultationResult.from_dict(data))
+            
+            return session
+        else:
+            session_dir = self.storage_dir / "sessions"
+            json_path = session_dir / f"{session_id}.json"
+            if not json_path.exists():
+                return None
+            with open(json_path, "r", encoding="utf-8") as f:
+                return Session.from_dict(json.load(f))
+
+    def list_sessions(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """List recent sessions."""
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.execute(
+                "SELECT id, name, member_ids, started_at FROM sessions ORDER BY started_at DESC LIMIT ?",
+                (limit,),
+            )
+            rows = cursor.fetchall()
+            conn.close()
+            return [
+                {
+                    "id": row[0],
+                    "name": row[1],
+                    "members": json.loads(row[2]),
+                    "started_at": row[3],
+                }
+                for row in rows
+            ]
+        else:
+            session_dir = self.storage_dir / "sessions"
+            if not session_dir.exists():
+                return []
+            files = sorted(
+                session_dir.glob("*.json"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )[:limit]
+            
+            results = []
+            for f in files:
+                try:
+                    with open(f, "r", encoding="utf-8") as sfile:
+                        data = json.load(sfile)
+                        results.append({
+                            "id": data.get("session_id"),
+                            "name": data.get("council_name"),
+                            "members": data.get("members", []),
+                            "started_at": data.get("started_at"),
+                        })
+                except Exception:
+                    continue
+            return results
+
+    def get_recent_context(self, session_id: str, last_n: int = 5) -> str:
+        """Get summarized context from recent consultations in a session."""
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.execute(
+                """
+                SELECT query, synthesis FROM consultations 
+                WHERE session_id = ? 
+                ORDER BY timestamp DESC LIMIT ?
+            """,
+                (session_id, last_n),
+            )
+            rows = cursor.fetchall()
+            conn.close()
+            
+            context_parts = []
+            for row in reversed(rows):
+                query, synthesis = row
+                part = f"User: {query}"
+                if synthesis:
+                    part += f"\nCouncil: {synthesis}"
+                context_parts.append(part)
+            
+            return "\n\n".join(context_parts)
+        return ""
 
     def delete(self, consultation_id: str) -> bool:
         """
@@ -363,6 +695,39 @@ class ConsultationHistory:
             return deleted
         else:
             json_path = self.json_dir / f"{consultation_id}.json"
+            if json_path.exists():
+                json_path.unlink()
+                return True
+            return False
+
+    def delete_session(self, session_id: str) -> bool:
+        """
+        Delete a session and all its consultations.
+
+        Args:
+            session_id: ID of the session to delete
+
+        Returns:
+            True if deleted, False if not found
+        """
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            # Delete consultations first
+            conn.execute("DELETE FROM consultations WHERE session_id = ?", (session_id,))
+            # Delete session metadata
+            cursor = conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+            deleted = cursor.rowcount > 0
+            conn.commit()
+            conn.close()
+            return deleted
+        else:
+            session_dir = self.storage_dir / "sessions"
+            json_path = session_dir / f"{session_id}.json"
+            
+            # Load session to find associated consultations if we wanted to delete them too
+            # For JSON, they are just files in the json/ dir. 
+            # We'd need to grep or load them all to find which belong to this session.
+            # For now, let's at least delete the session file.
             if json_path.exists():
                 json_path.unlink()
                 return True

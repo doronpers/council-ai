@@ -6,12 +6,13 @@ Cross-platform: Works on Windows, macOS, and Linux
 Launches the Council AI web interface for end users.
 """
 
-import subprocess
-import sys
+import argparse
+import importlib.util
 import os
 import platform
-import argparse
 import socket
+import subprocess
+import sys
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -25,6 +26,7 @@ try:
     if IS_WINDOWS:
         try:
             import colorama
+
             colorama.init()
         except ImportError:
             pass
@@ -37,7 +39,8 @@ try:
     MAGENTA = "\033[35m"
     RESET = "\033[0m"
     BOLD = "\033[1m"
-except:
+except Exception:
+    # Failed to set up colors (e.g., unsupported terminal)
     GREEN = YELLOW = RED = BLUE = CYAN = MAGENTA = RESET = BOLD = ""
 
 
@@ -66,10 +69,12 @@ def print_warning(message: str):
     print_status(f"⚠️  {message}", YELLOW)
 
 
-def run_command(cmd: list, check: bool = True, capture_output: bool = False) -> Tuple[int, str, str]:
+def run_command(
+    cmd: list, check: bool = True, capture_output: bool = False
+) -> Tuple[int, str, str]:
     """
     Run a command and return the result.
-    
+
     Returns:
         (returncode, stdout, stderr)
     """
@@ -79,7 +84,7 @@ def run_command(cmd: list, check: bool = True, capture_output: bool = False) -> 
             check=check,
             capture_output=capture_output,
             text=True,
-            shell=IS_WINDOWS and len(cmd) == 1
+            shell=IS_WINDOWS and len(cmd) == 1,
         )
         stdout = result.stdout if capture_output else ""
         stderr = result.stderr if capture_output else ""
@@ -106,29 +111,30 @@ def check_python_version() -> bool:
 def check_council_installed() -> Tuple[bool, bool]:
     """
     Check if council-ai is installed.
-    
+
     Returns:
         (is_installed, is_editable)
     """
     try:
-        # Try importing
-        import council_ai
-        is_installed = True
-        
+        # Try finding spec
+        is_installed = importlib.util.find_spec("council_ai") is not None
+
         # Check if it's installed in editable mode (development)
         try:
-            import importlib.util
             spec = importlib.util.find_spec("council_ai")
             if spec and spec.origin:
                 # Check if it's from the current directory (editable install)
                 current_dir = Path(__file__).parent.resolve()
                 origin_path = Path(spec.origin).parent.parent
-                is_editable = current_dir in origin_path.parents or current_dir == origin_path.parent
+                is_editable = (
+                    current_dir in origin_path.parents or current_dir == origin_path.parent
+                )
             else:
                 is_editable = False
-        except:
+        except Exception:
+            # Could not determine install type
             is_editable = False
-        
+
         return (is_installed, is_editable)
     except ImportError:
         return (False, False)
@@ -137,9 +143,9 @@ def check_council_installed() -> Tuple[bool, bool]:
 def check_web_dependencies() -> bool:
     """Check if web dependencies (uvicorn, fastapi) are installed."""
     try:
-        import uvicorn
-        import fastapi
-        return True
+        has_fastapi = importlib.util.find_spec("fastapi") is not None
+        has_uvicorn = importlib.util.find_spec("uvicorn") is not None
+        return has_fastapi and has_uvicorn
     except ImportError:
         return False
 
@@ -147,7 +153,7 @@ def check_web_dependencies() -> bool:
 def check_api_keys() -> Tuple[bool, Optional[str]]:
     """
     Check if at least one API key is configured.
-    
+
     Returns:
         (has_key, provider_name)
     """
@@ -156,38 +162,36 @@ def check_api_keys() -> Tuple[bool, Optional[str]]:
         "openai": os.environ.get("OPENAI_API_KEY"),
         "gemini": os.environ.get("GEMINI_API_KEY"),
     }
-    
+
     # Also check for COUNCIL_API_KEY (generic)
     council_key = os.environ.get("COUNCIL_API_KEY")
-    
+
     for provider, key in api_keys.items():
         if key and key.strip() and "your-" not in key.lower() and "here" not in key.lower():
             return (True, provider)
-    
+
     if council_key and council_key.strip() and "your-" not in council_key.lower():
         return (True, "generic")
-    
+
     return (False, None)
 
 
 def install_council(editable: bool = True) -> bool:
     """Install council-ai package."""
-    root = Path(__file__).parent
-    
     print_info("Installing council-ai...")
-    
+
     if editable:
         cmd = [sys.executable, "-m", "pip", "install", "-e", ".[web]"]
     else:
         cmd = [sys.executable, "-m", "pip", "install", "council-ai[web]"]
-    
+
     returncode, stdout, stderr = run_command(cmd, check=False, capture_output=True)
-    
+
     if returncode != 0:
         print_error("Failed to install council-ai")
         print_info(f"Error: {stderr}")
         return False
-    
+
     print_success("council-ai installed successfully")
     return True
 
@@ -218,10 +222,12 @@ def open_browser(url: str) -> bool:
         return False
 
 
-def launch_web_app(host: str = "127.0.0.1", port: int = 8000, reload: bool = True, open_browser_flag: bool = False) -> int:
+def launch_web_app(
+    host: str = "127.0.0.1", port: int = 8000, reload: bool = True, open_browser_flag: bool = False
+) -> int:
     """Launch the Council AI web app."""
     url = f"http://{host}:{port}"
-    
+
     # Check if port is available
     if not check_port_available(port):
         print_warning(f"Port {port} is already in use")
@@ -230,11 +236,11 @@ def launch_web_app(host: str = "127.0.0.1", port: int = 8000, reload: bool = Tru
             open_browser(url)
         print_success(f"Web app should be available at {url}")
         return 0
-    
+
     print_info(f"Launching Council AI web app on {url}")
     print_status("💡 Tip: Press Ctrl+C to stop the server", YELLOW)
     print()
-    
+
     # Welcome message
     welcome = f"""
 {BOLD}{MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}
@@ -255,24 +261,25 @@ def launch_web_app(host: str = "127.0.0.1", port: int = 8000, reload: bool = Tru
 
 """
     print(welcome)
-    
+
     # Open browser if requested
     if open_browser_flag:
         print_info("Opening browser...")
         # Small delay to let server start
         import time
+
         time.sleep(1)
         if not open_browser(url):
             print_warning("Could not open browser automatically")
             print_info(f"Please open {url} manually")
-    
+
     # Launch the web app
     try:
         # Use the council CLI command
         cmd = [sys.executable, "-m", "council_ai.cli", "web", "--host", host, "--port", str(port)]
         if reload:
             cmd.append("--reload")
-        
+
         returncode = subprocess.call(cmd)
         return returncode
     except KeyboardInterrupt:
@@ -282,50 +289,34 @@ def launch_web_app(host: str = "127.0.0.1", port: int = 8000, reload: bool = Tru
     except Exception as e:
         print_error(f"Failed to launch web app: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Launch the Council AI web app"
+    parser = argparse.ArgumentParser(description="Launch the Council AI web app")
+    parser.add_argument(
+        "--host", default="127.0.0.1", help="Host to bind the web server (default: 127.0.0.1)"
     )
     parser.add_argument(
-        "--host",
-        default="127.0.0.1",
-        help="Host to bind the web server (default: 127.0.0.1)"
+        "--port", type=int, default=8000, help="Port to bind the web server (default: 8000)"
     )
     parser.add_argument(
-        "--port",
-        type=int,
-        default=8000,
-        help="Port to bind the web server (default: 8000)"
+        "--no-reload", action="store_true", help="Disable auto-reload (production mode)"
     )
-    parser.add_argument(
-        "--no-reload",
-        action="store_true",
-        help="Disable auto-reload (production mode)"
-    )
-    parser.add_argument(
-        "--open",
-        action="store_true",
-        help="Open browser automatically"
-    )
-    parser.add_argument(
-        "--install",
-        action="store_true",
-        help="Install council-ai if not found"
-    )
+    parser.add_argument("--open", action="store_true", help="Open browser automatically")
+    parser.add_argument("--install", action="store_true", help="Install council-ai if not found")
     args = parser.parse_args()
-    
+
     print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
-    
+
     # Check Python version
     print_status("Checking prerequisites...", CYAN)
     if not check_python_version():
         return 1
-    
+
     # Check if council-ai is installed
     is_installed, is_editable = check_council_installed()
     if not is_installed:
@@ -341,7 +332,7 @@ def main():
         print_success("council-ai is installed")
         if is_editable:
             print_info("Running in development mode (editable install)")
-    
+
     # Check web dependencies
     if not check_web_dependencies():
         print_warning("Web dependencies (uvicorn, fastapi) are missing")
@@ -350,7 +341,7 @@ def main():
             return 1
     else:
         print_success("Web dependencies are available")
-    
+
     # Check API keys (warning only, not blocking)
     has_key, provider = check_api_keys()
     if not has_key:
@@ -364,15 +355,12 @@ def main():
         print_info("The web app will start, but you'll need to configure an API key in the UI")
     else:
         print_success(f"API key detected for {provider}")
-    
+
     print()
-    
+
     # Launch web app
     return launch_web_app(
-        host=args.host,
-        port=args.port,
-        reload=not args.no_reload,
-        open_browser_flag=args.open
+        host=args.host, port=args.port, reload=not args.no_reload, open_browser_flag=args.open
     )
 
 
@@ -386,5 +374,6 @@ if __name__ == "__main__":
     except Exception as e:
         print_error(f"Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

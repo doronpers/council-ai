@@ -74,7 +74,7 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
 - 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints
 - 💬 **Multiple Modes** - Individual, synthesis, debate, or vote
-- 🧭 **Standalone Web App** - A focused web UI for user testing
+- 🧭 **Standalone Web App** - A focused, Dieter Rams-inspired web UI
 - 🔊 **Text-to-Speech** - Voice responses via ElevenLabs and OpenAI TTS
 - 📦 **Portable Package** - pip-installable, use in any project
 

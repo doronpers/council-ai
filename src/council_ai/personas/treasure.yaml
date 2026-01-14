@@ -28,3 +28,6 @@ focus_areas:
 
 weight: 1.0
 enabled: true
+
+provider: anthropic
+model: claude-3-5-sonnet-20240620

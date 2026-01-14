@@ -2,9 +2,6 @@
  * Main application entry point
  */
 
-// Import main CSS - Vite will process this
-import '../css/main.css';
-
 import { escapeHtml } from './core/utils.js';
 import { loadInfo, submitConsultation } from './core/api.js';
 
@@ -26,6 +23,9 @@ const responsesEl = document.getElementById("responses");
 const historyListEl = document.getElementById("history-list");
 const saveSettingsEl = document.getElementById("save-settings");
 const resetSettingsEl = document.getElementById("reset-settings");
+const temperatureEl = document.getElementById("temperature");
+const temperatureValueEl = document.getElementById("temperature-value");
+const maxTokensEl = document.getElementById("max_tokens");
 
 // TTS DOM elements
 const enableTtsEl = document.getElementById("enable_tts");
@@ -40,6 +40,9 @@ let activeController = null;
 
 // Settings keys for localStorage
 const SETTINGS_KEY = 'council_ai_settings';
+
+// Store model capabilities data
+let modelCapabilities = [];
 
 // Load settings from localStorage
 function loadSettings() {
@@ -65,12 +68,45 @@ function saveSettings(settings) {
   }
 }
 
+// Update model dropdown based on selected provider
+function updateModelDropdown(provider) {
+  if (!provider || modelCapabilities.length === 0) return;
+
+  const providerInfo = modelCapabilities.find(cap => cap.provider === provider);
+  if (!providerInfo) return;
+
+  // Save current model value
+  const currentModel = modelEl.value;
+
+  // Build model options
+  const options = ['<option value="">Default model for provider</option>'];
+
+  if (providerInfo.models && providerInfo.models.length > 0) {
+    providerInfo.models.forEach(model => {
+      options.push(`<option value="${escapeHtml(model)}">${escapeHtml(model)}</option>`);
+    });
+  }
+
+  // Add default model if available
+  if (providerInfo.default_model && !providerInfo.models.includes(providerInfo.default_model)) {
+    options.push(`<option value="${escapeHtml(providerInfo.default_model)}">${escapeHtml(providerInfo.default_model)} (default)</option>`);
+  }
+
+  modelEl.innerHTML = options.join("");
+
+  // Restore saved value if it's valid for this provider
+  if (currentModel) {
+    modelEl.value = currentModel;
+  }
+}
+
 // Apply saved settings to form
 function applySavedSettings(savedSettings) {
   if (!savedSettings) return;
-  
+
   if (savedSettings.provider && providerEl) {
     providerEl.value = savedSettings.provider;
+    updateModelDropdown(savedSettings.provider);
   }
   if (savedSettings.model && modelEl) {
     modelEl.value = savedSettings.model;
@@ -83,6 +119,13 @@ function applySavedSettings(savedSettings) {
   }
   if (savedSettings.mode && modeEl) {
     modeEl.value = savedSettings.mode;
+  }
+  if (savedSettings.temperature !== undefined && temperatureEl) {
+    temperatureEl.value = savedSettings.temperature;
+    temperatureValueEl.textContent = savedSettings.temperature;
+  }
+  if (savedSettings.max_tokens && maxTokensEl) {
+    maxTokensEl.value = savedSettings.max_tokens;
   }
 }
 
@@ -99,14 +142,25 @@ async function getRenderModule() {
 async function initForm() {
   try {
     const data = await loadInfo();
+
+    // Store model capabilities for later use
+    modelCapabilities = data.models || [];
+
     providerEl.innerHTML = data.providers.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
     modeEl.innerHTML = data.modes.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
     domainEl.innerHTML = data.domains.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`).join("");
     providerEl.value = data.defaults.provider || "openai";
-    modelEl.value = data.defaults.model || "";
     baseUrlEl.value = data.defaults.base_url || "";
     modeEl.value = data.defaults.mode || "synthesis";
     domainEl.value = data.defaults.domain || "general";
+
+    // Update model dropdown for initial provider
+    updateModelDropdown(providerEl.value);
+
+    // Add event listener for provider changes
+    providerEl.addEventListener("change", () => {
+      updateModelDropdown(providerEl.value);
+    });
 
     // Initialize TTS settings
     if (data.tts) {
@@ -131,19 +185,23 @@ async function initForm() {
       if (hasKeys) {
         loadTtsVoices();
       }
-    
+    }
+
     // Load saved settings or use defaults
     const savedSettings = loadSettings();
-    
+
     if (savedSettings) {
       applySavedSettings(savedSettings);
     } else {
       // Apply server defaults
       providerEl.value = data.defaults.provider || "openai";
-      modelEl.value = data.defaults.model || "";
+      updateModelDropdown(providerEl.value);
       baseUrlEl.value = data.defaults.base_url || "";
       modeEl.value = data.defaults.mode || "synthesis";
       domainEl.value = data.defaults.domain || "general";
+      temperatureEl.value = 0.7;
+      temperatureValueEl.textContent = "0.7";
+      maxTokensEl.value = "1000";
     }
   } catch (err) {
     statusEl.textContent = "Failed to load form data.";
@@ -229,6 +287,9 @@ async function generateSynthesisTTS(synthesisText) {
   } catch (err) {
     console.error("TTS generation error:", err);
     synthesisAudioPlayerEl.style.display = "none";
+  }
+}
+
 // Handle save settings button
 function handleSaveSettings() {
   const settings = {
@@ -237,14 +298,16 @@ function handleSaveSettings() {
     base_url: baseUrlEl.value,
     domain: domainEl.value,
     mode: modeEl.value,
+    temperature: parseFloat(temperatureEl.value),
+    max_tokens: parseInt(maxTokensEl.value),
   };
-  
+
   if (saveSettings(settings)) {
     // Show success feedback
     const originalText = saveSettingsEl.textContent;
     saveSettingsEl.textContent = "✓ Settings Saved!";
     saveSettingsEl.style.background = "#10b981";
-    
+
     setTimeout(() => {
       saveSettingsEl.textContent = originalText;
       saveSettingsEl.style.background = "";
@@ -254,7 +317,7 @@ function handleSaveSettings() {
     const originalText = saveSettingsEl.textContent;
     saveSettingsEl.textContent = "❌ Failed to Save";
     saveSettingsEl.style.background = "#ef4444";
-    
+
     setTimeout(() => {
       saveSettingsEl.textContent = originalText;
       saveSettingsEl.style.background = "";
@@ -266,12 +329,12 @@ function handleSaveSettings() {
 function handleResetSettings() {
   if (confirm("Reset all settings to defaults? This will clear your saved settings.")) {
     localStorage.removeItem(SETTINGS_KEY);
-    
+
     // Show feedback
     const originalText = resetSettingsEl.textContent;
     resetSettingsEl.textContent = "✓ Settings Reset!";
     resetSettingsEl.style.background = "#10b981";
-    
+
     setTimeout(() => {
       resetSettingsEl.textContent = originalText;
       resetSettingsEl.style.background = "";
@@ -313,7 +376,9 @@ async function handleSubmit(useStreaming = true) {
     model: modelEl.value.trim() || null,
     base_url: baseUrlEl.value.trim() || null,
     api_key: apiKeyEl.value.trim() || null,
-    enable_tts: enableTtsEl.checked
+    enable_tts: enableTtsEl.checked,
+    temperature: parseFloat(temperatureEl.value),
+    max_tokens: parseInt(maxTokensEl.value)
   };
 
   try {
@@ -443,6 +508,15 @@ async function initApp() {
     enableTtsEl.addEventListener("change", () => {
       ttsOptionsEl.style.display = enableTtsEl.checked ? "block" : "none";
     });
+  }
+
+  // Temperature slider listener
+  if (temperatureEl && temperatureValueEl) {
+    temperatureEl.addEventListener("input", () => {
+      temperatureValueEl.textContent = temperatureEl.value;
+    });
+  }
+
   // Settings buttons
   if (saveSettingsEl) {
     saveSettingsEl.addEventListener("click", handleSaveSettings);

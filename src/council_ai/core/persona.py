@@ -81,6 +81,7 @@ class Persona(BaseModel):
     system_prompt_override: Optional[str] = None
 
     model: Optional[str] = None
+    provider: Optional[str] = None
     model_params: Dict[str, Any] = Field(default_factory=dict)
 
     weight: float = Field(default=1.0, ge=0.0, le=2.0)

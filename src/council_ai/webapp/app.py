@@ -58,8 +58,8 @@ else:
 
 
 class ConsultRequest(BaseModel):
-    query: str = Field(..., min_length=1)
-    context: Optional[str] = None
+    query: str = Field(..., min_length=1, max_length=50000)
+    context: Optional[str] = Field(default=None, max_length=50000)
     domain: Optional[str] = None
     members: List[str] = Field(default_factory=list)
     mode: str = "synthesis"
@@ -68,12 +68,79 @@ class ConsultRequest(BaseModel):
     base_url: Optional[str] = None
     api_key: Optional[str] = None
     enable_tts: bool = False  # Enable TTS for this consultation
+    temperature: Optional[float] = 0.7  # Sampling temperature
+    max_tokens: Optional[int] = 1000  # Max tokens per response
+    session_id: Optional[str] = None
+    auto_recall: bool = False
 
 
 class ConsultResponse(BaseModel):
     synthesis: Optional[str]
     responses: list[dict]
     mode: str
+
+
+def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
+    """
+    Build a Council instance from a ConsultRequest.
+
+    Returns:
+        Tuple of (council, mode) ready for consultation.
+
+    Raises:
+        HTTPException: If API key is missing or configuration is invalid.
+    """
+    from council_ai.core.council import CouncilConfig
+
+    config = ConfigManager().config
+    provider = payload.provider or config.api.provider
+    model = payload.model or config.api.model
+    base_url = payload.base_url or config.api.base_url
+    api_key = payload.api_key or get_api_key(provider)
+
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key is required for consultation.")
+
+    try:
+        mode = ConsultationMode(payload.mode)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    council_config = CouncilConfig(
+        temperature=payload.temperature,
+        max_tokens_per_response=payload.max_tokens,
+    )
+
+    if payload.members:
+        council = Council(
+            api_key=api_key,
+            provider=provider,
+            model=model,
+            base_url=base_url,
+            config=council_config,
+        )
+        for member_id in payload.members:
+            try:
+                council.add_member(member_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+    else:
+        domain = payload.domain or config.default_domain
+        try:
+            council = Council.for_domain(
+                domain,
+                api_key=api_key,
+                provider=provider,
+                model=model,
+                base_url=base_url,
+                config=council_config,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # Enable history for auto-save
+    council._history = _history
+    return council, mode
 
 
 class TTSRequest(BaseModel):
@@ -183,48 +250,16 @@ async def info() -> dict:
 
 @app.post("/api/consult", response_model=ConsultResponse)
 async def consult(payload: ConsultRequest) -> ConsultResponse:
-    config = ConfigManager().config
-    provider = payload.provider or config.api.provider
-    model = payload.model or config.api.model
-    base_url = payload.base_url or config.api.base_url
-    api_key = payload.api_key or get_api_key(provider)
-    if not api_key:
-        raise HTTPException(status_code=400, detail="API key is required for consultation.")
+    council, mode = _build_council(payload)
 
     try:
-        mode = ConsultationMode(payload.mode)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    if payload.members:
-        council = Council(
-            api_key=api_key,
-            provider=provider,
-            model=model,
-            base_url=base_url,
+        result = await council.consult_async(
+            payload.query,
+            context=payload.context,
+            mode=mode,
+            session_id=payload.session_id,
+            auto_recall=payload.auto_recall,
         )
-        for member_id in payload.members:
-            try:
-                council.add_member(member_id)
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail=str(exc)) from exc
-    else:
-        domain = payload.domain or config.default_domain
-        try:
-            council = Council.for_domain(
-                domain,
-                api_key=api_key,
-                provider=provider,
-                model=model,
-                base_url=base_url,
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    try:
-        # Enable history for auto-save
-        council._history = _history
-        result = await council.consult_async(payload.query, context=payload.context, mode=mode)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -238,51 +273,16 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
 @app.post("/api/consult/stream")
 async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
     """Stream consultation results as Server-Sent Events (SSE)."""
-    config = ConfigManager().config
-    provider = payload.provider or config.api.provider
-    model = payload.model or config.api.model
-    base_url = payload.base_url or config.api.base_url
-    api_key = payload.api_key or get_api_key(provider)
-    if not api_key:
-        raise HTTPException(status_code=400, detail="API key is required for consultation.")
-
-    try:
-        mode = ConsultationMode(payload.mode)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    if payload.members:
-        council = Council(
-            api_key=api_key,
-            provider=provider,
-            model=model,
-            base_url=base_url,
-        )
-        for member_id in payload.members:
-            try:
-                council.add_member(member_id)
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail=str(exc)) from exc
-    else:
-        domain = payload.domain or config.default_domain
-        try:
-            council = Council.for_domain(
-                domain,
-                api_key=api_key,
-                provider=provider,
-                model=model,
-                base_url=base_url,
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    # Enable history for auto-save
-    council._history = _history
+    council, mode = _build_council(payload)
 
     async def generate_stream():
         try:
             async for update in council.consult_stream(
-                payload.query, context=payload.context, mode=mode
+                payload.query,
+                context=payload.context,
+                mode=mode,
+                session_id=payload.session_id,
+                auto_recall=payload.auto_recall,
             ):
                 # Convert update to SSE format
                 if "result" in update:
@@ -327,8 +327,39 @@ async def history_list(limit: Optional[int] = None, offset: int = 0) -> dict:
     return {"consultations": consultations, "total": len(consultations)}
 
 
+@app.get("/api/sessions")
+async def list_sessions(limit: int = 50):
+    """List recent consultation sessions."""
+    sessions = _history.list_sessions(limit=limit)
+    return {"sessions": sessions}
+
+
+@app.get("/api/sessions/{session_id}")
+async def get_session(session_id: str):
+    """Get session details and full history."""
+    session = _history.load_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    return session.to_dict()
+
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session and all its consultations."""
+    if _history.delete_session(session_id):
+        return {"status": "deleted", "id": session_id}
+    raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+
+
+@app.get("/api/history/search")
+async def history_search(q: str, limit: Optional[int] = None) -> dict:
+    """Search consultations."""
+    results = _history.search(q, limit=limit)
+    return {"consultations": results, "query": q, "count": len(results)}
+
+
 @app.get("/api/history/{consultation_id}")
-async def history_get(consultation_id: str) -> dict:
+async def history_get(consultation_id: str) -> Any:
     """Get a specific consultation."""
     data = _history.load(consultation_id)
     if not data:
@@ -356,11 +387,10 @@ async def history_delete(consultation_id: str) -> dict:
     raise HTTPException(status_code=404, detail="Consultation not found")
 
 
-@app.get("/api/history/search")
-async def history_search(q: str, limit: Optional[int] = None) -> dict:
-    """Search consultations."""
-    results = _history.search(q, limit=limit)
-    return {"consultations": results, "query": q, "count": len(results)}
+@app.get("/api/history/search_legacy")
+async def history_search_legacy(q: str, limit: Optional[int] = None) -> dict:
+    # This was the old search route, keep it for now if needed or just remove it
+    return await history_search(q, limit)
 
 
 # TTS Helper Functions

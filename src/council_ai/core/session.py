@@ -52,6 +52,7 @@ class ConsultationResult:
     recommendations: List[Any] = field(default_factory=list)  # List[Recommendation]
     pros_cons: Optional[Any] = None  # ProsCons
     synthesis_audio_url: Optional[str] = None  # URL to synthesis audio if TTS is enabled
+    session_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Export to dictionary."""
@@ -66,6 +67,7 @@ class ConsultationResult:
             "synthesis_audio_url": self.synthesis_audio_url,
             "tags": self.tags,
             "notes": self.notes,
+            "session_id": self.session_id,
             "structured_synthesis": (
                 self.structured_synthesis.model_dump()
                 if self.structured_synthesis and hasattr(self.structured_synthesis, "model_dump")
@@ -258,8 +260,10 @@ class Session:
 
     council_name: str
     members: List[str]
+    session_id: str = field(default_factory=lambda: str(uuid4()))
     started_at: datetime = field(default_factory=datetime.now)
     consultations: List[ConsultationResult] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def add_consultation(self, result: ConsultationResult) -> None:
         """Add a consultation result to the session."""
@@ -268,8 +272,25 @@ class Session:
     def to_dict(self) -> Dict[str, Any]:
         """Export to dictionary."""
         return {
+            "session_id": self.session_id,
             "council_name": self.council_name,
             "members": self.members,
             "started_at": self.started_at.isoformat(),
             "consultations": [c.to_dict() for c in self.consultations],
+            "metadata": self.metadata,
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Session":
+        """Create Session from dictionary."""
+        consultations = [ConsultationResult.from_dict(c) for c in data.get("consultations", [])]
+        return cls(
+            session_id=data.get("session_id", str(uuid4())),
+            council_name=data.get("council_name", "Unknown"),
+            members=data.get("members", []),
+            started_at=datetime.fromisoformat(
+                data.get("started_at", datetime.now().isoformat())
+            ),
+            consultations=consultations,
+            metadata=data.get("metadata", {}),
+        )

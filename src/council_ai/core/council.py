@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union
+from uuid import uuid4
 
 from pydantic import BaseModel
 
@@ -192,16 +193,16 @@ class Council:
                                     model=self._model,
                                     base_url=self._base_url,
                                 )
-                                import sys
-
-                                print(
-                                    f"Warning: {self._provider_name} provider failed ({str(e)}). "
-                                    f"Falling back to {fallback_provider}.",
-                                    file=sys.stderr,
+                                logger.warning(
+                                    f"{self._provider_name} provider failed ({e}). "
+                                    f"Falling back to {fallback_provider}."
                                 )
                                 self._provider_name = fallback_provider
                                 break
-                            except Exception:
+                            except Exception as fallback_error:
+                                logger.debug(
+                                    f"Fallback to {fallback_provider} also failed: {fallback_error}"
+                                )
                                 continue
 
                     if self._provider is None:
@@ -215,16 +216,20 @@ class Council:
         return self._provider
 
     def _get_member_provider(self, member: Persona, default_provider: LLMProvider) -> LLMProvider:
-        """Get or create a provider for a specific member's model override."""
-        if not member.model or member.model == self._model:
+        """Get or create a provider for a specific member's model/provider override."""
+        provider_name = member.provider or self._provider_name
+        model_name = member.model or self._model
+
+        if provider_name == self._provider_name and model_name == self._model:
             return default_provider
 
-        cache_key = (self._provider_name, member.model, self._base_url)
+        cache_key = (provider_name, model_name, self._base_url)
         if cache_key not in self._provider_cache:
+            api_key = get_api_key(provider_name) if provider_name != self._provider_name else self._api_key
             self._provider_cache[cache_key] = get_provider(
-                self._provider_name,
-                api_key=self._api_key,
-                model=member.model,
+                provider_name,
+                api_key=api_key,
+                model=model_name,
                 base_url=self._base_url,
             )
         return self._provider_cache[cache_key]
@@ -317,21 +322,35 @@ class Council:
             # Return all enabled members
             return [m for m in self._members.values() if m.enabled]
 
-    def _start_session(self, query: str, context: Optional[str] = None) -> Session:
+    def _start_session(
+        self, query: str, context: Optional[str] = None, session_id: Optional[str] = None
+    ) -> Session:
         """
-        Start a new consultation session.
+        Start or resume a consultation session.
 
         Args:
             query: The consultation query
-            context: Optional context for the consultation
+            context: Optional context
+            session_id: Existing session ID to resume
 
         Returns:
-            A new Session object
+            Session object
         """
+        if session_id:
+            if self._history:
+                session = self._history.load_session(session_id)
+                if session:
+                    # Update members if council has loaded specific ones
+                    if self._members:
+                        session.members = list(self._members.keys())
+                    self._current_session = session
+                    return session
+
         member_ids = [m.id for m in self._members.values() if m.enabled]
         session = Session(
             council_name=self.config.name,
             members=member_ids,
+            session_id=session_id or str(uuid4()),
         )
         self._sessions.append(session)
         self._current_session = session
@@ -378,10 +397,21 @@ class Council:
         context: Optional[str] = None,
         mode: Optional[ConsultationMode] = None,
         members: Optional[List[str]] = None,
+        session_id: Optional[str] = None,
+        auto_recall: bool = True,
     ) -> ConsultationResult:
         """Async version of consult."""
         mode = mode or self.config.mode
         provider = self._get_provider(fallback=True)
+
+        # Start/Resume session first to potentially get recall context
+        session = self._start_session(query, context, session_id=session_id)
+
+        # Auto-recall context from history if not explicitly provided
+        if auto_recall and self._history and not context:
+            recall_context = self._history.get_recent_context(session.session_id)
+            if recall_context:
+                context = f"PREVIOUS CONVERSATION CONTEXT:\n{recall_context}"
 
         # Get active members
         active_members = self._get_active_members(members)
@@ -391,9 +421,6 @@ class Council:
         # Run pre-consult hooks
         for hook in self._pre_consult_hooks:
             query, context = hook(query, context)
-
-        # Start session
-        session = self._start_session(query, context)
 
         # Get responses based on mode
         if mode == ConsultationMode.INDIVIDUAL:
@@ -426,8 +453,9 @@ class Council:
                     else:
                         # Convert structured to text for backward compatibility
                         synthesis = self._format_structured_synthesis(structured_synthesis)
-                except Exception:
+                except Exception as e:
                     # Fallback to free-form synthesis
+                    logger.debug(f"Structured synthesis failed, falling back to free-form: {e}")
                     synthesis = await self._generate_synthesis(provider, query, context, responses)
             else:
                 synthesis = await self._generate_synthesis(provider, query, context, responses)
@@ -454,11 +482,10 @@ class Council:
         if self._history:
             try:
                 self._history.save(result)
-            except Exception:
+                self._history.save_session(session)
+            except Exception as e:
                 # Don't fail consultation if history save fails
-                import sys
-
-                print("Warning: Failed to save consultation to history", file=sys.stderr)
+                logger.warning(f"Failed to save consultation to history: {e}")
 
         return result
 
@@ -468,22 +495,24 @@ class Council:
         context: Optional[str] = None,
         mode: Optional[ConsultationMode] = None,
         members: Optional[List[str]] = None,
+        session_id: Optional[str] = None,
+        auto_recall: bool = True,
     ) -> AsyncIterator[Dict[str, Any]]:
         """
         Stream consultation results as they're generated.
-
-        Yields progress updates and response chunks:
-        - {"type": "progress", "message": "Consulting Rams..."}
-        - {"type": "response_start", "persona_id": "rams", "persona_name": "Dieter Rams"}
-        - {"type": "response_chunk", "persona_id": "rams", "content": "chunk of text"}
-        - {"type": "response_complete", "persona_id": "rams", "response": MemberResponse}
-        - {"type": "synthesis_start"}
-        - {"type": "synthesis_chunk", "content": "chunk of synthesis"}
-        - {"type": "synthesis_complete", "synthesis": "full synthesis"}
-        - {"type": "complete", "result": ConsultationResult}
+        ...
         """
         mode = mode or self.config.mode
         provider = self._get_provider(fallback=True)
+
+        # Start/Resume session first
+        session = self._start_session(query, context, session_id=session_id)
+
+        # Auto-recall context
+        if auto_recall and self._history and not context:
+            recall_context = self._history.get_recent_context(session.session_id)
+            if recall_context:
+                context = f"PREVIOUS CONVERSATION CONTEXT:\n{recall_context}"
 
         # Get active members
         active_members = self._get_active_members(members)
@@ -493,9 +522,6 @@ class Council:
         # Run pre-consult hooks
         for hook in self._pre_consult_hooks:
             query, context = hook(query, context)
-
-        # Start session
-        session = self._start_session(query, context)
 
         # Get responses based on mode (streaming)
         responses: List[MemberResponse] = []
@@ -567,6 +593,9 @@ class Council:
         # Update session
         session.add_consultation(result)
 
+        # Attach session_id for persistence
+        result.session_id = session.session_id
+
         # Run post-consult hooks
         for hook in self._post_consult_hooks:
             result = hook(result)
@@ -575,11 +604,10 @@ class Council:
         if self._history:
             try:
                 self._history.save(result)
-            except Exception:
+                self._history.save_session(session)
+            except Exception as e:
                 # Don't fail consultation if history save fails
-                import sys
-
-                print("Warning: Failed to save consultation to history", file=sys.stderr)
+                logger.warning(f"Failed to save consultation to history: {e}")
 
         yield {"type": "complete", "result": result}
 
