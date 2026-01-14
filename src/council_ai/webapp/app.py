@@ -22,9 +22,15 @@ from council_ai.domains import list_domains
 from council_ai.providers import list_model_capabilities, list_providers
 from council_ai.providers.tts import TTSProviderFactory, generate_speech_with_fallback
 
+# Import reviewer routes
+from council_ai.webapp.reviewer import router as reviewer_router
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Council AI", version="1.0.0")
+
+# Include reviewer API routes
+app.include_router(reviewer_router)
 
 # Initialize history (shared instance)
 _history = ConsultationHistory()
@@ -168,6 +174,21 @@ async def index() -> HTMLResponse:
         return HTMLResponse(
             "<html><body><h1>Council AI</h1>"
             "<p>index.html not found. Run from the webapp directory.</p>"
+            "</body></html>",
+            status_code=500,
+        )
+
+
+@app.get("/reviewer", response_class=HTMLResponse)
+async def reviewer_ui() -> HTMLResponse:
+    """Serve the LLM Response Reviewer UI."""
+    reviewer_html = WEBAPP_DIR / "reviewer_ui.html"
+    if reviewer_html.exists():
+        return FileResponse(str(reviewer_html))
+    else:
+        return HTMLResponse(
+            "<html><body><h1>LLM Response Reviewer</h1>"
+            "<p>reviewer_ui.html not found.</p>"
             "</body></html>",
             status_code=500,
         )
