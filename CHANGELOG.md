@@ -5,6 +5,22 @@ All notable changes to Council AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- LLM Response Reviewer - Supreme Court-style review system for evaluating multiple LLM responses
+  - 7-justice default council with optional 9-justice Sonotheia mode
+  - Multi-dimensional scoring (accuracy, consistency, insights, error detection)
+  - REST API endpoints for programmatic access
+  - Streaming support via Server-Sent Events
+  - Dedicated launcher script (`launch-reviewer.py`)
+  - Web UI for interactive review sessions
+  - Comprehensive documentation in `docs/REVIEWER_SETUP.md`
+
+### Changed
+- Improved installation command documentation with proper quoting for bash compatibility
+- Enhanced API key configuration documentation with cross-references
+
 ## [1.0.0] - 2026-01-11
 
 ### Added

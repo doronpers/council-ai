@@ -89,16 +89,16 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 pip install council-ai
 
 # With Anthropic Claude support
-pip install council-ai[anthropic]
+pip install "council-ai[anthropic]"
 
 # With OpenAI GPT support
-pip install council-ai[openai]
+pip install "council-ai[openai]"
 
 # With Google Gemini support
-pip install council-ai[gemini]
+pip install "council-ai[gemini]"
 
 # Full installation (all providers)
-pip install council-ai[all]
+pip install "council-ai[all]"
 ```
 
 **Development Installation (from this repo):**
