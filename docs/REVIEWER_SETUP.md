@@ -34,7 +34,7 @@ A Supreme Court-style review system for evaluating multiple LLM responses with s
    GEMINI_API_KEY=your-key-here
    ```
    
-   See [.env.example](./.env.example) for all configuration options including Vercel AI Gateway and TTS providers.
+   See [.env.example](../.env.example) for all configuration options including Vercel AI Gateway and TTS providers.
 
 ### Launch the Reviewer
 
@@ -241,7 +241,7 @@ for line in response.iter_lines():
 ## Related Documentation
 
 - **[Main README](../README.md)** - Complete Council AI documentation
-- **[API Configuration](./.env.example)** - All API key options
+- **[API Configuration](../.env.example)** - All API key options
 - **[Contributing](../CONTRIBUTING.md)** - Development guidelines
 - **[Agent Knowledge Base](../AGENT_KNOWLEDGE_BASE.md)** - System architecture and patterns
 
