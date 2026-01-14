@@ -211,3 +211,6 @@ __marimo__/
 src/council_ai/webapp/static/
 node_modules/
 package-lock.json
+
+# macOS
+.DS_Store
