@@ -197,7 +197,27 @@ def command_name(ctx, arg, flag):
 
 ## Documentation Standards
 
+### Documentation Structure
+
+- **Root-level documentation**: User-facing documentation lives in the repository root
+  - `README.md` - Main project documentation and getting started guide
+  - `CONTRIBUTING.md` - Development workflow and contribution guidelines
+  - `AGENT_KNOWLEDGE_BASE.md` - AI agent reference (this file)
+  - `CHANGELOG.md` - Version history and changes
+  - `SECURITY.md` - Security policy and best practices
+  - `GEMINI.md` - Quick reference for Gemini AI agents
+  - `.env.example` - API key configuration template
+
+- **Extended documentation**: All other documentation lives in `documentation/` folder
+  - `documentation/REVIEWER_SETUP.md` - LLM Response Reviewer setup guide
+  - `documentation/INTEGRATION_ASSESSMENT.md` - Integration assessments
+  - `documentation/development/` - Development-specific documentation
+
+### Documentation Guidelines
+
 - Update `README.md` for user-facing changes
 - Update `CONTRIBUTING.md` for development workflow changes
+- Add detailed guides to `documentation/` folder
 - Use docstrings for all public functions and classes
 - Keep examples in `examples/` directory current
+- **Never create new top-level documentation folders** - use `documentation/` for all non-root docs

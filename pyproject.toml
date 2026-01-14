@@ -83,7 +83,7 @@ council_ai = [
     "personas/*.yaml",
     "domains/*.yaml",
     "templates/*.md",
-    "webapp/index.html",
+    "webapp/*.html",
     "webapp/assets/**/*",
 ]
 
