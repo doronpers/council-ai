@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Streaming support via Server-Sent Events
   - Dedicated launcher script (`launch-reviewer.py`)
   - Web UI for interactive review sessions
-  - Comprehensive documentation in `docs/REVIEWER_SETUP.md`
+  - Comprehensive documentation in `documentation/REVIEWER_SETUP.md`
 
 ### Changed
 - Improved installation command documentation with proper quoting for bash compatibility
