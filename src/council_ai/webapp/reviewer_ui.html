@@ -646,7 +646,9 @@
                             </div>
                             <div style="grid-column: 1 / -1;">
                                 <label for="api-key">API Key (optional)</label>
-                                <input type="password" id="api-key" placeholder="Uses environment variable if empty">
+                                <form onsubmit="return false;">
+                                    <input type="password" id="api-key" placeholder="Uses environment variable if empty">
+                                </form>
                             </div>
                             <div style="grid-column: 1 / -1;">
                                 <label for="base-url">Custom Base URL (optional)</label>
