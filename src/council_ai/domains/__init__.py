@@ -187,6 +187,33 @@ DOMAINS: Dict[str, Domain] = {
             "What are the trade-offs?",
         ],
     ),
+    "llm_review": Domain(
+        id="llm_review",
+        name="LLM Response Review",
+        description="Supreme Court-style review of multiple LLM responses with scoring and synthesis",
+        category=DomainCategory.TECHNICAL,
+        default_personas=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove"],
+        optional_personas=["signal_analyst", "compliance_auditor"],
+        recommended_mode="synthesis",
+        example_queries=[
+            "Review these 3 responses about API security",
+            "Which response best explains the concept?",
+            "Evaluate accuracy and completeness of these answers",
+        ],
+    ),
+    "sonotheia": Domain(
+        id="sonotheia",
+        name="Sonotheia Review",
+        description="Full 9-justice court for Sonotheia deepfake audio defense and voice authenticity topics",
+        category=DomainCategory.TECHNICAL,
+        default_personas=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove", "signal_analyst", "compliance_auditor"],
+        recommended_mode="synthesis",
+        example_queries=[
+            "Review responses about deepfake detection methods",
+            "Evaluate explanations of voice biometrics",
+            "Assess regulatory compliance guidance",
+        ],
+    ),
 }
 
 
