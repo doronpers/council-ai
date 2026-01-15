@@ -5,12 +5,12 @@ Diagnostic utilities for troubleshooting API keys and providers.
 from __future__ import annotations
 
 import os
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from .config import get_api_key
 
 
-def diagnose_api_keys() -> Dict[str, any]:
+def diagnose_api_keys() -> Dict[str, Any]:
     """
     Diagnose API key configuration and provide troubleshooting information.
 
