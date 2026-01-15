@@ -442,7 +442,8 @@ print(result.synthesis)             # Markdown-formatted synthesis text
 
 ### Config File
 
-Council AI stores configuration in `~/.config/council-ai/config.yaml`:
+Council AI stores configuration in `~/.config/council-ai/config.yaml`.
+Override the location with `COUNCIL_AI_CONFIG_DIR`:
 
 ```yaml
 api:
@@ -563,7 +564,7 @@ register_provider("my_llm", HTTPProvider)
 council = Council(
     api_key="your-key",
     provider="http",
-    endpoint="http://localhost:8000/v1/completions"
+    base_url="http://localhost:8000/v1/completions"
 )
 ```
 
