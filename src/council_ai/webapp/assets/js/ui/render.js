@@ -32,16 +32,54 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       const skeleton = document.getElementById("loading-skeleton");
       if (skeleton) skeleton.style.display = "none";
 
-      // Create response card with persona-specific data attribute for styling
-      const card = document.createElement("div");
-      card.className = "response";
-      card.id = `response-${update.persona_id}`;
-      card.dataset.persona = update.persona_id || "";
+      // Update member status to responding
+      if (update.persona_id && window.updateMemberStatus) {
+        window.updateMemberStatus(update.persona_id, "responding");
+      }
+
+      // Get persona data for enhanced card
+      const personaId = update.persona_id || "";
       const personaName = escapeHtml(update.persona_name || update.persona_id || "Unknown");
       const emoji = update.persona_emoji || "👤";
+      
+      // Try to get full persona data from window (set by main.js)
+      const personaData = window.allPersonas?.find(p => p.id === personaId);
+      const focusAreas = personaData?.focus_areas || [];
+      const personaTitle = personaData?.title || "";
+      const personaCategory = personaData?.category || "";
+
+      // Create enhanced response card
+      const card = document.createElement("div");
+      card.className = "response response-card-enhanced";
+      card.id = `response-${personaId}`;
+      card.dataset.persona = personaId;
+      
+      const focusTags = focusAreas.slice(0, 3).map(area => 
+        `<span class="response-focus-tag">${escapeHtml(area)}</span>`
+      ).join('');
+      
       card.innerHTML = `
-        <div class="badge" data-persona="${escapeHtml(update.persona_id || "")}">${emoji} ${personaName}</div>
-        <p class="streaming-content"></p>
+        <div class="response-header">
+          <div class="response-persona-info">
+            <span class="response-emoji">${emoji}</span>
+            <div class="response-persona-details">
+              <div class="response-persona-name">${personaName}</div>
+              ${personaTitle ? `<div class="response-persona-title">${escapeHtml(personaTitle)}</div>` : ''}
+            </div>
+          </div>
+          <div class="response-actions">
+            <button class="response-action-btn" onclick="copyResponse('${personaId}')" title="Copy response">📋</button>
+            <button class="response-action-btn" onclick="toggleResponseDetails('${personaId}')" title="View details">ℹ️</button>
+          </div>
+        </div>
+        ${focusTags ? `<div class="response-focus-areas">${focusTags}</div>` : ''}
+        <div class="response-content-wrapper">
+          <p class="streaming-content"></p>
+        </div>
+        <div class="response-details" id="response-details-${personaId}" style="display: none;">
+          ${personaCategory ? `<div class="response-category"><strong>Category:</strong> ${escapeHtml(personaCategory)}</div>` : ''}
+          ${focusAreas.length > 3 ? `<div class="response-all-focus"><strong>All Focus Areas:</strong> ${focusAreas.map(a => escapeHtml(a)).join(', ')}</div>` : ''}
+        </div>
       `;
       responsesEl.appendChild(card);
 
@@ -51,11 +89,12 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         progressEl.textContent = `${emoji} ${personaName} is responding...`;
       }
 
-      // Track this response
+      // Track this response - find content element in enhanced structure
+      const contentEl = card.querySelector(".streaming-content");
       streamingState.activeResponses.set(update.persona_id, {
         card: card,
         content: "",
-        contentEl: card.querySelector(".streaming-content"),
+        contentEl: contentEl,
       });
       break;
 
@@ -71,6 +110,11 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       break;
 
     case "response_complete":
+      // Update member status to completed
+      if (update.persona_id && window.updateMemberStatus) {
+        window.updateMemberStatus(update.persona_id, "completed");
+      }
+
       const completeState = streamingState.activeResponses.get(update.persona_id);
       if (completeState) {
         const response = update.response;
@@ -288,20 +332,49 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
 
   if (result.responses && result.responses.length > 0) {
     result.responses.forEach(r => {
-      const card = document.createElement("div");
-      card.className = "response";
-      // Add persona data attribute for styling
       const personaId = r.persona_id || "";
-      card.dataset.persona = personaId;
-      // Escape once for innerHTML - don't double-escape
       const personaName = escapeHtml(r.persona_name || r.persona_id || "Unknown");
       const emoji = r.persona_emoji || "👤";
       const content = r.content ? escapeHtml(r.content) : "";
       const error = r.error ? escapeHtml(r.error) : "";
+      
+      // Get persona data for enhanced card
+      const personaData = window.allPersonas?.find(p => p.id === personaId);
+      const focusAreas = personaData?.focus_areas || [];
+      const personaTitle = personaData?.title || "";
+      const personaCategory = personaData?.category || "";
+      
+      const card = document.createElement("div");
+      card.className = "response response-card-enhanced";
+      card.dataset.persona = personaId;
+      
+      const focusTags = focusAreas.slice(0, 3).map(area => 
+        `<span class="response-focus-tag">${escapeHtml(area)}</span>`
+      ).join('');
+      
       card.innerHTML = `
-        <div class="badge" data-persona="${escapeHtml(personaId)}">${emoji} ${personaName}</div>
-        ${content ? `<p>${content}</p>` : ""}
-        ${error ? `<div class="error">Error: ${error}</div>` : ""}
+        <div class="response-header">
+          <div class="response-persona-info">
+            <span class="response-emoji">${emoji}</span>
+            <div class="response-persona-details">
+              <div class="response-persona-name">${personaName}</div>
+              ${personaTitle ? `<div class="response-persona-title">${escapeHtml(personaTitle)}</div>` : ''}
+            </div>
+          </div>
+          <div class="response-actions">
+            <button class="response-action-btn" onclick="copyResponse('${personaId}')" title="Copy response">📋</button>
+            <button class="response-action-btn" onclick="toggleResponseDetails('${personaId}')" title="View details">ℹ️</button>
+          </div>
+        </div>
+        ${focusTags ? `<div class="response-focus-areas">${focusTags}</div>` : ''}
+        <div class="response-content-wrapper">
+          ${content ? `<p>${content}</p>` : ""}
+          ${error ? `<div class="error">Error: ${error}</div>` : ""}
+        </div>
+        <div class="response-details" id="response-details-${personaId}" style="display: none;">
+          ${personaCategory ? `<div class="response-category"><strong>Category:</strong> ${escapeHtml(personaCategory)}</div>` : ''}
+          ${focusAreas.length > 3 ? `<div class="response-all-focus"><strong>All Focus Areas:</strong> ${focusAreas.map(a => escapeHtml(a)).join(', ')}</div>` : ''}
+        </div>
       `;
       responsesEl.appendChild(card);
     });

@@ -546,9 +546,11 @@
                     </div>
 
                     <h4 style="margin: 16px 0 8px;">📊 Rankings</h4>
-                    ${result.group_decision.ranking.map((id, idx) =                t assessment = result.individual_assessments.find(a => a.response_id === id);
-                    = assessment?.overall_score || 0;
-                                             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    ${result.group_decision.ranking.map((id, idx) => {
+                        const assessment = result.individual_assessments.find(a => a.response_id === id);
+                        const score = assessment?.overall_score || 0;
+                        return `
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                                 <span style="width: 24px; font-weight: bold; color: ${idx === 0 ? 'var(--accent-gold)' : 'var(--text-secondary)'}">
                                     #${idx + 1}
                                 </span>
@@ -561,7 +563,9 @@
                                 <span style="font-weight: 600; color: var(--accent-gold)">${score.toFixed(1)}</span>
                             </div>
                         `;
-            }).join(                  <h4 style="margin: 20px 0 8px;">📜 Majority Opinion</h4>
+                    }).join('')}
+
+                    <h4 style="margin: 20px 0 8px;">📜 Majority Opinion</h4>
                     <p style="color: var(--text-secondary); line-height: 1.7;">
                         ${result.group_decision.majority_opinion}
                     </p>
@@ -625,25 +629,32 @@
             document.getElementById('assessments-content').innerHTML = assessmentsHtml;
 
             // Render Justice Opinions
-            const opinionsHtml = result.individual_assessments[0]?.justice_opinions.map(opinion => `
-                <div class="opinion-card" style="border-left-color: ${opinion.role === 'chair' ? '
-                    opinion.role === 'vice_chair' ? 'var(--accent-blue)' : 'var(--border-color)'
-                };">
+            const opinionsHtml = result.individual_assessments[0]?.justice_opinions.map(opinion => {
+                const borderColor = opinion.role === 'chair' ? 'var(--accent-gold)' :
+                    opinion.role === 'vice_chair' ? 'var(--accent-blue)' : 'var(--border-color)';
+                const roleBg = opinion.role === 'chair' ? 'var(--accent-gold)' : 'var(--accent-blue)';
+                const voteClass = opinion.vote === 'approve' ? 'vote-approve' :
+                    opinion.vote === 'dissent' ? 'vote-dissent' : 'vote-reservations';
+                const voteText = opinion.vote === 'approve' ? '✓ Approve' :
+                    opinion.vote === 'dissent' ? '✗ Dissent' : '~ With Reservations';
+                return `
+                <div class="opinion-card" style="border-left-color: ${borderColor};">
                     <div class="opinion-header">
                         <span style="font-size: 1.5rem;">${opinion.justice_emoji}</span>
                         <strong>${opinion.justice_name}</strong>
                         ${opinion.role !== 'associate' ? `
-                            <span class="opinion-role" style="background: ${opinion.role === 'chair' ? 'var(--accent-gold)' :         };">${opinion.role === 'chair' ? 'Chair' : 'Vice Chair'}</span                    : ''}
-                        <span class="${opinion.vote === 'approve' ? 'vote-approve' :
-                    opinion.vote === 'disseneservations'
-                }" style="margin-                                  ${opinion.vote === 'approve' ? '✓ Approve' :
-                       e === 'dissent' ? '✗ Dissent' : '~ With Reservations'}
+                            <span class="opinion-role" style="background: ${roleBg};">${opinion.role === 'chair' ? 'Chair' : 'Vice Chair'}</span>
+                        ` : ''}
+                        <span class="${voteClass}" style="margin-left: auto;">
+                            ${voteText}
                         </span>
-                                     <p style="color: var(--text-secondary); line-height: 1.7;">
+                    </div>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">
                         ${opinion.opinion}
                     </p>
                 </div>
-            `).join('') || '<p>No individual opinions available.</p>';
+                `;
+            }).join('') || '<p>No individual opinions available.</p>';
             document.getElementById('opinions-content').innerHTML = opinionsHtml;
 
             // Render Synthesis

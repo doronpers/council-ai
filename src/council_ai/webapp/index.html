@@ -42,6 +42,13 @@
         </div>
       </div>
 
+      <!-- Member Preview Section -->
+      <div id="member-preview" class="member-preview" style="margin-top: 24px;">
+        <h3 style="margin-bottom: 16px; font-size: 1rem; font-weight: 600;">Selected Council Members</h3>
+        <div id="member-cards" class="member-cards-grid"></div>
+        <p class="hint" id="member-count" style="margin-top: 12px;">0 members selected</p>
+      </div>
+
       <details class="advanced-settings">
         <summary>Advanced Settings</summary>
         <form id="settings-form" onsubmit="return false;">
@@ -148,14 +155,69 @@
         </div>
       </div>
 
+      <!-- Progress Dashboard -->
+      <div id="progress-dashboard" class="progress-dashboard" style="display: none;">
+        <h3 style="margin-bottom: 16px; font-size: 1rem; font-weight: 600;">Consultation Progress</h3>
+        <div id="member-status-list" class="member-status-list"></div>
+        <div class="progress-bar-container" style="margin-top: 16px;">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <p id="progress-summary" class="progress-summary" style="margin-top: 12px; font-size: 0.85rem; color: var(--text-secondary);"></p>
+      </div>
+
       <div id="synthesis-audio-player" class="audio-player" style="display: none;">
         <audio id="synthesis-audio" controls></audio>
       </div>
 
       <div id="synthesis"></div>
-      <div id="responses" class="responses"></div>
+      <div id="responses-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Member Responses</h3>
+          <button id="toggle-comparison" class="btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">
+            📊 Compare Responses
+          </button>
+        </div>
+        <div id="responses" class="responses"></div>
+      </div>
     </section>
   </main>
+
+  <script>
+    // Response action functions
+    function copyResponse(personaId) {
+      const responseCard = document.getElementById(`response-${personaId}`);
+      if (!responseCard) return;
+      
+      const contentEl = responseCard.querySelector('.streaming-content, .response-content-wrapper p');
+      if (!contentEl) return;
+      
+      const text = contentEl.textContent || contentEl.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        // Show feedback
+        const btn = responseCard.querySelector(`button[onclick*="copyResponse('${personaId}')"]`);
+        if (btn) {
+          const original = btn.textContent;
+          btn.textContent = '✓';
+          setTimeout(() => { btn.textContent = original; }, 2000);
+        }
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+      });
+    }
+
+    function toggleResponseDetails(personaId) {
+      const detailsEl = document.getElementById(`response-details-${personaId}`);
+      if (!detailsEl) return;
+      
+      const isHidden = detailsEl.style.display === 'none';
+      detailsEl.style.display = isHidden ? 'block' : 'none';
+      
+      const btn = document.querySelector(`button[onclick*="toggleResponseDetails('${personaId}')"]`);
+      if (btn) {
+        btn.textContent = isHidden ? 'ℹ️' : 'ℹ️';
+      }
+    }
+  </script>
 
   <script type="module" src="/assets/js/main.js"></script>
 </body>
