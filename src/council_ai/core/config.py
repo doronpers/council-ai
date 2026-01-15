@@ -90,6 +90,9 @@ class Config(BaseModel):
     default_domain: str = "general"
     temperature: float = 0.7
     max_tokens_per_response: int = 1000
+    synthesis_provider: Optional[str] = None
+    synthesis_model: Optional[str] = None
+    synthesis_max_tokens: Optional[int] = None
     custom_personas_path: Optional[str] = None
     custom_domains_path: Optional[str] = None
     presets: Dict[str, Any] = Field(default_factory=dict)
