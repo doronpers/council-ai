@@ -396,8 +396,101 @@ button:disabled {
 .hint {
   font-size: 11px;
   color: var(--text-muted);
-  margin-top: -12px;
   margin-bottom: 16px;
+}
+
+/* Visual Synthesis Graph */
+.consensus-meter {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.consensus-title {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.consensus-track {
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.consensus-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-gold), #f4d03f);
+  width: 0%;
+  transition: width 1s ease-out;
+}
+
+.highlight-agreement {
+  color: #10b981;
+  font-weight: 500;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.highlight-tension {
+  color: #f59e0b;
+  font-weight: 500;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+  header {
+    padding: 24px 16px;
+  }
+
+  header h1 {
+    font-size: 2rem;
+  }
+
+  .nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .nav-link {
+    margin-right: 0;
+    text-align: center;
+    padding: 12px;
+  }
+
+  .container {
+    padding: 16px;
+  }
+
+  .main-grid {
+    gap: 16px;
+  }
+
+  .panel,
+  .response-card {
+    padding: 16px;
+  }
+
+  /* Touch-friendly inputs */
+  input,
+  select,
+  textarea,
+  button.btn {
+    min-height: 44px;
+    font-size: 16px;
+    /* Prevent iOS zoom */
+  }
 }
 
 /* Status badges */

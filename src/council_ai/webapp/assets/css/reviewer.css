@@ -556,6 +556,7 @@ footer {
     border-top: 1px solid var(--border-color);
     margin-top: 40px;
 }
+
 /* Navigation Links */
 .nav {
     margin-top: 16px;
@@ -581,4 +582,51 @@ footer {
 .nav-link--active {
     opacity: 1;
     background: rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    header {
+        padding: 24px 16px;
+    }
+
+    header h1 {
+        font-size: 2rem;
+        flex-direction: column;
+    }
+
+    .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .nav-link {
+        margin-right: 0;
+        text-align: center;
+        padding: 12px;
+    }
+
+    .container {
+        padding: 16px;
+    }
+
+    .panel,
+    .response-card {
+        padding: 16px;
+    }
+
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Touch-friendly inputs */
+    input,
+    select,
+    textarea,
+    .btn {
+        min-height: 44px;
+        font-size: 16px;
+    }
 }

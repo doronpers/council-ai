@@ -75,14 +75,38 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       if (completeState) {
         const response = update.response;
         if (response.error) {
-          completeState.contentEl.innerHTML += `<div class="error">Error: ${escapeHtml(response.error)}</div>`;
+          // Smart Error UI
+          completeState.card.classList.add("error-card");
+          completeState.contentEl.innerHTML += `
+            <div class="status-error" style="margin-top: 8px;">
+              <strong>⚠️ Connection Failed</strong>
+              <p>${escapeHtml(response.error)}</p>
+              <button onclick="window.location.reload()" class="btn btn-secondary" style="margin-top: 8px; font-size: 0.8rem; padding: 4px 12px;">Retry Consultation</button>
+            </div>`;
         }
         streamingState.activeResponses.delete(update.persona_id);
       }
       break;
 
     case "synthesis_start":
-      synthesisEl.innerHTML = '<div class="synthesis"><h3>Synthesis</h3><p class="streaming-synthesis"></p></div>';
+      synthesisEl.innerHTML = `
+        <div class="synthesis">
+          <h3>Synthesis</h3>
+          
+          <!-- Consensus Meter -->
+          <div class="consensus-meter">
+            <div class="consensus-title">
+              <span>Council Consensus</span>
+              <span id="consensus-value">0%</span>
+            </div>
+            <div class="consensus-track">
+              <div class="consensus-bar" id="consensus-bar" style="width: 0%"></div>
+            </div>
+          </div>
+          
+          <p class="streaming-synthesis"></p>
+        </div>
+      `;
       streamingState.synthesisContent = "";
       break;
 
@@ -90,17 +114,22 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       streamingState.synthesisContent += update.content;
       const synthesisP = synthesisEl.querySelector(".streaming-synthesis");
       if (synthesisP) {
-        // textContent automatically treats content as text (no HTML), so don't escape
-        synthesisP.textContent = streamingState.synthesisContent;
+        // Highlight key terms (simple regex replacement for visual distinctness)
+        let formattedContent = escapeHtml(streamingState.synthesisContent)
+          .replace(/(\*\*[^*]+\*\*)/g, '<strong>$1</strong>')
+          .replace(/(consensus|agreement|unanimous)/gi, '<span class="highlight-agreement">$1</span>')
+          .replace(/(disagreement|tension|conflict|dissent)/gi, '<span class="highlight-tension">$1</span>');
+
+        synthesisP.innerHTML = formattedContent;
+
+        // Update Consensus Meter
+        updateConsensusMeter(streamingState.synthesisContent);
       }
       break;
 
     case "synthesis_complete":
-      const synthesisPComplete = synthesisEl.querySelector(".streaming-synthesis");
-      if (synthesisPComplete) {
-        // textContent automatically treats content as text (no HTML), so don't escape
-        synthesisPComplete.textContent = update.synthesis || streamingState.synthesisContent;
-      }
+      // Final pass to ensure meter is accurate
+      updateConsensusMeter(streamingState.synthesisContent);
       streamingState.synthesisContent = "";
       break;
 
@@ -117,12 +146,45 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       break;
 
     case "error":
-      // textContent doesn't need escaping, but innerHTML does
       statusEl.textContent = `Error: ${update.error || "Unknown error"}`;
       statusEl.className = "error";
       synthesisEl.innerHTML = `<div class="error">${escapeHtml(update.error || "Unknown error")}</div>`;
       break;
   }
+}
+
+/**
+ * Heuristic to update consensus meter based on text keywords
+ */
+function updateConsensusMeter(text) {
+  const bar = document.getElementById("consensus-bar");
+  const val = document.getElementById("consensus-value");
+  if (!bar || !val) return;
+
+  const content = text.toLowerCase();
+  let score = 50; // Neutral default
+
+  // Positive indicators
+  if (content.includes("unanimous")) score = 100;
+  else if (content.includes("strong consensus") || content.includes("strongly agree")) score = 90;
+  else if (content.includes("general consensus") || content.includes("mostly agree")) score = 75;
+  else if (content.includes("agreement")) score += 10;
+
+  // Negative indicators
+  if (content.includes("sharp disagreement") || content.includes("conflict")) score = 20;
+  else if (content.includes("diverging") || content.includes("different perspectives")) score = 40;
+  else if (content.includes("tension")) score -= 10;
+
+  // Clamp
+  score = Math.max(0, Math.min(100, score));
+
+  bar.style.width = `${score}%`;
+  val.textContent = `${score}%`;
+
+  // Color shift
+  if (score > 70) bar.style.background = "var(--accent-green)"; // High agreement
+  else if (score < 40) bar.style.background = "var(--accent-red)"; // High conflict
+  else bar.style.background = "linear-gradient(90deg, var(--accent-gold), #f4d03f)"; // Mixed
 }
 
 /**
