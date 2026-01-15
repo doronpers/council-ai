@@ -14,6 +14,41 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+
+def is_placeholder_key(value: Optional[str]) -> bool:
+    """Return True if an API key looks like a placeholder value."""
+    if value is None:
+        return False
+    normalized = value.strip().lower()
+    if not normalized:
+        return False
+
+    placeholder_exact = {"your-key", "your_api_key", "your api key", "here"}
+    placeholder_prefixes = ("your-", "your_", "your ")
+    placeholder_substrings = ("paste-here", "enter-here")
+
+    if normalized in placeholder_exact:
+        return True
+    if normalized.startswith(placeholder_prefixes):
+        return True
+    if "your-" in normalized:
+        return True
+    if normalized.endswith("here") or any(token in normalized for token in placeholder_substrings):
+        return True
+
+    return False
+
+
+def sanitize_api_key(value: Optional[str]) -> Optional[str]:
+    """Normalize and drop placeholder API keys."""
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned or is_placeholder_key(cleaned):
+        return None
+    return cleaned
+
+
 # Load .env file automatically if python-dotenv is available
 try:
     from dotenv import load_dotenv
@@ -41,9 +76,7 @@ try:
             has_placeholder = False
             for var in api_key_vars:
                 existing_val = os.environ.get(var, "")
-                if existing_val and (
-                    "your-" in existing_val.lower() or "here" in existing_val.lower()
-                ):
+                if existing_val and is_placeholder_key(existing_val):
                     has_placeholder = True
                     break
 
@@ -212,25 +245,25 @@ def get_api_key(provider: str = "anthropic") -> Optional[str]:
     """Get API key for a provider from environment or config."""
     # Try provider-specific env var first
     provider_upper = provider.upper()
-    env_key = os.environ.get(f"{provider_upper}_API_KEY")
+    env_key = sanitize_api_key(os.environ.get(f"{provider_upper}_API_KEY"))
     if env_key:
         return env_key
 
     # Special handling for Vercel AI Gateway (OpenAI-compatible)
     if provider == "openai" or provider == "vercel":
-        gateway_key = os.environ.get("AI_GATEWAY_API_KEY")
+        gateway_key = sanitize_api_key(os.environ.get("AI_GATEWAY_API_KEY"))
         if gateway_key:
             return gateway_key
 
     # Try generic env var
-    env_key = os.environ.get("COUNCIL_API_KEY")
+    env_key = sanitize_api_key(os.environ.get("COUNCIL_API_KEY"))
     if env_key:
         return env_key
 
     # Try config file
     try:
         config = load_config()
-        return config.api.api_key
+        return sanitize_api_key(config.api.api_key)
     except Exception:
         return None
 

@@ -21,7 +21,12 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from council_ai import Council
-from council_ai.core.config import ConfigManager, get_api_key
+from council_ai.core.config import (
+    ConfigManager,
+    get_api_key,
+    is_placeholder_key,
+    sanitize_api_key,
+)
 from council_ai.core.council import ConsultationMode, CouncilConfig
 from council_ai.core.persona import list_personas
 
@@ -682,7 +687,13 @@ def _build_review_council(request: ReviewRequest) -> Council:
         provider = request.provider or config.api.provider
         model = request.model or config.api.model
         base_url = request.base_url or config.api.base_url
-        api_key = request.api_key or get_api_key(provider)
+        if request.api_key and is_placeholder_key(request.api_key):
+            raise HTTPException(
+                status_code=400,
+                detail="API key appears to be a placeholder. Please provide a valid API key.",
+            )
+
+        api_key = sanitize_api_key(request.api_key) if request.api_key else get_api_key(provider)
 
         if not api_key:
             raise HTTPException(

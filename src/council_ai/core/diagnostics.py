@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from typing import Dict, Optional, Tuple
 
-from .config import get_api_key
+from .config import get_api_key, is_placeholder_key, sanitize_api_key
 
 
 def diagnose_api_keys() -> Dict[str, any]:
@@ -45,7 +45,7 @@ def diagnose_api_keys() -> Dict[str, any]:
             }
 
     # Check Vercel AI Gateway
-    vercel_key = os.environ.get("AI_GATEWAY_API_KEY")
+    vercel_key = sanitize_api_key(os.environ.get("AI_GATEWAY_API_KEY"))
     if vercel_key:
         diagnostics["available_keys"]["vercel"] = True
         diagnostics["provider_status"]["vercel"] = {
@@ -59,14 +59,22 @@ def diagnose_api_keys() -> Dict[str, any]:
             "has_key": False,
             "env_var": "AI_GATEWAY_API_KEY",
         }
+        if is_placeholder_key(os.environ.get("AI_GATEWAY_API_KEY", "")):
+            diagnostics["provider_status"]["vercel"]["note"] = "Placeholder API key detected"
 
     # Check generic key
-    generic_key = os.environ.get("COUNCIL_API_KEY")
+    generic_key = sanitize_api_key(os.environ.get("COUNCIL_API_KEY"))
     if generic_key:
         diagnostics["available_keys"]["generic"] = True
         diagnostics["provider_status"]["generic"] = {
             "has_key": True,
             "key_length": len(generic_key),
+        }
+    elif is_placeholder_key(os.environ.get("COUNCIL_API_KEY", "")):
+        diagnostics["provider_status"]["generic"] = {
+            "has_key": False,
+            "env_var": "COUNCIL_API_KEY",
+            "note": "Placeholder API key detected",
         }
 
     # Generate recommendations
