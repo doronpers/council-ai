@@ -2,6 +2,9 @@
 LLM Provider Abstractions
 
 Supports multiple LLM providers (Anthropic, OpenAI, custom endpoints).
+Providers are intended to be long-lived and reused per Council instance so that
+their underlying SDK/HTTP clients can be cached and re-used across requests.
+Call provider.close() during shutdown to release any shared clients.
 """
 
 from __future__ import annotations
@@ -58,7 +61,13 @@ _GENERATION_PARAM_SPECS = [
 
 
 class LLMProvider(ABC):
-    """Abstract base class for LLM providers."""
+    """
+    Abstract base class for LLM providers.
+
+    Provider instances are expected to be reused (for example, one per Council
+    instance). The base class exposes cached SDK/HTTP clients to avoid creating
+    a new client per request.
+    """
 
     def __init__(
         self,
@@ -69,6 +78,8 @@ class LLMProvider(ABC):
         self.api_key = api_key
         self.model = model
         self.base_url = base_url
+        self._client: Any | None = None
+        self._async_client: Any | None = None
 
     @abstractmethod
     async def complete(
@@ -146,6 +157,10 @@ class LLMProvider(ABC):
                 return json.loads(json_match.group())
             raise ValueError(f"Failed to parse structured JSON from response: {result[:200]}")
 
+    async def close(self) -> None:
+        """Release any cached clients (no-op by default)."""
+        return None
+
 
 class AnthropicProvider(LLMProvider):
     """Anthropic Claude provider."""
@@ -166,6 +181,20 @@ class AnthropicProvider(LLMProvider):
         if not self.api_key:
             raise ValueError("Anthropic API key required. Set ANTHROPIC_API_KEY or pass api_key.")
 
+    def _get_client(self):
+        import anthropic
+
+        if self._client is None:
+            self._client = anthropic.Anthropic(api_key=self.api_key)
+        return self._client
+
+    def _get_async_client(self):
+        import anthropic
+
+        if self._async_client is None:
+            self._async_client = anthropic.AsyncAnthropic(api_key=self.api_key)
+        return self._async_client
+
     async def complete(
         self,
         system_prompt: str,
@@ -174,15 +203,8 @@ class AnthropicProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> str:
         """Generate a completion using Anthropic."""
-        try:
-            import anthropic
-        except ImportError:
-            raise ImportError(
-                "anthropic package not installed. Install with: pip install anthropic"
-            )
-
         def _call() -> str:
-            client = anthropic.Anthropic(api_key=self.api_key)
+            client = self._get_client()
             message = client.messages.create(
                 model=self.model or self.DEFAULT_MODEL,
                 max_tokens=max_tokens,
@@ -202,14 +224,7 @@ class AnthropicProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> AsyncIterator[str]:
         """Stream a completion using Anthropic."""
-        try:
-            import anthropic
-        except ImportError:
-            raise ImportError(
-                "anthropic package not installed. Install with: pip install anthropic"
-            )
-
-        client = anthropic.AsyncAnthropic(api_key=self.api_key)
+        client = self._get_async_client()
         async with client.messages.stream(
             model=self.model or self.DEFAULT_MODEL,
             max_tokens=max_tokens,
@@ -229,16 +244,9 @@ class AnthropicProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> dict:
         """Generate structured completion using Anthropic."""
-        try:
-            import json
+        import json
 
-            import anthropic
-        except ImportError:
-            raise ImportError(
-                "anthropic package not installed. Install with: pip install anthropic"
-            )
-
-        client = anthropic.AsyncAnthropic(api_key=self.api_key)
+        client = self._get_async_client()
 
         # Anthropic supports response_format for structured output
         try:
@@ -297,6 +305,26 @@ class OpenAIProvider(LLMProvider):
                 "OpenAI API key required. Set OPENAI_API_KEY, AI_GATEWAY_API_KEY, or pass api_key."
             )
 
+    def _get_client(self):
+        import openai
+
+        if self._client is None:
+            client_kwargs = {"api_key": self.api_key}
+            if self.base_url:
+                client_kwargs["base_url"] = self.base_url
+            self._client = openai.OpenAI(**client_kwargs)
+        return self._client
+
+    def _get_async_client(self):
+        import openai
+
+        if self._async_client is None:
+            client_kwargs = {"api_key": self.api_key}
+            if self.base_url:
+                client_kwargs["base_url"] = self.base_url
+            self._async_client = openai.AsyncOpenAI(**client_kwargs)
+        return self._async_client
+
     async def complete(
         self,
         system_prompt: str,
@@ -305,16 +333,10 @@ class OpenAIProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> str:
         """Generate a completion using OpenAI."""
-        try:
-            import openai
-        except ImportError:
-            raise ImportError("openai package not installed. Install with: pip install openai")
+        import openai
 
         def _call() -> str:
-            client_kwargs = {"api_key": self.api_key}
-            if self.base_url:
-                client_kwargs["base_url"] = self.base_url
-            client = openai.OpenAI(**client_kwargs)
+            client = self._get_client()
             try:
                 response = client.chat.completions.create(
                     model=self.model or self.DEFAULT_MODEL,
@@ -361,15 +383,9 @@ class OpenAIProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> AsyncIterator[str]:
         """Stream a completion using OpenAI."""
-        try:
-            import openai
-        except ImportError:
-            raise ImportError("openai package not installed. Install with: pip install openai")
+        import openai
 
-        client_kwargs = {"api_key": self.api_key}
-        if self.base_url:
-            client_kwargs["base_url"] = self.base_url
-        client = openai.AsyncOpenAI(**client_kwargs)
+        client = self._get_async_client()
 
         try:
             stream = await client.chat.completions.create(
@@ -417,17 +433,9 @@ class OpenAIProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> dict:
         """Generate structured completion using OpenAI."""
-        try:
-            import json
+        import json
 
-            import openai
-        except ImportError:
-            raise ImportError("openai package not installed. Install with: pip install openai")
-
-        client_kwargs = {"api_key": self.api_key}
-        if self.base_url:
-            client_kwargs["base_url"] = self.base_url
-        client = openai.AsyncOpenAI(**client_kwargs)
+        client = self._get_async_client()
 
         try:
             # OpenAI supports response_format for JSON mode
@@ -470,6 +478,14 @@ class GeminiProvider(LLMProvider):
         if not self.api_key:
             raise ValueError("Gemini API key required. Set GEMINI_API_KEY or pass api_key.")
 
+    def _get_client(self):
+        import google.generativeai as genai
+
+        if self._client is None:
+            genai.configure(api_key=self.api_key)
+            self._client = genai.GenerativeModel(self.model or self.DEFAULT_MODEL)
+        return self._client
+
     async def complete(
         self,
         system_prompt: str,
@@ -478,16 +494,8 @@ class GeminiProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> str:
         """Generate a completion using Google Gemini."""
-        try:
-            import google.generativeai as genai
-        except ImportError:
-            raise ImportError(
-                "google-generativeai package not installed. Install with: pip install google-generativeai"
-            )
-
         def _call() -> str:
-            genai.configure(api_key=self.api_key)
-            model = genai.GenerativeModel(self.model or self.DEFAULT_MODEL)
+            model = self._get_client()
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
             response = model.generate_content(
                 full_prompt,
@@ -508,15 +516,7 @@ class GeminiProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> AsyncIterator[str]:
         """Stream a completion using Google Gemini."""
-        try:
-            import google.generativeai as genai
-        except ImportError:
-            raise ImportError(
-                "google-generativeai package not installed. Install with: pip install google-generativeai"
-            )
-
-        genai.configure(api_key=self.api_key)
-        model = genai.GenerativeModel(self.model or self.DEFAULT_MODEL)
+        model = self._get_client()
         full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
         # Gemini streaming - need to use async wrapper
@@ -557,6 +557,13 @@ class HTTPProvider(LLMProvider):
         if not self.endpoint:
             raise ValueError("HTTP endpoint required. Set LLM_ENDPOINT or pass endpoint.")
 
+    def _get_async_client(self):
+        import httpx
+
+        if self._async_client is None:
+            self._async_client = httpx.AsyncClient()
+        return self._async_client
+
     async def complete(
         self,
         system_prompt: str,
@@ -565,25 +572,23 @@ class HTTPProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> str:
         """Generate a completion using custom HTTP endpoint."""
-        import httpx
-
-        async with httpx.AsyncClient() as client:
-            payload = {
-                "system": system_prompt,
-                "prompt": user_prompt,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            }
-            if self.model:
-                payload["model"] = self.model
-            response = await client.post(
-                self.endpoint,
-                json=payload,
-                headers={"Authorization": f"Bearer {self.api_key}"} if self.api_key else {},
-                timeout=60.0,
-            )
-            response.raise_for_status()
-            return response.json()["completion"]
+        client = self._get_async_client()
+        payload = {
+            "system": system_prompt,
+            "prompt": user_prompt,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if self.model:
+            payload["model"] = self.model
+        response = await client.post(
+            self.endpoint,
+            json=payload,
+            headers={"Authorization": f"Bearer {self.api_key}"} if self.api_key else {},
+            timeout=60.0,
+        )
+        response.raise_for_status()
+        return response.json()["completion"]
 
     async def stream_complete(
         self,
@@ -593,50 +598,53 @@ class HTTPProvider(LLMProvider):
         temperature: float = 0.7,
     ) -> AsyncIterator[str]:
         """Stream a completion using custom HTTP endpoint (SSE or chunked)."""
-        import httpx
+        import json
 
-        async with httpx.AsyncClient() as client:
-            payload = {
-                "system": system_prompt,
-                "prompt": user_prompt,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-                "stream": True,
-            }
-            if self.model:
-                payload["model"] = self.model
+        client = self._get_async_client()
+        payload = {
+            "system": system_prompt,
+            "prompt": user_prompt,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "stream": True,
+        }
+        if self.model:
+            payload["model"] = self.model
 
-            async with client.stream(
-                "POST",
-                self.endpoint,
-                json=payload,
-                headers={"Authorization": f"Bearer {self.api_key}"} if self.api_key else {},
-                timeout=60.0,
-            ) as response:
-                response.raise_for_status()
-                # Try to parse as SSE (Server-Sent Events)
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "):
-                        data = line[6:]  # Remove "data: " prefix
-                        if data.strip() == "[DONE]":
-                            break
-                        try:
-                            import json
+        async with client.stream(
+            "POST",
+            self.endpoint,
+            json=payload,
+            headers={"Authorization": f"Bearer {self.api_key}"} if self.api_key else {},
+            timeout=60.0,
+        ) as response:
+            response.raise_for_status()
+            # Try to parse as SSE (Server-Sent Events)
+            async for line in response.aiter_lines():
+                if line.startswith("data: "):
+                    data = line[6:]  # Remove "data: " prefix
+                    if data.strip() == "[DONE]":
+                        break
+                    try:
+                        chunk_data = json.loads(data)
+                        if "completion" in chunk_data:
+                            yield chunk_data["completion"]
+                        elif "content" in chunk_data:
+                            yield chunk_data["content"]
+                        elif "delta" in chunk_data and "content" in chunk_data["delta"]:
+                            yield chunk_data["delta"]["content"]
+                    except json.JSONDecodeError:
+                        # If not JSON, yield the raw data
+                        if data.strip():
+                            yield data
+                elif line.strip() and not line.startswith(":"):
+                    # Plain text chunk
+                    yield line
 
-                            chunk_data = json.loads(data)
-                            if "completion" in chunk_data:
-                                yield chunk_data["completion"]
-                            elif "content" in chunk_data:
-                                yield chunk_data["content"]
-                            elif "delta" in chunk_data and "content" in chunk_data["delta"]:
-                                yield chunk_data["delta"]["content"]
-                        except json.JSONDecodeError:
-                            # If not JSON, yield the raw data
-                            if data.strip():
-                                yield data
-                    elif line.strip() and not line.startswith(":"):
-                        # Plain text chunk
-                        yield line
+    async def close(self) -> None:
+        if self._async_client is not None:
+            await self._async_client.aclose()
+            self._async_client = None
 
 
 _MODEL_CAPABILITIES: Dict[str, ModelInfo] = {
