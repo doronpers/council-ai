@@ -120,6 +120,9 @@ pip install -e ".[all]"
 pip install -e ".[dev]"
 ```
 
+> [!NOTE]
+> **Windows Users:** If you encounter "command not found" errors, ensure your Python `Scripts` directory is in your PATH. Alternatively, you can run commands using the `python -m` syntax (e.g., `python -m pytest`, `python -m black src/`).
+
 ### Set Your API Key
 
 **Option 1: Using a `.env` file (Recommended)**
@@ -825,6 +828,10 @@ result = council.consult("Review code quality and architecture...")
 # Also review design/UX and functionality/robustness
 # with different persona combinations
 ```
+
+### LLM Response Reviewer
+
+Council AI includes a specialized "Supreme Court-style" reviewer for evaluating multiple LLM responses. See the [LLM Response Reviewer Setup Guide](documentation/REVIEWER_SETUP.md) for details.
 
 ---
 

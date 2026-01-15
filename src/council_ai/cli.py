@@ -380,7 +380,7 @@ def consult(
         output_text = result.to_markdown()
 
     if output:
-        Path(output).write_text(output_text)
+        Path(output).write_text(output_text, encoding="utf-8")
         console.print(f"[green]✓[/green] Output saved to {output}")
     else:
         console.print()

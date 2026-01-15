@@ -7,24 +7,37 @@ Thank you for your interest in contributing to Council AI! This document provide
 ### Development Setup
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/doronpers/council-ai.git
 cd council-ai
 ```
 
-2. **Install in development mode**
+1. **Install in development mode**
+
 ```bash
 pip install -e ".[dev]"
 ```
 
-3. **Run tests**
+1. **Run tests**
+
+```bash
 ```bash
 pytest
 ```
 
+> [!NOTE]
+> On Windows, if tools like `black`, `ruff`, or `pytest` are not in your PATH, you can run them via the python module syntax:
+>
+> ```bash
+> python -m black src/
+> python -m ruff check src/
+> python -m pytest
+> ```
+
 ## Project Structure
 
-```
+```text
 council-ai/
 ├── src/council_ai/          # Main package
 │   ├── core/                # Core functionality
@@ -126,6 +139,7 @@ def test_your_feature():
 ```
 
 Run tests:
+
 ```bash
 pytest -v
 pytest tests/test_core.py::test_your_feature
@@ -134,11 +148,13 @@ pytest tests/test_core.py::test_your_feature
 ## Code Style
 
 We use:
+
 - **Black** for code formatting (line length: 100)
 - **Ruff** for linting
 - **Type hints** for better code clarity
 
 Format your code:
+
 ```bash
 black src/
 ruff check src/
@@ -147,6 +163,7 @@ ruff check src/
 ## Pull Request Process
 
 1. **Fork the repository** and create a feature branch
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -156,6 +173,7 @@ ruff check src/
 3. **Add tests** for new functionality
 
 4. **Run tests** to ensure everything passes
+
    ```bash
    pytest
    ```
@@ -165,12 +183,14 @@ ruff check src/
    - Docstrings for code changes
 
 6. **Commit your changes**
+
    ```bash
    git add .
    git commit -m "Add: brief description of your changes"
    ```
 
 7. **Push and create a Pull Request**
+
    ```bash
    git push origin feature/your-feature-name
    ```

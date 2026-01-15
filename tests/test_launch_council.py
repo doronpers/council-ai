@@ -68,10 +68,9 @@ class TestHelperFunctions:
 
     def test_run_command_success(self):
         """Test run_command with successful command."""
-        if platform.system() == "Windows":
-            cmd = ["echo", "test"]
-        else:
-            cmd = ["echo", "test"]
+        # Use python itself to print, which ensures it works on all platforms
+        # and doesn't rely on shell builtins like 'echo'
+        cmd = [sys.executable, "-c", "print('test')"]
 
         returncode, stdout, stderr = launch_council.run_command(
             cmd, check=False, capture_output=True

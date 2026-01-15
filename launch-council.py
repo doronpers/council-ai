@@ -79,12 +79,18 @@ def run_command(
         (returncode, stdout, stderr)
     """
     try:
+        # Enforce UTF-8 on Windows for subprocesses
+        env = os.environ.copy()
+        if IS_WINDOWS:
+            env["PYTHONUTF8"] = "1"
+
         result = subprocess.run(
             cmd,
             check=check,
             capture_output=capture_output,
             text=True,
             shell=IS_WINDOWS and len(cmd) == 1,
+            env=env,
         )
         stdout = result.stdout if capture_output else ""
         stderr = result.stderr if capture_output else ""
@@ -280,7 +286,12 @@ def launch_web_app(
         if reload:
             cmd.append("--reload")
 
-        returncode = subprocess.call(cmd)
+        # Enforce UTF-8 on Windows for the web app process
+        env = os.environ.copy()
+        if IS_WINDOWS:
+            env["PYTHONUTF8"] = "1"
+
+        returncode = subprocess.call(cmd, env=env)
         return returncode
     except KeyboardInterrupt:
         print()
