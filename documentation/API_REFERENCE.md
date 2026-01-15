@@ -1270,7 +1270,7 @@ Get a built-in persona by ID.
 ```python
 from council_ai import get_persona
 
-persona = get_persona(persona_id: str) -> Optional[Persona]
+persona = get_persona(persona_id: str) -> Persona
 ```
 
 **Parameters:**
@@ -1279,16 +1279,18 @@ persona = get_persona(persona_id: str) -> Optional[Persona]
 |-----------|------|-------------|
 | `persona_id` | `str` | ID of the persona to retrieve. |
 
-**Returns:** `Persona` instance if found, `None` otherwise.
+**Returns:** `Persona` instance.
+
+**Raises:** `ValueError` if persona not found.
 
 **Example:**
 
 ```python
 from council_ai import get_persona
 
+# Get a persona (raises ValueError if not found)
 rams = get_persona("rams")
-if rams:
-    print(f"{rams.emoji} {rams.name}: {rams.title}")
+print(f"{rams.emoji} {rams.name}: {rams.title}")
 ```
 
 #### `list_personas()`
