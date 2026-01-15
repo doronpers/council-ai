@@ -178,7 +178,7 @@ function renderMemberCards(selectedMemberIds, allPersonas) {
   // Render cards
   memberCardsEl.innerHTML = selectedPersonas.map(persona => {
     const focusAreas = (persona.focus_areas || []).slice(0, 3); // Show first 3 focus areas
-    const focusTags = focusAreas.map(area => 
+    const focusTags = focusAreas.map(area =>
       `<span class="focus-tag">${escapeHtml(area)}</span>`
     ).join('');
     return `
@@ -207,13 +207,13 @@ function getSelectedMemberIds() {
   if (customMembers.length > 0) {
     return customMembers;
   }
-  
+
   // Get from domain
   const selectedDomain = allDomains.find(d => d.id === domainEl.value);
   if (selectedDomain && selectedDomain.default_personas) {
     return selectedDomain.default_personas;
   }
-  
+
   return [];
 }
 
@@ -230,11 +230,11 @@ async function initForm() {
 
     // Store model capabilities for later use
     modelCapabilities = data.models || [];
-    
+
     // Store persona and domain data
     allPersonas = data.personas || [];
     allDomains = data.domains || [];
-    
+
     // Make available globally for render.js
     window.allPersonas = allPersonas;
 
@@ -790,6 +790,25 @@ async function initApp() {
   }
   if (resetSettingsEl) {
     resetSettingsEl.addEventListener("click", handleResetSettings);
+  }
+
+  // System Status / Diagnostics
+  const systemStatusBtn = document.getElementById("system-status-btn");
+  const diagnosticsModal = document.getElementById("diagnostics-modal");
+  const refreshDiagnosticsBtn = document.getElementById("refresh-diagnostics");
+
+  if (systemStatusBtn && diagnosticsModal) {
+    systemStatusBtn.addEventListener("click", () => {
+      diagnosticsModal.style.display = "flex";
+      runDiagnostics();
+    });
+
+    refreshDiagnosticsBtn.addEventListener("click", runDiagnostics);
+
+    // Close on outside click
+    diagnosticsModal.addEventListener("click", (e) => {
+      if (e.target === diagnosticsModal) diagnosticsModal.style.display = "none";
+    });
   }
 
   // Ctrl+Enter to submit from query or context textareas

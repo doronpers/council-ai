@@ -127,7 +127,8 @@ async def check_provider_connectivity(provider: str) -> Tuple[bool, str, float]:
         
         # Let's use the provider factory directly for a lighter test
         from ..providers import get_provider
-        llm = get_provider(provider, get_api_key(provider))
+        # Pass api_key as keyword argument if required by factory
+        llm = get_provider(provider, api_key=get_api_key(provider))
         
         # Simple ping
         response = await llm.generate_response(

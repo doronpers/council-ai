@@ -22,6 +22,7 @@
     <nav class="nav">
       <a href="/" class="nav-link nav-link--active">🏛️ Council Consultation</a>
       <a href="/reviewer" class="nav-link">⚖️ LLM Response Reviewer</a>
+      <button id="system-status-btn" class="nav-link" style="border:none; cursor:pointer;">🩺 System Status</button>
     </nav>
   </header>
 
@@ -181,6 +182,27 @@
       </div>
     </section>
   </main>
+
+  <!-- Diagnostics Modal -->
+  <div id="diagnostics-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="panel" style="width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0;">🏥 Council Doctor</h2>
+            <button class="btn-secondary" onclick="document.getElementById('diagnostics-modal').style.display='none'">✕</button>
+        </div>
+        
+        <div id="diagnostics-content">
+            <div style="text-align: center; padding: 40px;">
+                <span class="loading"></span> Running diagnostics...
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; text-align: right;">
+            <button class="btn-secondary" id="refresh-diagnostics">🔄 Re-run Diagnostics</button>
+            <button class="btn-primary" onclick="document.getElementById('diagnostics-modal').style.display='none'">Close</button>
+        </div>
+    </div>
+  </div>
 
   <script>
     // Response action functions
