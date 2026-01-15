@@ -457,6 +457,9 @@ default_mode: synthesis
 default_domain: general
 temperature: 0.7
 max_tokens_per_response: 1000
+synthesis_provider: null
+synthesis_model: null
+synthesis_max_tokens: null
 
 presets:
   my_team:

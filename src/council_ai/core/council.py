@@ -55,6 +55,9 @@ class CouncilConfig(BaseModel):
     include_reasoning: bool = True
     include_confidence: bool = True
     synthesis_prompt: Optional[str] = None
+    synthesis_provider: Optional[str] = None
+    synthesis_model: Optional[str] = None
+    synthesis_max_tokens: Optional[int] = None
     context_window: int = 10  # Number of previous exchanges to include
     # Optional structured-output flag; if True, attempt structured then fallback
     use_structured_output: bool = False
@@ -228,6 +231,32 @@ class Council:
                 if provider_name != self._provider_name
                 else self._api_key
             )
+            self._provider_cache[cache_key] = get_provider(
+                provider_name,
+                api_key=api_key,
+                model=model_name,
+                base_url=self._base_url,
+            )
+        return self._provider_cache[cache_key]
+
+    def _get_synthesis_provider(self, default_provider: LLMProvider) -> LLMProvider:
+        """Get or create a provider for synthesis-specific overrides."""
+        provider_name = self.config.synthesis_provider or self._provider_name
+        model_name = self.config.synthesis_model or self._model
+
+        if (
+            provider_name == self._provider_name
+            and model_name == self._model
+            and not self.config.synthesis_provider
+            and not self.config.synthesis_model
+        ):
+            return default_provider
+
+        cache_key = (provider_name, model_name, self._base_url)
+        if cache_key not in self._provider_cache:
+            api_key = get_api_key(provider_name)
+            if api_key is None and provider_name == self._provider_name:
+                api_key = self._api_key
             self._provider_cache[cache_key] = get_provider(
                 provider_name,
                 api_key=api_key,
@@ -442,15 +471,16 @@ class Council:
         synthesis = None
         structured_synthesis = None
         if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
+            synthesis_provider = self._get_synthesis_provider(provider)
             # Try structured synthesis if enabled in config
             if getattr(self.config, "use_structured_output", False):
                 try:
                     structured_synthesis = await self._generate_structured_synthesis(
-                        provider, query, context, responses
+                        synthesis_provider, query, context, responses
                     )
                     if structured_synthesis is None:
                         synthesis = await self._generate_synthesis(
-                            provider, query, context, responses
+                            synthesis_provider, query, context, responses
                         )
                     else:
                         # Convert structured to text for backward compatibility
@@ -458,9 +488,13 @@ class Council:
                 except Exception as e:
                     # Fallback to free-form synthesis
                     logger.debug(f"Structured synthesis failed, falling back to free-form: {e}")
-                    synthesis = await self._generate_synthesis(provider, query, context, responses)
+                    synthesis = await self._generate_synthesis(
+                        synthesis_provider, query, context, responses
+                    )
             else:
-                synthesis = await self._generate_synthesis(provider, query, context, responses)
+                synthesis = await self._generate_synthesis(
+                    synthesis_provider, query, context, responses
+                )
 
         # Create result
         result = ConsultationResult(
@@ -573,9 +607,12 @@ class Council:
         structured_synthesis = None
         if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
             # For streaming, use free-form synthesis (structured would require buffering)
+            synthesis_provider = self._get_synthesis_provider(provider)
             yield {"type": "synthesis_start"}
             synthesis_parts: List[str] = []
-            async for chunk in self._generate_synthesis_stream(provider, query, context, responses):
+            async for chunk in self._generate_synthesis_stream(
+                synthesis_provider, query, context, responses
+            ):
                 yield {"type": "synthesis_chunk", "content": chunk}
                 synthesis_parts.append(chunk)
             synthesis = "".join(synthesis_parts)
@@ -944,10 +981,15 @@ Please provide a comprehensive synthesis that:
 4. Is concise but comprehensive (2-4 paragraphs)"""
 
         try:
+            max_tokens = (
+                self.config.synthesis_max_tokens
+                if self.config.synthesis_max_tokens is not None
+                else self.config.max_tokens_per_response * 2
+            )
             synthesis = await provider.complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                max_tokens=self.config.max_tokens_per_response * 2,  # Synthesis can be longer
+                max_tokens=max_tokens,  # Synthesis can be longer
                 temperature=self.config.temperature,
             )
             return synthesis
@@ -995,10 +1037,15 @@ Council Responses:
 Analyze these responses and provide a structured synthesis in JSON format matching the SynthesisSchema."""
 
             # Try to get structured output from provider
+            max_tokens = (
+                self.config.synthesis_max_tokens
+                if self.config.synthesis_max_tokens is not None
+                else self.config.max_tokens_per_response * 3
+            )
             result = await provider.complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                max_tokens=self.config.max_tokens_per_response * 3,
+                max_tokens=max_tokens,
                 temperature=self.config.temperature,
                 response_format={"type": "json_object"} if hasattr(provider, "complete") else None,
             )
@@ -1095,10 +1142,15 @@ Council Responses:
 Please provide a comprehensive synthesis."""
 
         try:
+            max_tokens = (
+                self.config.synthesis_max_tokens
+                if self.config.synthesis_max_tokens is not None
+                else self.config.max_tokens_per_response * 2
+            )
             async for chunk in provider.stream_complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                max_tokens=self.config.max_tokens_per_response * 2,
+                max_tokens=max_tokens,
                 temperature=self.config.temperature,
             ):
                 yield chunk
