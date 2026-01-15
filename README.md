@@ -84,6 +84,7 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 - 🧭 **Standalone Web App** - A focused, Dieter Rams-inspired web UI
 - 🔊 **Text-to-Speech** - Voice responses via ElevenLabs and OpenAI TTS
 - 📦 **Portable Package** - pip-installable, use in any project
+- 📖 **[Full API Documentation](documentation/API_REFERENCE.md)** - Complete Python API reference
 
 ---
 
@@ -661,6 +662,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the testing, linting, and formatting 
 ---
 
 ## Python API Reference
+
+**📖 [Complete API Documentation](documentation/API_REFERENCE.md)**
+
+For comprehensive API documentation including all classes, methods, parameters, and examples, see the [API Reference Guide](documentation/API_REFERENCE.md).
+
+### Quick Reference
+
+Below is a quick reference for common API usage. For detailed documentation, see the [full API reference](documentation/API_REFERENCE.md).
 
 ### Council
 
