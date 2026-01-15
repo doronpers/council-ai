@@ -4,8 +4,15 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/doronpers/council-ai)
 
 ---
+
+## ☁️ Open in Codespaces
+
+Get up and running immediately with a fully configured development environment in your browser:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/doronpers/council-ai)
 
 ## 🚀 Quickstart (No API Key Required)
 
