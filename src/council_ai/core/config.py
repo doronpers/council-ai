@@ -33,7 +33,7 @@ def is_placeholder_key(value: Optional[str]) -> bool:
         return True
     if "your-" in normalized:
         return True
-    if normalized.endswith("here") or any(token in normalized for token in placeholder_substrings):
+    if any(token in normalized for token in placeholder_substrings):
         return True
 
     return False
