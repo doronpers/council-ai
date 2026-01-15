@@ -751,12 +751,13 @@ REASONING: [your reasoning]
         try:
             member_provider = self._get_member_provider(member, provider)
             params = self._resolve_member_generation_params(member)
-            content = await member_provider.complete(
+            response = await member_provider.complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 max_tokens=params["max_tokens"],
                 temperature=params["temperature"],
             )
+            content = response.text
 
             # Run response hooks
             for hook in self._response_hooks:
@@ -986,13 +987,13 @@ Please provide a comprehensive synthesis that:
                 if self.config.synthesis_max_tokens is not None
                 else self.config.max_tokens_per_response * 2
             )
-            synthesis = await provider.complete(
+            response = await provider.complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 max_tokens=max_tokens,  # Synthesis can be longer
                 temperature=self.config.temperature,
             )
-            return synthesis
+            return response.text
         except Exception as e:
             logger.error(f"Failed to generate synthesis: {e}")
             # Fallback: simple concatenation
@@ -1042,23 +1043,15 @@ Analyze these responses and provide a structured synthesis in JSON format matchi
                 if self.config.synthesis_max_tokens is not None
                 else self.config.max_tokens_per_response * 3
             )
-            result = await provider.complete(
+            schema = SynthesisSchema.model_json_schema()
+            data = await provider.complete_structured(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
+                json_schema=schema,
                 max_tokens=max_tokens,
                 temperature=self.config.temperature,
-                response_format={"type": "json_object"} if hasattr(provider, "complete") else None,
             )
-
-            # Parse JSON response
-            import json
-
-            try:
-                data = json.loads(result)
-                return SynthesisSchema(**data)
-            except (json.JSONDecodeError, Exception):
-                # If JSON parsing fails, return None to fallback to text synthesis
-                return None
+            return SynthesisSchema(**data)
         except Exception as e:
             logger.error(f"Failed to generate structured synthesis: {e}")
             return None
