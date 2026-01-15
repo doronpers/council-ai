@@ -443,7 +443,7 @@ print(result.synthesis)             # Markdown-formatted synthesis text
 ### Config File
 
 Council AI stores configuration in `~/.config/council-ai/config.yaml`.
-Override the location with `COUNCIL_AI_CONFIG_DIR`:
+Override the location with `COUNCIL_AI_CONFIG_DIR`.
 
 ```yaml
 api:
