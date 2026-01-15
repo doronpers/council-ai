@@ -8,17 +8,17 @@ implementation of provider logic across repositories.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 from shared_ai_utils.llm import (
-    LLMProvider,
-    LLMResponse,
     AnthropicProvider,
-    OpenAIProvider,
     GeminiProvider,
     HTTPProvider,
+    LLMProvider,
+    LLMResponse,
     ModelInfo,
     ModelParameterSpec,
+    OpenAIProvider,
 )
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ def register_provider(name: str, provider_class: Type[LLMProvider]) -> None:
 
 def _filter_provider_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
     """Filter kwargs to parameters supported by shared providers."""
-    allowed = {"api_key", "model", "base_url"}
+    allowed = {"api_key", "model", "base_url", "endpoint"}
     return {key: value for key, value in kwargs.items() if key in allowed}
 
 
