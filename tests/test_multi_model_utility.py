@@ -11,11 +11,16 @@ from council_ai.providers import LLMProvider
 
 class MockProvider(LLMProvider):
     async def complete(self, system_prompt, user_prompt, max_tokens=1000, temperature=0.7):
-        return f"Response from {self.provider_name} model {self.model}"
+        response = MagicMock()
+        response.text = f"Response from {self.provider_name} model {self.model}"
+        return response
 
     @property
     def provider_name(self):
-        return getattr(self, "_provider_name", "unknown")
+        return getattr(self, "_provider_name", "mock")
+
+    def is_available(self):
+        return True
 
 @pytest.fixture
 def mock_get_provider():

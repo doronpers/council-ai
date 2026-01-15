@@ -1,6 +1,6 @@
 # Council AI - Configuration Example
 # Copy this file to ~/.config/council-ai/config.yaml or /tmp/council-ai/config.yaml
-# Or set COUNCIL_CONFIG_DIR environment variable to specify a custom location
+# Or set COUNCIL_AI_CONFIG_DIR to specify a custom location
 
 # API Configuration
 api:
@@ -23,7 +23,7 @@ tts:
   # fallback_voice: "alloy"  # Optional: fallback voice
 
 # Default Settings
-default_mode: "synthesis"  # Options: synthesis, voting, polling, consensus
+default_mode: "synthesis"  # Options: individual, sequential, synthesis, debate, vote
 default_domain: "general"  # Default domain to use
 
 # LLM Parameters

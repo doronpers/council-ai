@@ -19,14 +19,11 @@ Get up and running immediately with a fully configured development environment i
 Want to explore Council AI before setting up an API key? Run:
 
 ```bash
-# Install the package
-pip install -e ".[dev]"
-
-# Run the interactive quickstart demo
-council quickstart
-# or
-python examples/quickstart.py
+# Run the interactive launcher (handles setup automatically)
+./launcher.sh
 ```
+
+Or manually:
 
 This interactive demo shows you:
 

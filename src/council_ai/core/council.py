@@ -91,6 +91,7 @@ class Council:
         persona_manager: Optional[PersonaManager] = None,
         model: Optional[str] = None,
         base_url: Optional[str] = None,
+        endpoint: Optional[str] = None,
         history: Optional[Any] = None,
     ):
         """
@@ -103,9 +104,12 @@ class Council:
             persona_manager: Custom persona manager (uses global if None)
             model: Model name override
             base_url: Base URL override
+            endpoint: Backward-compatible alias for base_url
             history: ConsultationHistory instance for auto-saving (optional)
         """
         self.config = config or CouncilConfig()
+        if base_url is None and endpoint is not None:
+            base_url = endpoint
         self._persona_manager = persona_manager or get_persona_manager()
         self._members: Dict[str, Persona] = {}
         self._provider: Optional[LLMProvider] = None
