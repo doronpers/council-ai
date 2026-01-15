@@ -1,140 +1,163 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Council AI</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
-    <meta name="description" content="AI-powered advisory council system." />
-    <meta name="theme-color" content="#f4f4f4" />
-    <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Preconnect to fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <header>
-      <h1>Council AI</h1>
-      <p>Intelligent Advisory System</p>
-    </header>
-    
-    <main>
-      <section class="panel">
-        <h2>Configuration</h2>
 
-        <div class="grid essential-settings">
-          <div>
-            <label for="domain">Domain</label>
-            <select id="domain"></select>
-          </div>
-          <div>
-            <label for="mode">Consultation Mode</label>
-            <select id="mode"></select>
-          </div>
+<head>
+  <meta charset="utf-8" />
+  <title>Council AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+  <meta name="description" content="AI-powered advisory council system." />
+  <meta name="theme-color" content="#f4f4f4" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- Preconnect to fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <h1>Council AI</h1>
+    <p>Intelligent Advisory System</p>
+    <nav class="nav">
+      <a href="/" class="nav-link nav-link--active">🏛️ Council Consultation</a>
+      <a href="/reviewer" class="nav-link">⚖️ LLM Response Reviewer</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Configuration</h2>
+
+      <div class="grid essential-settings">
+        <div>
+          <label for="domain">Domain</label>
+          <select id="domain"></select>
+          <p class="hint">Pre-configured council for your topic (General includes all 7 members)</p>
         </div>
+        <div>
+          <label for="mode">Consultation Mode</label>
+          <select id="mode"></select>
+          <p class="hint">How the council responds (synthesis recommended)</p>
+        </div>
+      </div>
 
-        <details class="advanced-settings">
-          <summary>Advanced Settings</summary>
-          <form id="settings-form" onsubmit="return false;">
-            <div class="grid">
-              <div>
-                <label for="provider">AI Provider</label>
-                <select id="provider"></select>
+      <details class="advanced-settings">
+        <summary>Advanced Settings</summary>
+        <form id="settings-form" onsubmit="return false;">
+          <div class="grid">
+            <div>
+              <label for="provider">AI Provider</label>
+              <select id="provider"></select>
+            </div>
+            <div>
+              <label for="model">Model</label>
+              <select id="model">
+                <option value="">Default model</option>
+              </select>
+            </div>
+            <div>
+              <label for="temperature">Creativity (Temperature)</label>
+              <div class="slider-container">
+                <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7" />
+                <output id="temperature-value">0.7</output>
               </div>
+            </div>
+            <div>
+              <label for="max_tokens">Response Length</label>
+              <select id="max_tokens">
+                <option value="500">Short</option>
+                <option value="1000" selected>Medium</option>
+                <option value="2000">Long</option>
+                <option value="4000">Extensive</option>
+              </select>
+            </div>
+            <div>
+              <label for="members">Custom Members (IDs)</label>
+              <input id="members" placeholder="e.g., rams, kahneman" />
+            </div>
+            <div>
+              <label for="api_key">API Key</label>
+              <input id="api_key" placeholder="Uses environment variable if empty" type="password" />
+            </div>
+          </div>
+
+          <!-- TTS Settings -->
+          <div class="tts-settings">
+            <h3>Voice Output</h3>
+            <div class="tts-toggle-wrapper">
+              <label class="switch-label">
+                <input type="checkbox" id="enable_tts" />
+                <span class="switch-slider"></span>
+                <span class="switch-text">Enable voice synthesis</span>
+              </label>
+            </div>
+
+            <div id="tts-options" class="tts-options" style="display: none;">
               <div>
-                <label for="model">Model</label>
-                <select id="model">
-                  <option value="">Default model</option>
+                <label for="tts_voice">Voice Persona</label>
+                <select id="tts_voice">
+                  <option value="">Default voice</option>
                 </select>
               </div>
-              <div>
-                <label for="temperature">Creativity (Temperature)</label>
-                <div class="slider-container">
-                  <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7" />
-                  <output id="temperature-value">0.7</output>
-                </div>
-              </div>
-              <div>
-                <label for="max_tokens">Response Length</label>
-                <select id="max_tokens">
-                  <option value="500">Short</option>
-                  <option value="1000" selected>Medium</option>
-                  <option value="2000">Long</option>
-                  <option value="4000">Extensive</option>
-                </select>
-              </div>
-              <div>
-                <label for="members">Custom Members (IDs)</label>
-                <input id="members" placeholder="e.g., rams, kahneman" />
-              </div>
-              <div>
-                <label for="api_key">API Key</label>
-                <input id="api_key" placeholder="Uses environment variable if empty" type="password" />
-              </div>
             </div>
-            
-            <!-- TTS Settings -->
-            <div class="tts-settings">
-              <h3>Voice Output</h3>
-              <div class="tts-toggle-wrapper">
-                <label class="switch-label">
-                  <input type="checkbox" id="enable_tts" />
-                  <span class="switch-slider"></span>
-                  <span class="switch-text">Enable voice synthesis</span>
-                </label>
-              </div>
+          </div>
 
-              <div id="tts-options" class="tts-options" style="display: none;">
-                <div>
-                  <label for="tts_voice">Voice Persona</label>
-                  <select id="tts_voice">
-                    <option value="">Default voice</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            <div class="settings-actions">
-              <button id="save-settings" class="btn-secondary" type="button">Save Settings</button>
-              <button id="reset-settings" class="btn-secondary" type="button">Reset</button>
-            </div>
-          </form>
-        </details>
-
-        <label for="query">Question</label>
-        <textarea id="query" placeholder="Ask for advice, strategy, or critique..."></textarea>
-
-        <label for="context">Context (Optional)</label>
-        <textarea id="context" placeholder="Background info, constraints, or specific details..."></textarea>
-
-        <div class="button-group">
-          <button id="submit">Consult Council</button>
-          <button id="cancel" class="btn-secondary" style="display: none;">Cancel</button>
-        </div>
-      </section>
-
-      <!-- History panel -->
-      <details class="panel history-panel">
-        <summary><h2>History</h2></summary>
-        <div id="history-list" class="history-list">
-          <p class="muted">Loading...</p>
-        </div>
+          <div class="settings-actions">
+            <button id="save-settings" class="btn-secondary" type="button">Save Settings</button>
+            <button id="reset-settings" class="btn-secondary" type="button">Reset</button>
+          </div>
+        </form>
       </details>
 
-      <section class="panel">
-        <h2>Advice</h2>
-        <div id="status" class="muted">Ready for consultation.</div>
+      <label for="query">Question</label>
+      <textarea id="query" placeholder="Ask for advice, strategy, or critique..."></textarea>
 
-        <div id="synthesis-audio-player" class="audio-player" style="display: none;">
-          <audio id="synthesis-audio" controls></audio>
+      <label for="context">Context (Optional)</label>
+      <textarea id="context" placeholder="Background info, constraints, or specific details..."></textarea>
+
+      <div class="button-group">
+        <button id="submit">Consult Council</button>
+        <button id="cancel" class="btn-secondary" style="display: none;">Cancel</button>
+      </div>
+    </section>
+
+    <!-- History panel -->
+    <details class="panel history-panel">
+      <summary>
+        <h2>History</h2>
+      </summary>
+      <div id="history-list" class="history-list">
+        <p class="muted">Loading...</p>
+      </div>
+    </details>
+
+    <section class="panel">
+      <h2>Advice</h2>
+      <div id="status" class="empty-state">
+        <p>Ready to consult.</p>
+        <p class="hint">Ask a question above and the council will deliberate.</p>
+      </div>
+
+      <div id="loading-skeleton" style="display: none;">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="progress-indicator">
+          <span class="loading"></span>
+          <span id="progress-text">Assembling council...</span>
         </div>
+      </div>
 
-        <div id="synthesis"></div>
-        <div id="responses" class="responses"></div>
-      </section>
-    </main>
-    
-    <script type="module" src="/assets/js/main.js"></script>
-  </body>
+      <div id="synthesis-audio-player" class="audio-player" style="display: none;">
+        <audio id="synthesis-audio" controls></audio>
+      </div>
+
+      <div id="synthesis"></div>
+      <div id="responses" class="responses"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/main.js"></script>
+</body>
+
 </html>

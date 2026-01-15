@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException

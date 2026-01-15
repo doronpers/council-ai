@@ -324,6 +324,7 @@ def consult(
 
         try:
             from .core.history import ConsultationHistory
+
             council._history = ConsultationHistory()
             result = council.consult(
                 query,
@@ -432,11 +433,12 @@ def interactive(ctx, domain, provider, api_key, session_id):
         model=model,
         base_url=base_url,
     )
-    
+
     # Enable history
     from .core.history import ConsultationHistory
+
     council._history = ConsultationHistory()
-    
+
     # If resuming, load session metadata (not strictly needed as consult() handles it,
     # but good for display)
     if session_id:
@@ -1048,10 +1050,11 @@ def test_key(provider: str, api_key: Optional[str]):
 def web(host: str, port: int, reload: bool, no_open: bool):
     """Run the Council AI web app."""
     try:
-        import uvicorn
-        import webbrowser
         import threading
         import time
+        import webbrowser
+
+        import uvicorn
     except ImportError:
         console.print(
             '[red]Error:[/red] uvicorn is not installed. Install with: pip install -e ".[web]"'
@@ -1059,17 +1062,18 @@ def web(host: str, port: int, reload: bool, no_open: bool):
         sys.exit(1)
 
     url = f"http://{host}:{port}"
-    
+
     # Auto-open browser after a short delay
     if not no_open:
+
         def open_browser():
             time.sleep(1.5)  # Wait for server to start
             webbrowser.open(url)
-        
+
         threading.Thread(target=open_browser, daemon=True).start()
         console.print(f"[green]✓[/green] Server starting at [cyan]{url}[/cyan]")
         console.print("[dim]Opening browser automatically...[/dim]")
-    
+
     uvicorn.run("council_ai.webapp:app", host=host, port=port, reload=reload)
 
 
@@ -1232,7 +1236,7 @@ def history_sessions(limit):
 def history_resume(ctx, session_id):
     """Resume a previous session (interactive)."""
     history = ConsultationHistory()
-    
+
     if not session_id:
         sessions = history.list_sessions(limit=10)
         if not sessions:
@@ -1240,34 +1244,32 @@ def history_resume(ctx, session_id):
             return
 
         console.print(Panel("[bold cyan]Resume Past Session[/bold cyan]", expand=False))
-        
+
         # rich menu
         from rich.table import Table
+
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("#", style="dim", width=4)
         table.add_column("Session ID", style="cyan")
         table.add_column("Council", style="white")
         table.add_column("Started At", style="yellow")
-        
+
         for i, s in enumerate(sessions, 1):
             table.add_row(
-                str(i),
-                s["id"][:13] + "...",
-                s["name"],
-                s["started_at"][:16].replace("T", " ")
+                str(i), s["id"][:13] + "...", s["name"], s["started_at"][:16].replace("T", " ")
             )
-        
+
         console.print(table)
-        
+
         choice = Prompt.ask(
             "Select session to resume",
             choices=[str(i) for i in range(1, len(sessions) + 1)] + ["q"],
-            default="1"
+            default="1",
         )
-        
+
         if choice == "q":
             return
-            
+
         selected = sessions[int(choice) - 1]
         session_id = selected["id"]
 
@@ -1278,7 +1280,7 @@ def history_resume(ctx, session_id):
         return
 
     console.print(f"[green]✓[/green] Resuming session [cyan]{session_id}[/cyan]...")
-    
+
     # Delegate to interactive command
     ctx.invoke(interactive, session_id=session_id)
 
@@ -1454,7 +1456,7 @@ def history_export_session(session_id, output):
             lines.append("#### Synthesized Conclusion")
             lines.append(res.synthesis)
             lines.append("")
-        
+
         # Add key points from individual responses if no synthesis
         if not res.synthesis:
             for resp in res.responses:
@@ -1468,7 +1470,7 @@ def history_export_session(session_id, output):
     lines.append("- Consider the different perspectives offered by the diverse members.")
 
     content = "\n".join(lines)
-    
+
     if output:
         output_path = Path(output)
     else:

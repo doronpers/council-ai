@@ -1,562 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Response Reviewer - Council AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #0f1419;
-            --bg-secondary: #1a1f2e;
-            --bg-tertiary: #242b3d;
-            --text-primary: #e7e9ea;
-            --text-secondary: #8b98a5;
-            --text-muted: #6e7681;
-            --accent-gold: #d4af37;
-            --accent-blue: #1d9bf0;
-            --accent-green: #00ba7c;
-            --accent-red: #f4212e;
-            --accent-purple: #794bc4;
-            --border-color: #2f3542;
-            --shadow: 0 4px 12px rgba(0,0,0,0.3);
-            --radius: 12px;
-            --radius-sm: 8px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        /* Header */
-        header {
-            text-align: center;
-            padding: 40px 20px;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 32px;
-        }
-
-        header h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.5rem;
-            color: var(--accent-gold);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
-
-        header p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-        }
-
-        /* Main Layout */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        @media (max-width: 1024px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Panels */
-        .panel {
-            background: var(--bg-secondary);
-            border-radius: var(--radius);
-            border: 1px solid var(--border-color);
-            padding: 24px;
-        }
-
-        .panel h2 {
-            font-size: 1.25rem;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-primary);
-        }
-
-        /* Form Elements */
-        label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        textarea, input, select {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 0.95rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        textarea:focus, input:focus, select:focus {
-            outline: none;
-            border-color: var(--accent-gold);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
-        }
-
-        textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-
-        .response-textarea {
-            min-height: 200px;
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 12px 24px;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: var(--accent-gold);
-            color: #000;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #e6c04a;
-            transform: translateY(-1px);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: var(--border-color);
-        }
-
-        .btn-danger {
-            background: var(--accent-red);
-            color: white;
-        }
-
-        /* Response Input Cards */
-        .response-card {
-            background: var(--bg-tertiary);
-            border-radius: var(--radius);
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border-color);
-        }
-
-        .response-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .response-number {
-            font-weight: 600;
-            color: var(--accent-gold);
-        }
-
-        .remove-response {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-
-        .remove-response:hover {
-            color: var(--accent-red);
-            background: rgba(244, 33, 46, 0.1);
-        }
-
-        /* Council Configuration */
-        .justice-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .justice-chip {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 12px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.85rem;
-        }
-
-        .justice-chip.selected {
-            background: rgba(212, 175, 55, 0.15);
-            border-color: var(--accent-gold);
-        }
-
-        .justice-chip.chair {
-            background: rgba(212, 175, 55, 0.25);
-            border-color: var(--accent-gold);
-        }
-
-        .justice-chip.vice-chair {
-            background: rgba(29, 155, 240, 0.15);
-            border-color: var(--accent-blue);
-        }
-
-        .justice-emoji {
-            font-size: 1.1rem;
-        }
-
-        /* Results Section */
-        .results-panel {
-            grid-column: 1 / -1;
-        }
-
-        .results-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px;
-        }
-
-        .tab-btn {
-            padding: 8px 16px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            border-radius: var(--radius-sm);
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .tab-btn.active {
-            background: var(--accent-gold);
-            color: #000;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        /* Score Cards */
-        .score-card {
-            background: var(--bg-tertiary);
-            border-radius: var(--radius);
-            padding: 20px;
-            margin-bottom: 16px;
-        }
-
-        .score-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .score-badge {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-gold);
-        }
-
-        .score-bar {
-            height: 8px;
-            background: var(--bg-secondary);
-            border-radius: 4px;
-            margin-bottom: 8px;
-            overflow: hidden;
-        }
-
-        .score-fill {
-            height: 100%;
-            background: var(--accent-gold);
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-
-        .score-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 12px;
-        }
-
-        /* Justice Opinion Cards */
-        .opinion-card {
-            background: var(--bg-secondary);
-            border-left: 3px solid var(--accent-gold);
-            padding: 16px;
-            margin-bottom: 12px;
-            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-        }
-
-        .opinion-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .opinion-role {
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            border-radius: 10px;
-            background: var(--accent-gold);
-            color: #000;
-        }
-
-        .vote-approve { color: var(--accent-green); }
-        .vote-dissent { color: var(--accent-red); }
-        .vote-reservations { color: var(--accent-purple); }
-
-        /* Synthesis Section */
-        .synthesis-box {
-            background: var(--bg-tertiary);
-            border-radius: var(--radius);
-            padding: 24px;
-            border-left: 4px solid var(--accent-gold);
-        }
-
-        .synthesis-box h3 {
-            color: var(--accent-gold);
-            margin-bottom: 16px;
-        }
-
-        .synthesis-content {
-            white-space: pre-wrap;
-            line-height: 1.8;
-        }
-
-        /* Loading States */
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 60px 20px;
-            color: var(--text-secondary);
-        }
-
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--accent-gold);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Progress Steps */
-        .progress-steps {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .progress-step {
-            padding: 6px 12px;
-            background: var(--bg-tertiary);
-            border-radius: 16px;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .progress-step.active {
-            background: rgba(212, 175, 55, 0.2);
-            color: var(--accent-gold);
-        }
-
-        .progress-step.complete {
-            background: rgba(0, 186, 124, 0.2);
-            color: var(--accent-green);
-        }
-
-        /* Winner Badge */
-        .winner-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: linear-gradient(135deg, #d4af37, #f4d03f);
-            color: #000;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-
-        /* Settings Collapsible */
-        details {
-            margin-bottom: 16px;
-        }
-
-        summary {
-            cursor: pointer;
-            padding: 12px;
-            background: var(--bg-tertiary);
-            border-radius: var(--radius-sm);
-            font-weight: 500;
-            list-style: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        summary::-webkit-details-marker {
-            display: none;
-        }
-
-        summary::before {
-            content: '▶';
-            font-size: 0.7rem;
-            transition: transform 0.2s;
-        }
-
-        details[open] summary::before {
-            transform: rotate(90deg);
-        }
-
-        .settings-content {
-            padding: 16px;
-            background: var(--bg-tertiary);
-            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-            margin-top: -8px;
-        }
-
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        @media (max-width: 600px) {
-            .settings-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Helper text */
-        .help-text {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        /* Button group */
-        .button-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        /* Hidden */
-        .hidden {
-            display: none !important;
-        }
-
-        /* Status messages */
-        .status {
-            padding: 12px 16px;
-            border-radius: var(--radius-sm);
-            margin-bottom: 16px;
-        }
-
-        .status-info {
-            background: rgba(29, 155, 240, 0.1);
-            border: 1px solid var(--accent-blue);
-            color: var(--accent-blue);
-        }
-
-        .status-error {
-            background: rgba(244, 33, 46, 0.1);
-            border: 1px solid var(--accent-red);
-            color: var(--accent-red);
-        }
-
-        .status-success {
-            background: rgba(0, 186, 124, 0.1);
-            border: 1px solid var(--accent-green);
-            color: var(--accent-green);
-        }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 24px;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            border-top: 1px solid var(--border-color);
-            margin-top: 40px;
-        }
-    </style>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/reviewer.css">
 </head>
+
 <body>
     <header>
         <h1>⚖️ LLM Response Reviewer</h1>
         <p>Supreme Court-style review of AI responses with scoring, consensus, and synthesis</p>
+        <nav class="nav">
+            <a href="/" class="nav-link">🏛️ Council Consultation</a>
+            <a href="/reviewer" class="nav-link nav-link--active">⚖️ LLM Response Reviewer</a>
+        </nav>
     </header>
 
     <div class="container">
@@ -565,12 +29,16 @@
             <div class="panel">
                 <h2>📝 Input</h2>
 
-                <div style="margin-bottom: 20px;">
-                    <label for="question">Original Question</label>
-                    <textarea id="question" placeholder="Enter the question that was asked to the LLMs..."></textarea>
+                <div style="margin-bottom: 20px; display: flex; gap: 8px; align-items: center;">
+                    <label for="question" style="flex: 1;">Original Question</label>
+                    <button class="btn btn-secondary" id="import-docs-btn"
+                        style="font-size: 0.85rem; padding: 6px 12px;">
+                        📄 Import from Google Docs
+                    </button>
                 </div>
+                <textarea id="question" placeholder="Enter the question that was asked to the LLMs..."></textarea>
 
-                <div id="responses-container">
+                <div id="responses-container" style="margin-top: 20px;">
                     <label>LLM Responses to Review (2-5)</label>
                     <!-- Response cards will be added here -->
                 </div>
@@ -647,7 +115,8 @@
                             <div style="grid-column: 1 / -1;">
                                 <label for="api-key">API Key (optional)</label>
                                 <form onsubmit="return false;">
-                                    <input type="password" id="api-key" placeholder="Uses environment variable if empty">
+                                    <input type="password" id="api-key"
+                                        placeholder="Uses environment variable if empty">
                                 </form>
                             </div>
                             <div style="grid-column: 1 / -1;">
@@ -726,6 +195,14 @@
         const reviewBtn = document.getElementById('review-btn');
         const cancelBtn = document.getElementById('cancel-btn');
         const justiceGrid = document.getElementById('justice-grid');
+        const importDocsBtn = document.getElementById('import-docs-btn');
+        const importModal = document.getElementById('import-modal');
+        const closeImportModal = document.getElementById('close-import-modal');
+        const cancelImportBtn = document.getElementById('cancel-import-btn');
+        const confirmImportBtn = document.getElementById('confirm-import-btn');
+        const docsUrlInput = document.getElementById('docs-url');
+        const docsContentInput = document.getElementById('docs-content');
+        const importStatus = document.getElementById('import-status');
         const chairSelect = document.getElementById('chair-select');
         const viceChairSelect = document.getElementById('vice-chair-select');
         const sonotheiaMode = document.getElementById('sonotheia-mode');
@@ -802,7 +279,7 @@
             });
         }
 
-        function addResponseCard() {
+        function addResponseCard(content = '', source = '') {
             responseCount++;
             const card = document.createElement('div');
             card.className = 'response-card';
@@ -813,12 +290,12 @@
                     <div>
                         <input type="text" placeholder="Source (e.g., GPT-4, Claude)"
                                style="width: 150px; padding: 4px 8px; font-size: 0.85rem;"
-                               class="response-source">
+                               class="response-source" value="${escapeHtml(source)}">
                         <button class="remove-response" onclick="removeResponseCard(${responseCount})">✕</button>
                     </div>
                 </div>
                 <textarea class="response-textarea response-content"
-                          placeholder="Paste the LLM response here..."></textarea>
+                          placeholder="Paste the LLM response here...">${escapeHtml(content)}</textarea>
             `;
             responsesContainer.appendChild(card);
         }
@@ -1069,11 +546,9 @@
                     </div>
 
                     <h4 style="margin: 16px 0 8px;">📊 Rankings</h4>
-                    ${result.group_decision.ranking.map((id, idx) => {
-                        const assessment = result.individual_assessments.find(a => a.response_id === id);
-                        const score = assessment?.overall_score || 0;
-                        return `
-                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    ${result.group_decision.ranking.map((id, idx) =                t assessment = result.individual_assessments.find(a => a.response_id === id);
+                    = assessment?.overall_score || 0;
+                                             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                                 <span style="width: 24px; font-weight: bold; color: ${idx === 0 ? 'var(--accent-gold)' : 'var(--text-secondary)'}">
                                     #${idx + 1}
                                 </span>
@@ -1086,9 +561,7 @@
                                 <span style="font-weight: 600; color: var(--accent-gold)">${score.toFixed(1)}</span>
                             </div>
                         `;
-                    }).join('')}
-
-                    <h4 style="margin: 20px 0 8px;">📜 Majority Opinion</h4>
+            }).join(                  <h4 style="margin: 20px 0 8px;">📜 Majority Opinion</h4>
                     <p style="color: var(--text-secondary); line-height: 1.7;">
                         ${result.group_decision.majority_opinion}
                     </p>
@@ -1153,27 +626,20 @@
 
             // Render Justice Opinions
             const opinionsHtml = result.individual_assessments[0]?.justice_opinions.map(opinion => `
-                <div class="opinion-card" style="border-left-color: ${
-                    opinion.role === 'chair' ? 'var(--accent-gold)' :
+                <div class="opinion-card" style="border-left-color: ${opinion.role === 'chair' ? '
                     opinion.role === 'vice_chair' ? 'var(--accent-blue)' : 'var(--border-color)'
                 };">
                     <div class="opinion-header">
                         <span style="font-size: 1.5rem;">${opinion.justice_emoji}</span>
                         <strong>${opinion.justice_name}</strong>
                         ${opinion.role !== 'associate' ? `
-                            <span class="opinion-role" style="background: ${
-                                opinion.role === 'chair' ? 'var(--accent-gold)' : 'var(--accent-blue)'
-                            };">${opinion.role === 'chair' ? 'Chair' : 'Vice Chair'}</span>
-                        ` : ''}
-                        <span class="${
-                            opinion.vote === 'approve' ? 'vote-approve' :
-                            opinion.vote === 'dissent' ? 'vote-dissent' : 'vote-reservations'
-                        }" style="margin-left: auto;">
-                            ${opinion.vote === 'approve' ? '✓ Approve' :
-                              opinion.vote === 'dissent' ? '✗ Dissent' : '~ With Reservations'}
+                            <span class="opinion-role" style="background: ${opinion.role === 'chair' ? 'var(--accent-gold)' :         };">${opinion.role === 'chair' ? 'Chair' : 'Vice Chair'}</span                    : ''}
+                        <span class="${opinion.vote === 'approve' ? 'vote-approve' :
+                    opinion.vote === 'disseneservations'
+                }" style="margin-                                  ${opinion.vote === 'approve' ? '✓ Approve' :
+                       e === 'dissent' ? '✗ Dissent' : '~ With Reservations'}
                         </span>
-                    </div>
-                    <p style="color: var(--text-secondary); line-height: 1.7;">
+                                     <p style="color: var(--text-secondary); line-height: 1.7;">
                         ${opinion.opinion}
                     </p>
                 </div>
@@ -1202,8 +668,114 @@
             return div.innerHTML;
         }
 
+        // Google Docs Import functionality
+        function openImportModal() {
+            importModal.style.display = 'flex';
+            docsUrlInput.value = '';
+            docsContentInput.value = '';
+            importStatus.style.display = 'none';
+        }
+
+        function closeImportModalFunc() {
+            importModal.style.display = 'none';
+        }
+
+        async function handleImport() {
+            const url = docsUrlInput.value.trim();
+            const content = docsContentInput.value.trim();
+
+            if (!url && !content) {
+                importStatus.style.display = 'block';
+                importStatus.style.background = 'var(--accent-red)';
+                importStatus.style.color = 'white';
+                importStatus.textContent = 'Please provide either a Google Docs URL or paste the exported content.';
+                return;
+            }
+
+            importStatus.style.display = 'block';
+            importStatus.style.background = 'var(--bg-tertiary)';
+            importStatus.style.color = 'var(--text-primary)';
+            importStatus.textContent = 'Importing...';
+
+            try {
+                const response = await fetch('/api/reviewer/import/googledocs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: url || null,
+                        content: content || null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || data.detail || 'Import failed');
+                }
+
+                if (!data.success) {
+                    importStatus.style.background = 'var(--accent-red)';
+                    importStatus.style.color = 'white';
+                    importStatus.textContent = data.message || 'Import failed';
+                    return;
+                }
+
+                // Populate form with imported data
+                questionEl.value = data.question || '';
+
+                // Clear existing responses
+                responsesContainer.innerHTML = '';
+                responseCount = 0;
+
+                // Add imported responses
+                data.responses.forEach((resp) => {
+                    addResponseCard(resp.content || '', resp.source || '');
+                });
+
+                // Close modal
+                closeImportModalFunc();
+
+                // Show success message
+                importStatus.style.display = 'block';
+                importStatus.style.background = 'var(--accent-green)';
+                importStatus.style.color = 'white';
+                importStatus.textContent = data.message || `Successfully imported ${data.responses.length} responses!`;
+                setTimeout(() => {
+                    importStatus.style.display = 'none';
+                }, 3000);
+
+            } catch (error) {
+                importStatus.style.display = 'block';
+                importStatus.style.background = 'var(--accent-red)';
+                importStatus.style.color = 'white';
+                importStatus.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Event listeners for import
+        if (importDocsBtn) {
+            importDocsBtn.addEventListener('click', openImportModal);
+        }
+        if (closeImportModal) {
+            closeImportModal.addEventListener('click', closeImportModalFunc);
+        }
+        if (cancelImportBtn) {
+            cancelImportBtn.addEventListener('click', closeImportModalFunc);
+        }
+        if (confirmImportBtn) {
+            confirmImportBtn.addEventListener('click', handleImport);
+        }
+        if (importModal) {
+            importModal.addEventListener('click', (e) => {
+                if (e.target === importModal) {
+                    closeImportModalFunc();
+                }
+            });
+        }
+
         // Initialize on load
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
+
 </html>

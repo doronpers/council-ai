@@ -31,9 +31,7 @@ from .session import ConsultationResult, MemberResponse, Session
 
 logger = logging.getLogger(__name__)
 
-ALL_MEMBERS_FAILED_MESSAGE = (
-    "All council members failed to respond; see individual error messages."
-)
+ALL_MEMBERS_FAILED_MESSAGE = "All council members failed to respond; see individual error messages."
 
 
 class ConsultationMode(str, Enum):
@@ -119,9 +117,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[
-            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
-        ] = []
+        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
+            []
+        )
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -225,7 +223,11 @@ class Council:
 
         cache_key = (provider_name, model_name, self._base_url)
         if cache_key not in self._provider_cache:
-            api_key = get_api_key(provider_name) if provider_name != self._provider_name else self._api_key
+            api_key = (
+                get_api_key(provider_name)
+                if provider_name != self._provider_name
+                else self._api_key
+            )
             self._provider_cache[cache_key] = get_provider(
                 provider_name,
                 api_key=api_key,
@@ -924,7 +926,9 @@ REASONING: [your reasoning]
             "that highlights key points of agreement, important differences, and actionable insights."
         )
 
-        system_prompt = f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+        system_prompt = (
+            f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+        )
 
         context_line = f"Context: {context}\n" if context else ""
         user_prompt = f"""Original Query: {query}
@@ -951,7 +955,11 @@ Please provide a comprehensive synthesis that:
             logger.error(f"Failed to generate synthesis: {e}")
             # Fallback: simple concatenation
             return "\n\n".join(
-                f"**{r.persona.name}**: {r.content[:200]}..." if len(r.content) > 200 else f"**{r.persona.name}**: {r.content}"
+                (
+                    f"**{r.persona.name}**: {r.content[:200]}..."
+                    if len(r.content) > 200
+                    else f"**{r.persona.name}**: {r.content}"
+                )
                 for r in responses
             )
 
@@ -1023,7 +1031,9 @@ Analyze these responses and provide a structured synthesis in JSON format matchi
                 parts.append(f"• {point}")
 
         if structured.synthesized_recommendation:
-            parts.append(f"\n**Synthesized Recommendation:**\n{structured.synthesized_recommendation}")
+            parts.append(
+                f"\n**Synthesized Recommendation:**\n{structured.synthesized_recommendation}"
+            )
 
         if structured.action_items:
             parts.append("\n**Action Items:**")
@@ -1071,7 +1081,9 @@ Analyze these responses and provide a structured synthesis in JSON format matchi
             "Review the following responses and provide a balanced, comprehensive synthesis."
         )
 
-        system_prompt = f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+        system_prompt = (
+            f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+        )
 
         context_line = f"Context: {context}\n" if context else ""
         user_prompt = f"""Original Query: {query}

@@ -288,9 +288,7 @@ class Session:
             session_id=data.get("session_id", str(uuid4())),
             council_name=data.get("council_name", "Unknown"),
             members=data.get("members", []),
-            started_at=datetime.fromisoformat(
-                data.get("started_at", datetime.now().isoformat())
-            ),
+            started_at=datetime.fromisoformat(data.get("started_at", datetime.now().isoformat())),
             consultations=consultations,
             metadata=data.get("metadata", {}),
         )

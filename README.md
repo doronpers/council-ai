@@ -23,8 +23,8 @@ python examples/quickstart.py
 
 This interactive demo shows you:
 
-- All 7 built-in personas and their characteristics
-- 12 domain presets and what they're for
+- All 9 built-in personas and their characteristics
+- 14 domain presets and what they're for
 - How to set up and use councils
 - Example usage patterns
 
@@ -69,8 +69,8 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 
 **Key Features:**
 
-- 🎭 **7 Built-in Personas** - Advisory Council (build it right) + Red Team (break & survive)
-- 🌐 **12 Domain Presets** - Coding, business, startup, creative, career, and more
+- 🎭 **9 Built-in Personas** - Advisory Council (build it right) + Red Team (break & survive) + Experts
+- 🌐 **14 Domain Presets** - Coding, business, startup, creative, career, and more
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
 - 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints
 - 💬 **Multiple Modes** - Individual, synthesis, debate, or vote
@@ -239,6 +239,13 @@ for response in result.responses:
 | 🦢 **Nassim Taleb** | Risk, Antifragility | "What's the hidden risk?" |
 | 🎯 **Andy Grove** | Strategy, Competition | "What 10X force could make us irrelevant?" |
 
+### Specialist Council (Deep Domain Expertise)
+
+| Persona | Focus | Core Question |
+| ------- | ----- | ------------- |
+| 🛡️ **Signal Analyst** | Deepfake Defense, Audio | "Is this signal authentic or synthetic?" |
+| ⚖️ **Compliance Auditor** | Regulations, Fintech | "Does this comply with relevant regulations?" |
+
 ---
 
 ## Domain Presets
@@ -262,6 +269,8 @@ council domain list
 | `devops` | Infrastructure & ops | Dempsey, Holman, Taleb, Grove |
 | `data` | Data science | Kahneman, Taleb, Rams |
 | `general` | General purpose | Kahneman, Taleb, Grove, Rams |
+| `llm_review` | High-quality LLM review | Dempsey, Kahneman, Rams, Treasure |
+| `sonotheia` | Audio defense & fintech | signal_analyst, compliance_auditor, Holman, Taleb |
 
 ---
 

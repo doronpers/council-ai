@@ -178,9 +178,9 @@ DOMAINS: Dict[str, Domain] = {
     "general": Domain(
         id="general",
         name="General Purpose",
-        description="General consultation on any topic",
+        description="General consultation on any topic with all council members",
         category=DomainCategory.GENERAL,
-        default_personas=["kahneman", "taleb", "grove", "rams"],
+        default_personas=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove"],
         example_queries=[
             "Help me think through this problem",
             "What am I missing here?",
@@ -206,7 +206,17 @@ DOMAINS: Dict[str, Domain] = {
         name="Sonotheia Review",
         description="Full 9-justice court for Sonotheia deepfake audio defense and voice authenticity topics",
         category=DomainCategory.TECHNICAL,
-        default_personas=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove", "signal_analyst", "compliance_auditor"],
+        default_personas=[
+            "dempsey",
+            "kahneman",
+            "rams",
+            "treasure",
+            "holman",
+            "taleb",
+            "grove",
+            "signal_analyst",
+            "compliance_auditor",
+        ],
         recommended_mode="synthesis",
         example_queries=[
             "Review responses about deepfake detection methods",

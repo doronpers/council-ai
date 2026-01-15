@@ -8,9 +8,9 @@ import json
 import logging
 import os
 import sqlite3
-from pathlib import Path
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
@@ -60,10 +60,10 @@ class ConsultationHistory:
         if use_sqlite:
             self.db_path = self.storage_dir / "consultations.db"
             self._init_db()
-        
+
         self.json_dir = self.storage_dir / "json"
         self.json_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.memu_service = None
         self._init_memu()
 
@@ -74,10 +74,17 @@ class ConsultationHistory:
             sys.path.append(os.path.join(memu_path, "src"))
             try:
                 from memu.app import MemoryService
+
                 self.memu_service = MemoryService(
                     database_config={
-                        "metadata_store": {"provider": "sqlite", "path": str(self.storage_dir / "memu_metadata.db")},
-                        "vector_index": {"provider": "faiss", "path": str(self.storage_dir / "memu_vectors")},
+                        "metadata_store": {
+                            "provider": "sqlite",
+                            "path": str(self.storage_dir / "memu_metadata.db"),
+                        },
+                        "vector_index": {
+                            "provider": "faiss",
+                            "path": str(self.storage_dir / "memu_vectors"),
+                        },
                     }
                 )
                 logger.info(f"MemU service initialized from {memu_path}")
@@ -162,7 +169,7 @@ class ConsultationHistory:
             )
         except sqlite3.OperationalError as e:
             logger.warning(f"FTS5 not available, falling back to LIKE: {e}")
-        
+
         conn.commit()
         conn.execute(
             """
@@ -218,7 +225,7 @@ class ConsultationHistory:
             conn = sqlite3.connect(self.db_path)
             # Try to get session_id if it exists on the result object
             session_id = getattr(result, "session_id", None)
-            
+
             conn.execute(
                 """
                 INSERT OR REPLACE INTO consultations
@@ -254,7 +261,7 @@ class ConsultationHistory:
         # Also memorize with MemU if available
         if self.memu_service:
             try:
-                import asyncio
+
                 # Background memorization could be risky in sync context,
                 # but for simplicity we'll just run it in a new event loop or thread if needed,
                 # however council-ai usually runs in an async environment.
@@ -274,25 +281,27 @@ class ConsultationHistory:
             try:
                 # We need an event loop to run MemU's async methods
                 import asyncio
+
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                
+
                 # Format data for MemU resource
                 resource_data = json.dumps(data)
-                
+
                 async def _task():
                     await self.memu_service.memorize(
                         resource_content=resource_data,
                         modality="conversation",
-                        user={"session_id": data.get("session_id", "default")}
+                        user={"session_id": data.get("session_id", "default")},
                     )
-                
+
                 loop.run_until_complete(_task())
                 loop.close()
             except Exception as e:
                 logger.warning(f"Background MemU memorization failed: {e}")
 
         import threading
+
         threading.Thread(target=_run_memu, daemon=True).start()
 
     def load(self, consultation_id: str) -> Optional[Dict[str, Any]]:
@@ -455,7 +464,7 @@ class ConsultationHistory:
                     (f"%{query}%", f"%{query}%", limit or 50),
                 )
                 rows = cursor.fetchall()
-            
+
             conn.close()
             return [
                 {
@@ -473,36 +482,38 @@ class ConsultationHistory:
                 }
                 for row in rows
             ]
-        
+
         # If SQLite search didn't return enough or if we want to augment with MemU
         if self.memu_service:
             try:
                 import asyncio
+
                 # This is tricky because search() is sync.
                 # In a real app, search() should be async.
                 # For now, we'll try to run retrieve in a one-off loop if possible.
                 loop = asyncio.new_event_loop()
-                
+
                 async def _retrieve_task():
                     # We use the query directly for semantic search
                     return await self.memu_service.retrieve(
-                        queries=[{"role": "user", "content": {"text": query}}],
-                        method="rag"
+                        queries=[{"role": "user", "content": {"text": query}}], method="rag"
                     )
-                
+
                 memu_result = loop.run_until_complete(_retrieve_task())
                 loop.close()
-                
+
                 # Add MemU findings to results
                 for item in memu_result.get("items", []):
-                    results.append({
-                        "id": f"memu_{item.get('id')}",
-                        "query": f"[MemU] {item.get('summary')}",
-                        "mode": "semantic",
-                        "timestamp": datetime.now().isoformat(),
-                        "synthesis": item.get("content", ""),
-                        "metadata": {"type": "memu_item"}
-                    })
+                    results.append(
+                        {
+                            "id": f"memu_{item.get('id')}",
+                            "query": f"[MemU] {item.get('summary')}",
+                            "mode": "semantic",
+                            "timestamp": datetime.now().isoformat(),
+                            "synthesis": item.get("content", ""),
+                            "metadata": {"type": "memu_item"},
+                        }
+                    )
             except Exception as e:
                 logger.debug(f"MemU retrieval failed during search: {e}")
 
@@ -574,7 +585,7 @@ class ConsultationHistory:
             if not row:
                 conn.close()
                 return None
-            
+
             session = Session(
                 session_id=row[0],
                 council_name=row[1],
@@ -582,7 +593,7 @@ class ConsultationHistory:
                 started_at=datetime.fromisoformat(row[3]),
                 metadata=json.loads(row[4]) if row[4] else {},
             )
-            
+
             # Load consultations for this session
             cursor = conn.execute(
                 "SELECT id FROM consultations WHERE session_id = ? ORDER BY timestamp ASC",
@@ -590,13 +601,14 @@ class ConsultationHistory:
             )
             consult_ids = [r[0] for r in cursor.fetchall()]
             conn.close()
-            
+
             for cid in consult_ids:
                 data = self.load(cid)
                 if data:
                     from .session import ConsultationResult
+
                     session.add_consultation(ConsultationResult.from_dict(data))
-            
+
             return session
         else:
             session_dir = self.storage_dir / "sessions"
@@ -634,18 +646,20 @@ class ConsultationHistory:
                 key=lambda p: p.stat().st_mtime,
                 reverse=True,
             )[:limit]
-            
+
             results = []
             for f in files:
                 try:
                     with open(f, "r", encoding="utf-8") as sfile:
                         data = json.load(sfile)
-                        results.append({
-                            "id": data.get("session_id"),
-                            "name": data.get("council_name"),
-                            "members": data.get("members", []),
-                            "started_at": data.get("started_at"),
-                        })
+                        results.append(
+                            {
+                                "id": data.get("session_id"),
+                                "name": data.get("council_name"),
+                                "members": data.get("members", []),
+                                "started_at": data.get("started_at"),
+                            }
+                        )
                 except Exception:
                     continue
             return results
@@ -656,15 +670,15 @@ class ConsultationHistory:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.execute(
                 """
-                SELECT query, synthesis FROM consultations 
-                WHERE session_id = ? 
+                SELECT query, synthesis FROM consultations
+                WHERE session_id = ?
                 ORDER BY timestamp DESC LIMIT ?
             """,
                 (session_id, last_n),
             )
             rows = cursor.fetchall()
             conn.close()
-            
+
             context_parts = []
             for row in reversed(rows):
                 query, synthesis = row
@@ -672,7 +686,7 @@ class ConsultationHistory:
                 if synthesis:
                     part += f"\nCouncil: {synthesis}"
                 context_parts.append(part)
-            
+
             return "\n\n".join(context_parts)
         return ""
 
@@ -723,9 +737,9 @@ class ConsultationHistory:
         else:
             session_dir = self.storage_dir / "sessions"
             json_path = session_dir / f"{session_id}.json"
-            
+
             # Load session to find associated consultations if we wanted to delete them too
-            # For JSON, they are just files in the json/ dir. 
+            # For JSON, they are just files in the json/ dir.
             # We'd need to grep or load them all to find which belong to this session.
             # For now, let's at least delete the session file.
             if json_path.exists():

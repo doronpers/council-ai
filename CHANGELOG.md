@@ -8,9 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - LLM Response Reviewer - Supreme Court-style review system for evaluating multiple LLM responses
-  - 7-justice default council with optional 9-justice Sonotheia mode
-  - Multi-dimensional scoring (accuracy, consistency, insights, error detection)
+  - 9-justice default council with specialist support
+  - Multi-dimensional scoring (accuracy, consistency, insights, error detection, Sonotheia relevance)
   - REST API endpoints for programmatic access
   - Streaming support via Server-Sent Events
   - Dedicated launcher script (`launch-reviewer.py`)
@@ -18,15 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive documentation in `documentation/REVIEWER_SETUP.md`
 
 ### Changed
+
 - Improved installation command documentation with proper quoting for bash compatibility
 - Enhanced API key configuration documentation with cross-references
 
 ## [1.0.0] - 2026-01-11
 
 ### Added
+
 - Initial release of Council AI
-- 7 built-in expert personas (Rams, Kahneman, Grove, Taleb, Holman, Dempsey, Treasure)
-- 12 domain presets (coding, business, startup, product, leadership, creative, writing, career, decisions, devops, data, general)
+- 9 built-in expert personas (Rams, Kahneman, Grove, Taleb, Holman, Dempsey, Treasure, signal_analyst, compliance_auditor)
+- 14 domain presets (coding, business, startup, product, leadership, creative, writing, career, decisions, devops, data, general, llm_review, sonotheia)
 - Multi-provider LLM support (Anthropic, OpenAI, custom HTTP endpoints)
 - 5 consultation modes (individual, synthesis, sequential, debate, vote)
 - Full CLI with interactive mode
@@ -38,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contributing guidelines
 
 ### Features
+
 - **Council Creation**: Domain-based or custom assembly
 - **Persona Management**: Full CRUD operations, trait management
 - **Consultation**: Multiple modes with synthesis
@@ -46,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Extensibility**: Hooks for pre/post processing
 
 ### Documentation
+
 - Comprehensive README with examples
 - Quickstart demo (no API key required)
 - Contributing guidelines

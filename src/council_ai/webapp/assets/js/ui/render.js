@@ -15,14 +15,23 @@ const streamingState = {
  */
 export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
   const type = update.type;
-  
+
   switch (type) {
     case "progress":
       statusEl.innerHTML = `<span class="loading"></span>${escapeHtml(update.message || "Processing...")}`;
       statusEl.className = "muted";
+      // Update progress text if available
+      const progressTextEl = document.getElementById("progress-text");
+      if (progressTextEl && update.message) {
+        progressTextEl.textContent = update.message;
+      }
       break;
-      
+
     case "response_start":
+      // Hide skeleton once we start getting responses
+      const skeleton = document.getElementById("loading-skeleton");
+      if (skeleton) skeleton.style.display = "none";
+
       // Create response card with persona-specific data attribute for styling
       const card = document.createElement("div");
       card.className = "response";
@@ -35,7 +44,13 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         <p class="streaming-content"></p>
       `;
       responsesEl.appendChild(card);
-      
+
+      // Update progress text
+      const progressEl = document.getElementById("progress-text");
+      if (progressEl) {
+        progressEl.textContent = `${emoji} ${personaName} is responding...`;
+      }
+
       // Track this response
       streamingState.activeResponses.set(update.persona_id, {
         card: card,
@@ -43,7 +58,7 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         contentEl: card.querySelector(".streaming-content"),
       });
       break;
-      
+
     case "response_chunk":
       const responseState = streamingState.activeResponses.get(update.persona_id);
       if (responseState) {
@@ -54,7 +69,7 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         responseState.card.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
       break;
-      
+
     case "response_complete":
       const completeState = streamingState.activeResponses.get(update.persona_id);
       if (completeState) {
@@ -65,12 +80,12 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         streamingState.activeResponses.delete(update.persona_id);
       }
       break;
-      
+
     case "synthesis_start":
       synthesisEl.innerHTML = '<div class="synthesis"><h3>Synthesis</h3><p class="streaming-synthesis"></p></div>';
       streamingState.synthesisContent = "";
       break;
-      
+
     case "synthesis_chunk":
       streamingState.synthesisContent += update.content;
       const synthesisP = synthesisEl.querySelector(".streaming-synthesis");
@@ -88,7 +103,7 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       }
       streamingState.synthesisContent = "";
       break;
-      
+
     case "complete":
       statusEl.textContent = `Mode: ${update.result.mode}`;
       statusEl.className = "muted";
@@ -100,7 +115,7 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         }, 100);
       }
       break;
-      
+
     case "error":
       // textContent doesn't need escaping, but innerHTML does
       statusEl.textContent = `Error: ${update.error || "Unknown error"}`;
@@ -115,7 +130,7 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
  */
 function renderStructuredSynthesis(structured) {
   let html = '<div class="synthesis"><h3>Synthesis</h3>';
-  
+
   if (structured.key_points_of_agreement && structured.key_points_of_agreement.length > 0) {
     html += '<section class="structured-section"><h4>Key Points of Agreement</h4><ul>';
     structured.key_points_of_agreement.forEach(point => {
@@ -123,7 +138,7 @@ function renderStructuredSynthesis(structured) {
     });
     html += '</ul></section>';
   }
-  
+
   if (structured.key_points_of_tension && structured.key_points_of_tension.length > 0) {
     html += '<section class="structured-section"><h4>Key Points of Tension</h4><ul>';
     structured.key_points_of_tension.forEach(point => {
@@ -131,11 +146,11 @@ function renderStructuredSynthesis(structured) {
     });
     html += '</ul></section>';
   }
-  
+
   if (structured.synthesized_recommendation) {
     html += `<section class="structured-section"><h4>Synthesized Recommendation</h4><p>${escapeHtml(structured.synthesized_recommendation)}</p></section>`;
   }
-  
+
   if (structured.action_items && structured.action_items.length > 0) {
     html += '<section class="structured-section"><h4>Action Items</h4><ul class="action-items">';
     structured.action_items.forEach(item => {
@@ -147,7 +162,7 @@ function renderStructuredSynthesis(structured) {
     });
     html += '</ul></section>';
   }
-  
+
   if (structured.recommendations && structured.recommendations.length > 0) {
     html += '<section class="structured-section"><h4>Recommendations</h4>';
     structured.recommendations.forEach(rec => {
@@ -164,7 +179,7 @@ function renderStructuredSynthesis(structured) {
     });
     html += '</section>';
   }
-  
+
   if (structured.pros_cons) {
     html += '<section class="structured-section"><h4>Pros and Cons</h4>';
     if (structured.pros_cons.pros && structured.pros_cons.pros.length > 0) {
@@ -186,7 +201,7 @@ function renderStructuredSynthesis(structured) {
     }
     html += '</div></section>';
   }
-  
+
   html += '</div>';
   return html;
 }
@@ -197,7 +212,7 @@ function renderStructuredSynthesis(structured) {
 export function renderResult(result, statusEl, synthesisEl, responsesEl) {
   statusEl.textContent = `Mode: ${result.mode}`;
   statusEl.className = "muted";
-  
+
   // Render structured synthesis if available, otherwise use free-form
   if (result.structured_synthesis) {
     synthesisEl.innerHTML = renderStructuredSynthesis(result.structured_synthesis);
@@ -206,9 +221,9 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
   } else {
     synthesisEl.innerHTML = "";
   }
-  
+
   responsesEl.innerHTML = "";
-  
+
   if (result.responses && result.responses.length > 0) {
     result.responses.forEach(r => {
       const card = document.createElement("div");
@@ -231,7 +246,7 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
   } else {
     responsesEl.innerHTML = '<p class="muted">No responses received.</p>';
   }
-  
+
   // Scroll to results on mobile
   if (window.innerWidth <= 768) {
     setTimeout(() => {

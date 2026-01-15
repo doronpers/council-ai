@@ -332,12 +332,12 @@ function handleSaveSettings() {
 function handleResetSettings() {
   if (confirm("Reset all settings to defaults? This will clear your saved settings.")) {
     localStorage.removeItem(SETTINGS_KEY);
-    
+
     // Show feedback
     const originalText = resetSettingsEl.textContent;
     resetSettingsEl.textContent = "✓ Settings Reset!";
     resetSettingsEl.style.background = "#10b981";
-    
+
     setTimeout(() => {
       resetSettingsEl.textContent = originalText;
       resetSettingsEl.style.background = "";
@@ -360,7 +360,14 @@ async function handleSubmit(useStreaming = true) {
 
   submitEl.disabled = true;
   cancelEl.style.display = "block";
-  statusEl.innerHTML = '<span class="loading"></span>Consulting the council...';
+
+  // Show skeleton loader with progress
+  const loadingSkeleton = document.getElementById("loading-skeleton");
+  const progressText = document.getElementById("progress-text");
+  if (loadingSkeleton) loadingSkeleton.style.display = "block";
+  if (progressText) progressText.textContent = "Assembling council...";
+
+  statusEl.innerHTML = '';
   statusEl.className = "muted";
   synthesisEl.innerHTML = "";
   responsesEl.innerHTML = "";
@@ -457,6 +464,10 @@ async function handleSubmit(useStreaming = true) {
     submitEl.disabled = false;
     cancelEl.style.display = "none";
     activeController = null;
+
+    // Hide skeleton loader
+    const loadingSkeleton = document.getElementById("loading-skeleton");
+    if (loadingSkeleton) loadingSkeleton.style.display = "none";
   }
 }
 
