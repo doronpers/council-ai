@@ -157,6 +157,7 @@ council-ai/
 - Public API: `src/council_ai/__init__.py`
 - Config: `pyproject.toml`
 - Examples: `examples/`
+- **API Reference: `documentation/API_REFERENCE.md`** (Complete Python API documentation)
 
 ---
 
@@ -209,6 +210,7 @@ def command_name(ctx, arg, flag):
   - `.env.example` - API key configuration template
 
 - **Extended documentation**: All other documentation lives in `documentation/` folder
+  - `documentation/API_REFERENCE.md` - **Complete Python API documentation**
   - `documentation/REVIEWER_SETUP.md` - LLM Response Reviewer setup guide
   - `documentation/INTEGRATION_ASSESSMENT.md` - Integration assessments
   - `documentation/development/` - Development-specific documentation
