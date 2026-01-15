@@ -848,3 +848,95 @@ if (document.readyState === 'loading') {
 } else {
   initApp();
 }
+
+// Run diagnostics logic
+async function runDiagnostics() {
+  const contentEl = document.getElementById("diagnostics-content");
+  contentEl.innerHTML = '<div style="text-align: center; padding: 40px;"><span class="loading"></span> Running diagnostics...</div>';
+
+  try {
+    const res = await fetch("/api/diagnostics");
+    const data = await res.json();
+
+    // Helper to escape HTML
+    const escapeHtml = (unsafe) => {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    };
+
+    // Render Keys Table
+    let html = '<h3>API Keys</h3><table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">';
+    html += '<tr style="border-bottom: 1px solid var(--border); text-align: left;"><th style="padding: 8px;">Provider</th><th style="padding: 8px;">Status</th><th style="padding: 8px;">Details</th></tr>';
+
+    for (const [provider, status] of Object.entries(data.keys.provider_status)) {
+      const hasKey = status.has_key;
+      const icon = hasKey ? "✅" : "❌";
+      const color = hasKey ? "var(--accent-green)" : "var(--accent-red)";
+      const keyPrefix = status.key_prefix || (status.env_var ? "Env Var" : "***");
+      const details = hasKey ? `Prefix: ${escapeHtml(keyPrefix)}` : `Missing (${status.env_var || ""})`;
+
+      html += `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 8px;">${escapeHtml(provider)}</td>
+                    <td style="padding: 8px; color: ${color}; font-weight: 500;">${icon} ${hasKey ? "Configured" : "Missing"}</td>
+                    <td style="padding: 8px; color: var(--text-secondary); font-size: 0.9em;">${details}</td>
+                </tr>
+            `;
+    }
+    html += '</table>';
+
+    // Render Connectivity
+    html += '<h3>Connectivity Test</h3>';
+    if (Object.keys(data.connectivity).length > 0) {
+      html += '<table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">';
+      html += '<tr style="border-bottom: 1px solid var(--border); text-align: left;"><th style="padding: 8px;">Provider</th><th style="padding: 8px;">Result</th><th style="padding: 8px;">Latency</th><th style="padding: 8px;">Message</th></tr>';
+
+      for (const [provider, res] of Object.entries(data.connectivity)) {
+        const icon = res.ok ? "✅" : "❌";
+        const color = res.ok ? "var(--accent-green)" : "var(--accent-red)";
+
+        html += `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 8px;">${escapeHtml(provider)}</td>
+                        <td style="padding: 8px; color: ${color}; font-weight: 500;">${icon} ${res.ok ? "Online" : "Failed"}</td>
+                        <td style="padding: 8px;">${Math.round(res.latency_ms)}ms</td>
+                        <td style="padding: 8px; color: var(--text-secondary); font-size: 0.9em;">${escapeHtml(res.message || "")}</td>
+                    </tr>
+                `;
+      }
+      html += '</table>';
+    } else {
+      html += '<p class="muted">No configured providers to test.</p>';
+    }
+
+    // Render TTS
+    html += '<h3>Voice (TTS)</h3>';
+    if (Object.keys(data.tts).length > 0) {
+      html += '<table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">';
+      for (const [provider, res] of Object.entries(data.tts)) {
+        const icon = res.ok ? "✅" : "❌";
+        const color = res.ok ? "var(--accent-green)" : "var(--accent-red)";
+
+        html += `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 8px;">${escapeHtml(provider)}</td>
+                        <td style="padding: 8px; color: ${color}; font-weight: 500;">${icon} ${res.ok ? "Ready" : "Error"}</td>
+                        <td style="padding: 8px; color: var(--text-secondary); font-size: 0.9em;">${escapeHtml(res.msg || "")}</td>
+                    </tr>
+                `;
+      }
+      html += '</table>';
+    } else {
+      html += '<p class="muted">No TTS providers configured.</p>';
+    }
+
+    contentEl.innerHTML = html;
+
+  } catch (err) {
+    contentEl.innerHTML = `<div class="error">Failed to run diagnostics: ${escapeHtml(err.message)}</div>`;
+  }
+}

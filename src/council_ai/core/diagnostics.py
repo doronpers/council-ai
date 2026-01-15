@@ -131,13 +131,14 @@ async def check_provider_connectivity(provider: str) -> Tuple[bool, str, float]:
         llm = get_provider(provider, api_key=get_api_key(provider))
         
         # Simple ping
-        response = await llm.generate_response(
-            messages=[{"role": "user", "content": "Ping. Reply with 'Pong'."}],
-            model=None # Use default
+        response = await llm.complete(
+            system_prompt="",
+            user_prompt="Ping. Reply with 'Pong'.",
+            max_tokens=10
         )
         
         latency = (time.time() - start_time) * 1000
-        content = response.content.strip() if response.content else ""
+        content = response.text.strip() if response.text else ""
         
         if content:
              return True, f"Success: {content[:20]}...", latency

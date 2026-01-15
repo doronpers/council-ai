@@ -63,6 +63,8 @@ class CouncilConfig(BaseModel):
     use_structured_output: bool = False
     # When exporting, include enabled flags for members
     export_enabled_state: bool = False
+    # Enable separate consensus analysis pass
+    enable_analysis: bool = True
 
 
 class Council:
@@ -500,6 +502,23 @@ class Council:
                     synthesis_provider, query, context, responses
                 )
 
+        # Run Analysis Phase (Phase 2 Enhancement)
+        analysis = None
+        if self.config.enable_analysis and len(responses) > 1 and mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL):
+            try:
+                from .analysis import AnalysisEngine
+                
+                # Use synthesis provider (usually strongest model) for analysis
+                analysis_provider = self._get_synthesis_provider(provider)
+                engine = AnalysisEngine(analysis_provider)
+                
+                # Convert MemberResponse objects to dicts for the engine
+                resp_dicts = [r.to_dict() for r in responses]
+                analysis = await engine.analyze(query, context, resp_dicts)
+                logger.debug("Consultation analysis matched.")
+            except Exception as e:
+                logger.warning(f"Analysis phase failed: {e}")
+
         # Create result
         result = ConsultationResult(
             query=query,
@@ -620,7 +639,34 @@ class Council:
                 yield {"type": "synthesis_chunk", "content": chunk}
                 synthesis_parts.append(chunk)
             synthesis = "".join(synthesis_parts)
+            synthesis = "".join(synthesis_parts)
             yield {"type": "synthesis_complete", "synthesis": synthesis}
+
+        # Run Analysis Phase (Phase 2 Enhancement) - Streaming
+        analysis = None
+        if self.config.enable_analysis and len(responses) > 1 and mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL):
+            try:
+                from .analysis import AnalysisEngine
+                
+                # Use synthesis provider
+                analysis_provider = self._get_synthesis_provider(provider)
+                engine = AnalysisEngine(analysis_provider)
+                
+                # Convert MemberResponse objects to dicts
+                resp_dicts = [r.to_dict() for r in responses]
+                
+                # Yield progress
+                yield {"type": "progress", "message": "Analyzing consensus..."}
+                
+                # Run analysis
+                analysis = await engine.analyze(query, context, resp_dicts)
+                
+                # Yield analysis result event for UI
+                if analysis:
+                    yield {"type": "analysis", "data": analysis.model_dump()}
+                    logger.debug("Consultation analysis matched.")
+            except Exception as e:
+                logger.warning(f"Analysis phase failed: {e}")
 
         # Create result
         result = ConsultationResult(

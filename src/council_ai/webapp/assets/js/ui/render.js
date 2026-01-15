@@ -41,7 +41,7 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       const personaId = update.persona_id || "";
       const personaName = escapeHtml(update.persona_name || update.persona_id || "Unknown");
       const emoji = update.persona_emoji || "👤";
-      
+
       // Try to get full persona data from window (set by main.js)
       const personaData = window.allPersonas?.find(p => p.id === personaId);
       const focusAreas = personaData?.focus_areas || [];
@@ -53,11 +53,11 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       card.className = "response response-card-enhanced";
       card.id = `response-${personaId}`;
       card.dataset.persona = personaId;
-      
-      const focusTags = focusAreas.slice(0, 3).map(area => 
+
+      const focusTags = focusAreas.slice(0, 3).map(area =>
         `<span class="response-focus-tag">${escapeHtml(area)}</span>`
       ).join('');
-      
+
       card.innerHTML = `
         <div class="response-header">
           <div class="response-persona-info">
@@ -175,6 +175,13 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       // Final pass to ensure meter is accurate
       updateConsensusMeter(streamingState.synthesisContent);
       streamingState.synthesisContent = "";
+      break;
+
+    case "analysis":
+      // Render analysis panel at top of synthesis
+      const analysisHtml = renderAnalysis(update.data);
+      // Prepend
+      synthesisEl.innerHTML = analysisHtml + synthesisEl.innerHTML;
       break;
 
     case "complete":
@@ -313,6 +320,57 @@ function renderStructuredSynthesis(structured) {
 }
 
 /**
+ * Render Analysis Result
+ */
+function renderAnalysis(analysis) {
+  if (!analysis) return "";
+
+  const score = analysis.consensus_score || 50;
+  let scoreColor = "var(--accent-gold)";
+  if (score >= 75) scoreColor = "var(--accent-green)";
+  if (score <= 40) scoreColor = "var(--accent-red)";
+
+  let html = '<div class="analysis-panel" style="background: var(--surface-2); padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border);">';
+  html += '<h3 style="margin-top:0;">🔍 Council Analysis</h3>';
+
+  // Consensus Meter
+  html += `
+  <div class="consensus-meter" style="margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span style="font-weight: 500;">Consensus Score</span>
+        <span style="font-weight: 700; color: ${scoreColor};">${score}/100</span>
+    </div>
+    <div style="width: 100%; height: 8px; background: var(--surface-1); border-radius: 4px; overflow: hidden;">
+        <div style="width: ${score}%; height: 100%; background: ${scoreColor}; transition: width 0.5s;"></div>
+    </div>
+  </div>
+  `;
+
+  html += `<p><strong>Summary:</strong> ${escapeHtml(analysis.consensus_summary)}</p>`;
+
+  if (analysis.key_themes && analysis.key_themes.length) {
+    html += `<div style="margin-top: 12px;"><strong>Key Themes:</strong>`;
+    html += `<ul style="margin-top: 4px; padding-left: 20px;">`;
+    analysis.key_themes.forEach(t => html += `<li>${escapeHtml(t)}</li>`);
+    html += `</ul></div>`;
+  }
+
+  if (analysis.tensions && analysis.tensions.length) {
+    html += `<div style="margin-top: 12px; color: var(--accent-red);"><strong>⚠️ Points of Tension:</strong>`;
+    html += `<ul style="margin-top: 4px; padding-left: 20px;">`;
+    analysis.tensions.forEach(t => html += `<li>${escapeHtml(t)}</li>`);
+    html += `</ul></div>`;
+  }
+
+  if (analysis.recommendation) {
+    html += `<div style="margin-top: 12px; background: var(--surface-1); padding: 12px; border-left: 3px solid var(--accent-blue);"><strong>💡 Synthesized Recommendation:</strong><br>${escapeHtml(analysis.recommendation)}</div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+/**
  * Render consultation results (non-streaming)
  */
 export function renderResult(result, statusEl, synthesisEl, responsesEl) {
@@ -328,6 +386,60 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
     synthesisEl.innerHTML = "";
   }
 
+  // Render Analysis (Phase 2)
+  if (result.analysis) {
+    const analysisHtml = renderAnalysis(result.analysis);
+    synthesisEl.innerHTML = analysisHtml + synthesisEl.innerHTML;
+  }
+
+  // Phase 3: Add "Review with Council" button
+  if (result.responses && result.responses.length > 1) {
+    const reviewBtn = document.createElement('button');
+    reviewBtn.className = 'btn btn-secondary'; // Assuming CSS class exists
+    reviewBtn.innerText = '⚖️ Judicial Review';
+    reviewBtn.style.marginTop = '16px';
+    reviewBtn.style.width = '100%';
+    reviewBtn.onclick = async () => {
+      reviewBtn.disabled = true;
+      reviewBtn.innerText = 'Preparing Review...';
+      try {
+        // Extract data to stage
+        const payload = {
+          question: result.query,
+          responses: result.responses.map(r => ({
+            persona_name: r.persona_name || r.persona_id,
+            content: r.content
+          }))
+        };
+
+        const resp = await fetch('/api/reviewer/stage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          window.location.href = `/reviewer?staging_id=${data.staging_id}`;
+        } else {
+          alert('Failed to stage review.');
+          reviewBtn.disabled = false;
+          reviewBtn.innerText = '⚖️ Judicial Review';
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Error initiating review.');
+        reviewBtn.disabled = false;
+        reviewBtn.innerText = '⚖️ Judicial Review';
+      }
+    };
+    // Append to synthesis element or status element?
+    // Synthesis element is good place.
+    if (synthesisEl) {
+      synthesisEl.appendChild(reviewBtn);
+    }
+  }
+
   responsesEl.innerHTML = "";
 
   if (result.responses && result.responses.length > 0) {
@@ -337,21 +449,21 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
       const emoji = r.persona_emoji || "👤";
       const content = r.content ? escapeHtml(r.content) : "";
       const error = r.error ? escapeHtml(r.error) : "";
-      
+
       // Get persona data for enhanced card
       const personaData = window.allPersonas?.find(p => p.id === personaId);
       const focusAreas = personaData?.focus_areas || [];
       const personaTitle = personaData?.title || "";
       const personaCategory = personaData?.category || "";
-      
+
       const card = document.createElement("div");
       card.className = "response response-card-enhanced";
       card.dataset.persona = personaId;
-      
-      const focusTags = focusAreas.slice(0, 3).map(area => 
+
+      const focusTags = focusAreas.slice(0, 3).map(area =>
         `<span class="response-focus-tag">${escapeHtml(area)}</span>`
       ).join('');
-      
+
       card.innerHTML = `
         <div class="response-header">
           <div class="response-persona-info">

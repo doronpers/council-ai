@@ -48,6 +48,7 @@ class ConsultationResult:
     tags: List[str] = field(default_factory=list)
     notes: Optional[str] = None
     structured_synthesis: Optional[Any] = None  # SynthesisSchema
+    analysis: Optional[Any] = None  # AnalysisResult
     action_items: List[Any] = field(default_factory=list)  # List[ActionItem]
     recommendations: List[Any] = field(default_factory=list)  # List[Recommendation]
     pros_cons: Optional[Any] = None  # ProsCons
@@ -68,6 +69,11 @@ class ConsultationResult:
             "tags": self.tags,
             "notes": self.notes,
             "session_id": self.session_id,
+            "analysis": (
+                self.analysis.model_dump()
+                if self.analysis and hasattr(self.analysis, "model_dump")
+                else (self.analysis if self.analysis else None)
+            ),
             "structured_synthesis": (
                 self.structured_synthesis.model_dump()
                 if self.structured_synthesis and hasattr(self.structured_synthesis, "model_dump")
@@ -113,7 +119,11 @@ class ConsultationResult:
                         audio_url=r_data.get("audio_url"),
                     )
                 )
-
+        
+        # Rehydrate analysis if present
+        # We store it as strict dict in from_dict, validation happens elsewhere if needed
+        # or we could keep it as a dict. The UI uses it as json anyway.
+        
         return cls(
             id=data.get("id"),
             query=data["query"],
@@ -125,6 +135,7 @@ class ConsultationResult:
             synthesis_audio_url=data.get("synthesis_audio_url"),
             tags=data.get("tags", []),
             notes=data.get("notes"),
+            analysis=data.get("analysis"),
         )
 
     def to_markdown(self) -> str:

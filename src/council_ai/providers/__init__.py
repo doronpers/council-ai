@@ -91,7 +91,9 @@ def register_provider(name: str, provider_class: Type[LLMProvider]) -> None:
 
 def _filter_provider_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
     """Filter kwargs to parameters supported by shared providers."""
-    allowed = {"api_key", "model", "base_url", "endpoint"}
+    allowed = {"api_key", "model", "base_url"}
+    if "endpoint" in kwargs and "base_url" not in kwargs:
+        kwargs = {**kwargs, "base_url": kwargs["endpoint"]}
     return {key: value for key, value in kwargs.items() if key in allowed}
 
 

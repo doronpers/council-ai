@@ -163,6 +163,61 @@ class ReviewResult(BaseModel):
         default_factory=list, description="Warnings about partial failures or rate limits"
     )
 
+# Staging Store (Simple in-memory cache for demo purposes)
+# In production, use Redis or database
+_STAGING_CACHE: Dict[str, ReviewRequest] = {}
+
+
+class StagingRequest(BaseModel):
+    """Request to stage a consultation for review."""
+    question: str
+    responses: List[Dict[str, Any]]  # From MemberResponse.to_dict()
+
+
+class StagingResponse(BaseModel):
+    """Response from staging."""
+    staging_id: str
+
+
+@router.post("/stage", response_model=StagingResponse)
+async def stage_review(request: StagingRequest) -> StagingResponse:
+    """Stage a consultation for review."""
+    staging_id = str(uuid4())
+    
+    # Convert member responses to ReviewRequest format
+    llm_responses = []
+    for i, r in enumerate(request.responses, 1):
+        # r is dict from MemberResponse.to_dict()
+        persona = r.get("persona_name", "Unknown")
+        content = r.get("content", "")
+        if content:
+            llm_responses.append(LLMResponse(
+                id=i,
+                content=content,
+                source=persona
+            ))
+            
+    # Create ReviewRequest with defaults
+    review_req = ReviewRequest(
+        question=request.question,
+        responses=llm_responses,
+        # Default council config
+        justices=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove"],
+        chair="dempsey",
+        vice_chair="kahneman"
+    )
+    
+    _STAGING_CACHE[staging_id] = review_req
+    return StagingResponse(staging_id=staging_id)
+
+
+@router.get("/stage/{staging_id}", response_model=ReviewRequest)
+async def get_staged_review(staging_id: str) -> ReviewRequest:
+    """Retrieve a staged review."""
+    if staging_id not in _STAGING_CACHE:
+        raise HTTPException(status_code=404, detail="Staged review not found")
+    return _STAGING_CACHE[staging_id]
+
 
 # Utility Functions
 

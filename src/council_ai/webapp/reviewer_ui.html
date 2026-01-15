@@ -547,9 +547,9 @@
 
                     <h4 style="margin: 16px 0 8px;">📊 Rankings</h4>
                     ${result.group_decision.ranking.map((id, idx) => {
-                        const assessment = result.individual_assessments.find(a => a.response_id === id);
-                        const score = assessment?.overall_score || 0;
-                        return `
+                const assessment = result.individual_assessments.find(a => a.response_id === id);
+                const score = assessment?.overall_score || 0;
+                return `
                             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                                 <span style="width: 24px; font-weight: bold; color: ${idx === 0 ? 'var(--accent-gold)' : 'var(--text-secondary)'}">
                                     #${idx + 1}
@@ -563,7 +563,7 @@
                                 <span style="font-weight: 600; color: var(--accent-gold)">${score.toFixed(1)}</span>
                             </div>
                         `;
-                    }).join('')}
+            }).join('')}
 
                     <h4 style="margin: 20px 0 8px;">📜 Majority Opinion</h4>
                     <p style="color: var(--text-secondary); line-height: 1.7;">
