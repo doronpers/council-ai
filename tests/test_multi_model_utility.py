@@ -33,6 +33,37 @@ def mock_get_provider():
         yield mock
 
 @pytest.fixture
+def mock_llm_manager(mock_get_provider):
+    class MockLLMManager:
+        def __init__(self, preferred_provider, api_key=None, model=None, base_url=None):
+            self.preferred_provider = preferred_provider
+            self.api_key = api_key
+            self.model = model
+            self.base_url = base_url
+
+        def get_provider(self, name):
+            return mock_get_provider.side_effect(
+                name, api_key=self.api_key, model=self.model, base_url=self.base_url
+            )
+
+        async def generate(
+            self,
+            system_prompt,
+            user_prompt,
+            provider=None,
+            fallback=True,
+            max_tokens=1000,
+            temperature=0.7,
+        ):
+            response = MagicMock()
+            resolved_provider = provider or self.preferred_provider
+            response.text = f"Response from {resolved_provider} model {self.model}"
+            return response
+
+    with patch("council_ai.core.council.LLMManager", MockLLMManager):
+        yield MockLLMManager
+
+@pytest.fixture
 def mock_get_api_key():
     with patch("council_ai.core.council.get_api_key") as mock:
         mock.side_effect = lambda name: f"key-for-{name}"
@@ -52,7 +83,7 @@ def test_persona_provider_field():
     assert persona.provider == "anthropic"
     assert persona.model == "claude-3"
 
-def test_council_member_provider_resolution(mock_get_provider, mock_get_api_key):
+def test_council_member_provider_resolution(mock_get_provider, mock_llm_manager, mock_get_api_key):
     """Test that Council correctly resolves per-persona providers."""
     council = Council(provider="openai", model="gpt-4", api_key="openai-key")
     
@@ -84,7 +115,9 @@ def test_council_member_provider_resolution(mock_get_provider, mock_get_api_key)
     assert prov3.api_key == "key-for-anthropic"
 
 @pytest.mark.asyncio
-async def test_heterogeneous_council_consultation(mock_get_provider, mock_get_api_key):
+async def test_heterogeneous_council_consultation(
+    mock_get_provider, mock_llm_manager, mock_get_api_key
+):
     """Test a consultation with a heterogeneous council."""
     council = Council(provider="openai", model="gpt-4", api_key="openai-key")
     

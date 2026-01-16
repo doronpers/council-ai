@@ -14,6 +14,7 @@ from shared_ai_utils.llm import (
     AnthropicProvider,
     GeminiProvider,
     HTTPProvider,
+    LLMManager,
     LLMProvider,
     LLMResponse,
     ModelInfo,
@@ -107,6 +108,21 @@ def get_provider(name: str, **kwargs) -> LLMProvider:
     return _PROVIDERS[name](**provider_kwargs)
 
 
+def get_llm_manager(
+    preferred_provider: str,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+    base_url: Optional[str] = None,
+) -> LLMManager:
+    """Create an LLMManager configured for Council defaults."""
+    return LLMManager(
+        preferred_provider=preferred_provider,
+        api_key=api_key,
+        model=model,
+        base_url=base_url,
+    )
+
+
 def list_providers() -> list[str]:
     """List available provider names."""
     return list(_PROVIDERS.keys())
@@ -151,6 +167,7 @@ def validate_model_params(params: Dict[str, Any]) -> None:
 __all__ = [
     "LLMProvider",
     "LLMResponse",
+    "LLMManager",
     "AnthropicProvider",
     "OpenAIProvider",
     "GeminiProvider",
@@ -159,6 +176,7 @@ __all__ = [
     "ModelParameterSpec",
     "register_provider",
     "get_provider",
+    "get_llm_manager",
     "list_providers",
     "list_model_capabilities",
     "normalize_model_params",
