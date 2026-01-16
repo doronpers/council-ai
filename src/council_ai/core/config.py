@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
-from shared_ai_utils.config import ConfigManager as SharedConfigManager
+
+from ..config_manager import ConfigManager as SharedConfigManager
 
 logger = logging.getLogger(__name__)
 

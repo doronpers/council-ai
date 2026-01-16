@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional, Type
 
-from shared_ai_utils.llm import (
+from ..llm_providers import (
     AnthropicProvider,
     GeminiProvider,
     HTTPProvider,

@@ -119,11 +119,11 @@ class ConsultationResult:
                         audio_url=r_data.get("audio_url"),
                     )
                 )
-        
+
         # Rehydrate analysis if present
         # We store it as strict dict in from_dict, validation happens elsewhere if needed
         # or we could keep it as a dict. The UI uses it as json anyway.
-        
+
         return cls(
             id=data.get("id"),
             query=data["query"],
