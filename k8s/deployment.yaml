@@ -26,6 +26,13 @@ spec:
                 secretKeyRef:
                   name: council-secrets
                   key: api-key
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
           volumeMounts:
             - name: council-storage
               mountPath: /root/.config/council-ai
