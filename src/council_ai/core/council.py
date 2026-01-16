@@ -18,12 +18,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel
 
-from ..providers import (
-    LLMProvider,
-    get_provider,
-    normalize_model_params,
-    validate_model_params,
-)
+from ..providers import LLMProvider, get_provider, normalize_model_params, validate_model_params
 from .config import get_api_key
 from .persona import Persona, PersonaManager, get_persona_manager
 from .schemas import SynthesisSchema
@@ -126,9 +121,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
-            []
-        )
+        self._pre_consult_hooks: List[
+            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
+        ] = []
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -503,18 +498,22 @@ class Council:
                 )
 
         # Run Analysis Phase (Phase 2 Enhancement)
-        analysis = None
-        if self.config.enable_analysis and len(responses) > 1 and mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL):
+        if (
+            self.config.enable_analysis
+            and len(responses) > 1
+            and mode
+            in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL)
+        ):
             try:
                 from .analysis import AnalysisEngine
-                
+
                 # Use synthesis provider (usually strongest model) for analysis
                 analysis_provider = self._get_synthesis_provider(provider)
                 engine = AnalysisEngine(analysis_provider)
-                
+
                 # Convert MemberResponse objects to dicts for the engine
                 resp_dicts = [r.to_dict() for r in responses]
-                analysis = await engine.analyze(query, context, resp_dicts)
+                await engine.analyze(query, context, resp_dicts)
                 logger.debug("Consultation analysis matched.")
             except Exception as e:
                 logger.warning(f"Analysis phase failed: {e}")
@@ -644,23 +643,28 @@ class Council:
 
         # Run Analysis Phase (Phase 2 Enhancement) - Streaming
         analysis = None
-        if self.config.enable_analysis and len(responses) > 1 and mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL):
+        if (
+            self.config.enable_analysis
+            and len(responses) > 1
+            and mode
+            in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL)
+        ):
             try:
                 from .analysis import AnalysisEngine
-                
+
                 # Use synthesis provider
                 analysis_provider = self._get_synthesis_provider(provider)
                 engine = AnalysisEngine(analysis_provider)
-                
+
                 # Convert MemberResponse objects to dicts
                 resp_dicts = [r.to_dict() for r in responses]
-                
+
                 # Yield progress
                 yield {"type": "progress", "message": "Analyzing consensus..."}
-                
+
                 # Run analysis
                 analysis = await engine.analyze(query, context, resp_dicts)
-                
+
                 # Yield analysis result event for UI
                 if analysis:
                     yield {"type": "analysis", "data": analysis.model_dump()}
@@ -801,11 +805,14 @@ REASONING: [your reasoning]
         try:
             member_provider = self._get_member_provider(member, provider)
             params = self._resolve_member_generation_params(member)
-            response = await member_provider.complete(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                max_tokens=params["max_tokens"],
-                temperature=params["temperature"],
+            response = await asyncio.wait_for(
+                member_provider.complete(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    max_tokens=params["max_tokens"],
+                    temperature=params["temperature"],
+                ),
+                timeout=120.0,
             )
             content = response.text
 
@@ -1011,7 +1018,8 @@ REASONING: [your reasoning]
         synthesis_prompt = self.config.synthesis_prompt or (
             "You are synthesizing perspectives from an advisory council. "
             "Review the following responses and provide a balanced, comprehensive synthesis "
-            "that highlights key points of agreement, important differences, and actionable insights."
+            "that highlights key points of agreement, important differences, "
+            "and actionable insights."
         )
 
         system_prompt = (
@@ -1085,7 +1093,8 @@ Please provide a comprehensive synthesis that:
 Council Responses:
 {responses_text}
 
-Analyze these responses and provide a structured synthesis in JSON format matching the SynthesisSchema."""
+Analyze these responses and provide a structured synthesis in JSON format \
+matching the SynthesisSchema."""
 
             # Try to get structured output from provider
             max_tokens = (
