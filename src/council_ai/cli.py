@@ -335,6 +335,7 @@ def consult(
 
         try:
             from .core.history import ConsultationHistory
+
             council._history = ConsultationHistory()
             result = council.consult(
                 query,
@@ -390,7 +391,7 @@ def consult(
         output_text = result.to_markdown()
 
     if output:
-        Path(output).write_text(output_text)
+        Path(output).write_text(output_text, encoding="utf-8")
         console.print(f"[green]✓[/green] Output saved to {output}")
     else:
         console.print()
@@ -443,11 +444,12 @@ def interactive(ctx, domain, provider, api_key, session_id):
         model=model,
         base_url=base_url,
     )
-    
+
     # Enable history
     from .core.history import ConsultationHistory
+
     council._history = ConsultationHistory()
-    
+
     # If resuming, load session metadata (not strictly needed as consult() handles it,
     # but good for display)
     if session_id:
@@ -809,7 +811,10 @@ def config_show(ctx):
             f"  Mode: {cfg.default_mode}\n"
             f"  Domain: {cfg.default_domain}\n"
             f"  Temperature: {cfg.temperature}\n"
-            f"  Max Tokens: {cfg.max_tokens_per_response}\n\n"
+            f"  Max Tokens: {cfg.max_tokens_per_response}\n"
+            f"  Synthesis Provider: {cfg.synthesis_provider or '[default]'}\n"
+            f"  Synthesis Model: {cfg.synthesis_model or '[default]'}\n"
+            f"  Synthesis Max Tokens: {cfg.synthesis_max_tokens or '[default]'}\n\n"
             f"[bold]Paths[/bold]\n"
             f"  Config: {config_manager.path}\n"
             f"  Custom Personas: {cfg.custom_personas_path or '[default]'}\n"
@@ -1059,10 +1064,11 @@ def test_key(provider: str, api_key: Optional[str]):
 def web(host: str, port: int, reload: bool, no_open: bool):
     """Run the Council AI web app."""
     try:
-        import uvicorn
-        import webbrowser
         import threading
         import time
+        import webbrowser
+
+        import uvicorn
     except ImportError:
         console.print(
             '[red]Error:[/red] uvicorn is not installed. Install with: pip install -e ".[web]"'
@@ -1070,17 +1076,18 @@ def web(host: str, port: int, reload: bool, no_open: bool):
         sys.exit(1)
 
     url = f"http://{host}:{port}"
-    
+
     # Auto-open browser after a short delay
     if not no_open:
+
         def open_browser():
             time.sleep(1.5)  # Wait for server to start
             webbrowser.open(url)
-        
+
         threading.Thread(target=open_browser, daemon=True).start()
         console.print(f"[green]✓[/green] Server starting at [cyan]{url}[/cyan]")
         console.print("[dim]Opening browser automatically...[/dim]")
-    
+
     uvicorn.run("council_ai.webapp:app", host=host, port=port, reload=reload)
 
 
@@ -1243,7 +1250,7 @@ def history_sessions(limit):
 def history_resume(ctx, session_id):
     """Resume a previous session (interactive)."""
     history = ConsultationHistory()
-    
+
     if not session_id:
         sessions = history.list_sessions(limit=10)
         if not sessions:
@@ -1251,34 +1258,32 @@ def history_resume(ctx, session_id):
             return
 
         console.print(Panel("[bold cyan]Resume Past Session[/bold cyan]", expand=False))
-        
+
         # rich menu
         from rich.table import Table
+
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("#", style="dim", width=4)
         table.add_column("Session ID", style="cyan")
         table.add_column("Council", style="white")
         table.add_column("Started At", style="yellow")
-        
+
         for i, s in enumerate(sessions, 1):
             table.add_row(
-                str(i),
-                s["id"][:13] + "...",
-                s["name"],
-                s["started_at"][:16].replace("T", " ")
+                str(i), s["id"][:13] + "...", s["name"], s["started_at"][:16].replace("T", " ")
             )
-        
+
         console.print(table)
-        
+
         choice = Prompt.ask(
             "Select session to resume",
             choices=[str(i) for i in range(1, len(sessions) + 1)] + ["q"],
-            default="1"
+            default="1",
         )
-        
+
         if choice == "q":
             return
-            
+
         selected = sessions[int(choice) - 1]
         session_id = selected["id"]
 
@@ -1289,7 +1294,7 @@ def history_resume(ctx, session_id):
         return
 
     console.print(f"[green]✓[/green] Resuming session [cyan]{session_id}[/cyan]...")
-    
+
     # Delegate to interactive command
     ctx.invoke(interactive, session_id=session_id)
 
@@ -1465,7 +1470,7 @@ def history_export_session(session_id, output):
             lines.append("#### Synthesized Conclusion")
             lines.append(res.synthesis)
             lines.append("")
-        
+
         # Add key points from individual responses if no synthesis
         if not res.synthesis:
             for resp in res.responses:
@@ -1479,7 +1484,7 @@ def history_export_session(session_id, output):
     lines.append("- Consider the different perspectives offered by the diverse members.")
 
     content = "\n".join(lines)
-    
+
     if output:
         output_path = Path(output)
     else:
@@ -1514,5 +1519,107 @@ def history_delete(consultation_id, yes):
         sys.exit(1)
 
 
-if __name__ == "__main__":
-    main()
+# ═══════════════════════════════════════════════════════════════════════════════
+# Doctor Command
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@main.command()
+def doctor():
+    """
+    🏥 Run system diagnostics ("Council Doctor").
+
+    Checks API keys, provider connectivity, and system health.
+    """
+    import asyncio
+    from .core.diagnostics import check_provider_connectivity, check_tts_connectivity, diagnose_api_keys
+
+    console.print(
+        Panel(
+            "[bold]🏥 Council Doctor[/bold]\n"
+            "Checking vital signs...",
+            border_style="green",
+        )
+    )
+
+    # 1. API Key Check
+    with console.status("[bold green]Checking API keys..."):
+        # Artificial delay for UX
+        # time.sleep(0.5)
+        key_diag = diagnose_api_keys()
+
+    table = Table(title="API Key Configuration", box=None)
+    table.add_column("Provider", style="cyan")
+    table.add_column("Status", style="bold")
+    table.add_column("Details", style="dim")
+
+    configured_providers = []
+
+    for provider, status in key_diag["provider_status"].items():
+        if status["has_key"]:
+            table.add_row(provider, "✅ Configured", f"Prefix: {status.get('key_prefix', '***')}")
+            if provider in ["openai", "anthropic", "gemini"]:
+                configured_providers.append(provider)
+        else:
+            table.add_row(provider, "❌ Missing", f"Set {status.get('env_var', 'Env Var')}")
+
+    console.print(table)
+    console.print()
+
+    # 2. Connectivity Check
+    if configured_providers:
+        console.print("[bold]Testing Connectivity...[/bold]")
+        conn_table = Table(title="Provider Connection Test", box=None)
+        conn_table.add_column("Provider", style="cyan")
+        conn_table.add_column("Result", style="bold")
+        conn_table.add_column("Latency", justify="right")
+        conn_table.add_column("Message", style="dim")
+
+        async def run_checks():
+            tasks = [check_provider_connectivity(p) for p in configured_providers]
+            return await asyncio.gather(*tasks)
+
+        with console.status("[bold green]Pinging providers..."):
+            results = asyncio.run(run_checks())
+
+        for provider, result in zip(configured_providers, results):
+            success, msg, latency = result
+            status_icon = "✅ Online" if success else "❌ Failed"
+            status_style = "green" if success else "red"
+            conn_table.add_row(
+                provider, 
+                f"[{status_style}]{status_icon}[/{status_style}]", 
+                f"{latency:.0f}ms", 
+                msg
+            )
+
+        console.print(conn_table)
+        console.print()
+    else:
+        console.print("[yellow]⚠️ No LLM providers configured to test connectivity.[/yellow]\n")
+
+    # 3. TTS Check
+    with console.status("[bold green]Checking Voice capability..."):
+        tts_results = check_tts_connectivity()
+    
+    if tts_results:
+        tts_table = Table(title="Text-to-Speech Status", box=None)
+        tts_table.add_column("Provider", style="cyan")
+        tts_table.add_column("Status", style="bold")
+        tts_table.add_column("Message", style="dim")
+        
+        for provider, res in tts_results.items():
+            icon = "✅ Ready" if res["ok"] else "❌ Error"
+            style = "green" if res["ok"] else "red"
+            tts_table.add_row(provider, f"[{style}]{icon}[/{style}]", res["msg"])
+            
+        console.print(tts_table)
+    else:
+        console.print("[dim]No TTS providers configured.[/dim]")
+    
+    console.print("\n[bold]Diagnosis:[/bold]")
+    if key_diag["recommendations"]:
+        for rec in key_diag["recommendations"]:
+            console.print(f"• {rec}")
+    else:
+        console.print("• System appears healthy.")

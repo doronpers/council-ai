@@ -9,10 +9,45 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import yaml
 from pydantic import BaseModel, Field
+from shared_ai_utils.config import ConfigManager as SharedConfigManager
 
 logger = logging.getLogger(__name__)
+
+
+def is_placeholder_key(value: Optional[str]) -> bool:
+    """Return True if an API key looks like a placeholder value."""
+    if value is None:
+        return False
+    normalized = value.strip().lower()
+    if not normalized:
+        return False
+
+    placeholder_exact = {"your-key", "your_api_key", "your api key", "here"}
+    placeholder_prefixes = ("your-", "your_", "your ")
+    placeholder_substrings = ("paste-here", "enter-here")
+
+    if normalized in placeholder_exact:
+        return True
+    if normalized.startswith(placeholder_prefixes):
+        return True
+    if "your-" in normalized:
+        return True
+    if any(token in normalized for token in placeholder_substrings):
+        return True
+
+    return False
+
+
+def sanitize_api_key(value: Optional[str]) -> Optional[str]:
+    """Normalize and drop placeholder API keys."""
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned or is_placeholder_key(cleaned):
+        return None
+    return cleaned
+
 
 # Load .env file automatically if python-dotenv is available
 try:
@@ -41,9 +76,7 @@ try:
             has_placeholder = False
             for var in api_key_vars:
                 existing_val = os.environ.get(var, "")
-                if existing_val and (
-                    "your-" in existing_val.lower() or "here" in existing_val.lower()
-                ):
+                if existing_val and is_placeholder_key(existing_val):
                     has_placeholder = True
                     break
 
@@ -90,6 +123,9 @@ class Config(BaseModel):
     default_domain: str = "general"
     temperature: float = 0.7
     max_tokens_per_response: int = 1000
+    synthesis_provider: Optional[str] = None
+    synthesis_model: Optional[str] = None
+    synthesis_max_tokens: Optional[int] = None
     custom_personas_path: Optional[str] = None
     custom_domains_path: Optional[str] = None
     presets: Dict[str, Any] = Field(default_factory=dict)
@@ -99,100 +135,21 @@ class ConfigManager:
     """Manages loading and saving configuration."""
 
     def __init__(self, config_path: Optional[str] = None):
-        if config_path:
-            self.path = Path(config_path)
-        else:
-            options = [
-                os.environ.get("COUNCIL_CONFIG_DIR"),
-                Path.home() / ".config" / "council-ai",
-                Path("/tmp/council-ai"),
-            ]
-
-            for option in options:
-                if not option:
-                    continue
-                path = Path(option)
-                try:
-                    path.mkdir(parents=True, exist_ok=True)
-                    self.path = path / "config.yaml"
-                    break
-                except OSError:
-                    continue
-            else:
-                # Fallback if no paths are writable
-                self.path = Path("config.yaml")  # Dummy path
-
-        self.config = self._load()
-
-    def _load(self) -> Config:
-        """Load configuration from file."""
-        if self.path.exists():
-            try:
-                with open(self.path, encoding="utf-8") as f:
-                    data = yaml.safe_load(f) or {}
-                return Config(**data)
-            except Exception as e:
-                import sys
-
-                print(f"Warning: Failed to load config from {self.path}: {e}", file=sys.stderr)
-                return Config()
-        return Config()
+        self._manager = SharedConfigManager(config_path, app_name="council-ai")
+        self.path = self._manager.path
+        self.config = self._manager.load(Config)
 
     def save(self) -> None:
         """Save configuration to file."""
-        try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.path, "w", encoding="utf-8") as f:
-                yaml.dump(
-                    self.config.model_dump(exclude_none=True),
-                    f,
-                    default_flow_style=False,
-                    sort_keys=False,
-                )
-            try:
-                os.chmod(self.path, 0o600)
-            except OSError:
-                pass
-        except OSError as e:
-            logger.warning(f"Failed to save configuration to {self.path}: {e}")
+        self._manager.save(self.config)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value by dot-notation key."""
-        parts = key.split(".")
-        value = self.config
-
-        for part in parts:
-            if hasattr(value, part):
-                value = getattr(value, part)
-            elif isinstance(value, dict) and part in value:
-                value = value[part]
-            else:
-                return default
-
-        return value
+        return self._manager.get(key, default)
 
     def set(self, key: str, value: Any) -> None:
         """Set a configuration value by dot-notation key."""
-        parts = key.split(".")
-        obj = self.config
-
-        for part in parts[:-1]:
-            if hasattr(obj, part):
-                obj = getattr(obj, part)
-            elif isinstance(obj, dict):
-                if part not in obj:
-                    obj[part] = {}
-                obj = obj[part]
-            else:
-                raise KeyError(f"Invalid config path: {key}")
-
-        final_key = parts[-1]
-        if hasattr(obj, final_key):
-            setattr(obj, final_key, value)
-        elif isinstance(obj, dict):
-            obj[final_key] = value
-        else:
-            raise KeyError(f"Invalid config key: {key}")
+        self._manager.set(key, value)
 
 
 def load_config(path: Optional[str] = None) -> Config:
@@ -212,25 +169,25 @@ def get_api_key(provider: str = "anthropic") -> Optional[str]:
     """Get API key for a provider from environment or config."""
     # Try provider-specific env var first
     provider_upper = provider.upper()
-    env_key = os.environ.get(f"{provider_upper}_API_KEY")
+    env_key = sanitize_api_key(os.environ.get(f"{provider_upper}_API_KEY"))
     if env_key:
         return env_key
 
     # Special handling for Vercel AI Gateway (OpenAI-compatible)
     if provider == "openai" or provider == "vercel":
-        gateway_key = os.environ.get("AI_GATEWAY_API_KEY")
+        gateway_key = sanitize_api_key(os.environ.get("AI_GATEWAY_API_KEY"))
         if gateway_key:
             return gateway_key
 
     # Try generic env var
-    env_key = os.environ.get("COUNCIL_API_KEY")
+    env_key = sanitize_api_key(os.environ.get("COUNCIL_API_KEY"))
     if env_key:
         return env_key
 
     # Try config file
     try:
         config = load_config()
-        return config.api.api_key
+        return sanitize_api_key(config.api.api_key)
     except Exception:
         return None
 

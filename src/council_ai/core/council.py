@@ -31,9 +31,7 @@ from .session import ConsultationResult, MemberResponse, Session
 
 logger = logging.getLogger(__name__)
 
-ALL_MEMBERS_FAILED_MESSAGE = (
-    "All council members failed to respond; see individual error messages."
-)
+ALL_MEMBERS_FAILED_MESSAGE = "All council members failed to respond; see individual error messages."
 
 
 class ConsultationMode(str, Enum):
@@ -57,11 +55,16 @@ class CouncilConfig(BaseModel):
     include_reasoning: bool = True
     include_confidence: bool = True
     synthesis_prompt: Optional[str] = None
+    synthesis_provider: Optional[str] = None
+    synthesis_model: Optional[str] = None
+    synthesis_max_tokens: Optional[int] = None
     context_window: int = 10  # Number of previous exchanges to include
     # Optional structured-output flag; if True, attempt structured then fallback
     use_structured_output: bool = False
     # When exporting, include enabled flags for members
     export_enabled_state: bool = False
+    # Enable separate consensus analysis pass
+    enable_analysis: bool = True
 
 
 class Council:
@@ -90,6 +93,7 @@ class Council:
         persona_manager: Optional[PersonaManager] = None,
         model: Optional[str] = None,
         base_url: Optional[str] = None,
+        endpoint: Optional[str] = None,
         history: Optional[Any] = None,
     ):
         """
@@ -102,9 +106,12 @@ class Council:
             persona_manager: Custom persona manager (uses global if None)
             model: Model name override
             base_url: Base URL override
+            endpoint: Backward-compatible alias for base_url
             history: ConsultationHistory instance for auto-saving (optional)
         """
         self.config = config or CouncilConfig()
+        if base_url is None and endpoint is not None:
+            base_url = endpoint
         self._persona_manager = persona_manager or get_persona_manager()
         self._members: Dict[str, Persona] = {}
         self._provider: Optional[LLMProvider] = None
@@ -119,9 +126,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[
-            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
-        ] = []
+        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
+            []
+        )
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -225,7 +232,37 @@ class Council:
 
         cache_key = (provider_name, model_name, self._base_url)
         if cache_key not in self._provider_cache:
-            api_key = get_api_key(provider_name) if provider_name != self._provider_name else self._api_key
+            api_key = (
+                get_api_key(provider_name)
+                if provider_name != self._provider_name
+                else self._api_key
+            )
+            self._provider_cache[cache_key] = get_provider(
+                provider_name,
+                api_key=api_key,
+                model=model_name,
+                base_url=self._base_url,
+            )
+        return self._provider_cache[cache_key]
+
+    def _get_synthesis_provider(self, default_provider: LLMProvider) -> LLMProvider:
+        """Get or create a provider for synthesis-specific overrides."""
+        provider_name = self.config.synthesis_provider or self._provider_name
+        model_name = self.config.synthesis_model or self._model
+
+        if (
+            provider_name == self._provider_name
+            and model_name == self._model
+            and not self.config.synthesis_provider
+            and not self.config.synthesis_model
+        ):
+            return default_provider
+
+        cache_key = (provider_name, model_name, self._base_url)
+        if cache_key not in self._provider_cache:
+            api_key = get_api_key(provider_name)
+            if api_key is None and provider_name == self._provider_name:
+                api_key = self._api_key
             self._provider_cache[cache_key] = get_provider(
                 provider_name,
                 api_key=api_key,
@@ -440,15 +477,16 @@ class Council:
         synthesis = None
         structured_synthesis = None
         if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
+            synthesis_provider = self._get_synthesis_provider(provider)
             # Try structured synthesis if enabled in config
             if getattr(self.config, "use_structured_output", False):
                 try:
                     structured_synthesis = await self._generate_structured_synthesis(
-                        provider, query, context, responses
+                        synthesis_provider, query, context, responses
                     )
                     if structured_synthesis is None:
                         synthesis = await self._generate_synthesis(
-                            provider, query, context, responses
+                            synthesis_provider, query, context, responses
                         )
                     else:
                         # Convert structured to text for backward compatibility
@@ -456,9 +494,30 @@ class Council:
                 except Exception as e:
                     # Fallback to free-form synthesis
                     logger.debug(f"Structured synthesis failed, falling back to free-form: {e}")
-                    synthesis = await self._generate_synthesis(provider, query, context, responses)
+                    synthesis = await self._generate_synthesis(
+                        synthesis_provider, query, context, responses
+                    )
             else:
-                synthesis = await self._generate_synthesis(provider, query, context, responses)
+                synthesis = await self._generate_synthesis(
+                    synthesis_provider, query, context, responses
+                )
+
+        # Run Analysis Phase (Phase 2 Enhancement)
+        analysis = None
+        if self.config.enable_analysis and len(responses) > 1 and mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL):
+            try:
+                from .analysis import AnalysisEngine
+                
+                # Use synthesis provider (usually strongest model) for analysis
+                analysis_provider = self._get_synthesis_provider(provider)
+                engine = AnalysisEngine(analysis_provider)
+                
+                # Convert MemberResponse objects to dicts for the engine
+                resp_dicts = [r.to_dict() for r in responses]
+                analysis = await engine.analyze(query, context, resp_dicts)
+                logger.debug("Consultation analysis matched.")
+            except Exception as e:
+                logger.warning(f"Analysis phase failed: {e}")
 
         # Create result
         result = ConsultationResult(
@@ -571,13 +630,43 @@ class Council:
         structured_synthesis = None
         if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
             # For streaming, use free-form synthesis (structured would require buffering)
+            synthesis_provider = self._get_synthesis_provider(provider)
             yield {"type": "synthesis_start"}
             synthesis_parts: List[str] = []
-            async for chunk in self._generate_synthesis_stream(provider, query, context, responses):
+            async for chunk in self._generate_synthesis_stream(
+                synthesis_provider, query, context, responses
+            ):
                 yield {"type": "synthesis_chunk", "content": chunk}
                 synthesis_parts.append(chunk)
             synthesis = "".join(synthesis_parts)
+            synthesis = "".join(synthesis_parts)
             yield {"type": "synthesis_complete", "synthesis": synthesis}
+
+        # Run Analysis Phase (Phase 2 Enhancement) - Streaming
+        analysis = None
+        if self.config.enable_analysis and len(responses) > 1 and mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL):
+            try:
+                from .analysis import AnalysisEngine
+                
+                # Use synthesis provider
+                analysis_provider = self._get_synthesis_provider(provider)
+                engine = AnalysisEngine(analysis_provider)
+                
+                # Convert MemberResponse objects to dicts
+                resp_dicts = [r.to_dict() for r in responses]
+                
+                # Yield progress
+                yield {"type": "progress", "message": "Analyzing consensus..."}
+                
+                # Run analysis
+                analysis = await engine.analyze(query, context, resp_dicts)
+                
+                # Yield analysis result event for UI
+                if analysis:
+                    yield {"type": "analysis", "data": analysis.model_dump()}
+                    logger.debug("Consultation analysis matched.")
+            except Exception as e:
+                logger.warning(f"Analysis phase failed: {e}")
 
         # Create result
         result = ConsultationResult(
@@ -712,12 +801,13 @@ REASONING: [your reasoning]
         try:
             member_provider = self._get_member_provider(member, provider)
             params = self._resolve_member_generation_params(member)
-            content = await member_provider.complete(
+            response = await member_provider.complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 max_tokens=params["max_tokens"],
                 temperature=params["temperature"],
             )
+            content = response.text
 
             # Run response hooks
             for hook in self._response_hooks:
@@ -924,7 +1014,9 @@ REASONING: [your reasoning]
             "that highlights key points of agreement, important differences, and actionable insights."
         )
 
-        system_prompt = f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+        system_prompt = (
+            f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+        )
 
         context_line = f"Context: {context}\n" if context else ""
         user_prompt = f"""Original Query: {query}
@@ -940,18 +1032,27 @@ Please provide a comprehensive synthesis that:
 4. Is concise but comprehensive (2-4 paragraphs)"""
 
         try:
-            synthesis = await provider.complete(
+            max_tokens = (
+                self.config.synthesis_max_tokens
+                if self.config.synthesis_max_tokens is not None
+                else self.config.max_tokens_per_response * 2
+            )
+            response = await provider.complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                max_tokens=self.config.max_tokens_per_response * 2,  # Synthesis can be longer
+                max_tokens=max_tokens,  # Synthesis can be longer
                 temperature=self.config.temperature,
             )
-            return synthesis
+            return response.text
         except Exception as e:
             logger.error(f"Failed to generate synthesis: {e}")
             # Fallback: simple concatenation
             return "\n\n".join(
-                f"**{r.persona.name}**: {r.content[:200]}..." if len(r.content) > 200 else f"**{r.persona.name}**: {r.content}"
+                (
+                    f"**{r.persona.name}**: {r.content[:200]}..."
+                    if len(r.content) > 200
+                    else f"**{r.persona.name}**: {r.content}"
+                )
                 for r in responses
             )
 
@@ -987,23 +1088,20 @@ Council Responses:
 Analyze these responses and provide a structured synthesis in JSON format matching the SynthesisSchema."""
 
             # Try to get structured output from provider
-            result = await provider.complete(
+            max_tokens = (
+                self.config.synthesis_max_tokens
+                if self.config.synthesis_max_tokens is not None
+                else self.config.max_tokens_per_response * 3
+            )
+            schema = SynthesisSchema.model_json_schema()
+            data = await provider.complete_structured(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                max_tokens=self.config.max_tokens_per_response * 3,
+                json_schema=schema,
+                max_tokens=max_tokens,
                 temperature=self.config.temperature,
-                response_format={"type": "json_object"} if hasattr(provider, "complete") else None,
             )
-
-            # Parse JSON response
-            import json
-
-            try:
-                data = json.loads(result)
-                return SynthesisSchema(**data)
-            except (json.JSONDecodeError, Exception):
-                # If JSON parsing fails, return None to fallback to text synthesis
-                return None
+            return SynthesisSchema(**data)
         except Exception as e:
             logger.error(f"Failed to generate structured synthesis: {e}")
             return None
@@ -1023,7 +1121,9 @@ Analyze these responses and provide a structured synthesis in JSON format matchi
                 parts.append(f"• {point}")
 
         if structured.synthesized_recommendation:
-            parts.append(f"\n**Synthesized Recommendation:**\n{structured.synthesized_recommendation}")
+            parts.append(
+                f"\n**Synthesized Recommendation:**\n{structured.synthesized_recommendation}"
+            )
 
         if structured.action_items:
             parts.append("\n**Action Items:**")
@@ -1071,7 +1171,9 @@ Analyze these responses and provide a structured synthesis in JSON format matchi
             "Review the following responses and provide a balanced, comprehensive synthesis."
         )
 
-        system_prompt = f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+        system_prompt = (
+            f"{synthesis_prompt}\n\nYour synthesis should be clear, balanced, and actionable."
+        )
 
         context_line = f"Context: {context}\n" if context else ""
         user_prompt = f"""Original Query: {query}
@@ -1083,10 +1185,15 @@ Council Responses:
 Please provide a comprehensive synthesis."""
 
         try:
+            max_tokens = (
+                self.config.synthesis_max_tokens
+                if self.config.synthesis_max_tokens is not None
+                else self.config.max_tokens_per_response * 2
+            )
             async for chunk in provider.stream_complete(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                max_tokens=self.config.max_tokens_per_response * 2,
+                max_tokens=max_tokens,
                 temperature=self.config.temperature,
             ):
                 yield chunk

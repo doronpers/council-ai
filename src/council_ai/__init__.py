@@ -10,8 +10,8 @@ Quick Start:
     >>> print(result.synthesis)
 
 Features:
-    - 7 built-in expert personas
-    - 12 domain presets
+    - 9 built-in expert personas
+    - 14 domain presets
     - Multiple consultation modes
     - Full customization support
     - CLI and Python API

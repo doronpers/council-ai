@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
@@ -14,7 +14,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from council_ai import Council
-from council_ai.core.config import ConfigManager, get_api_key, get_tts_api_key
+from council_ai.core.config import (
+    ConfigManager,
+    get_api_key,
+    get_tts_api_key,
+    is_placeholder_key,
+    sanitize_api_key,
+)
 from council_ai.core.council import ConsultationMode
 from council_ai.core.history import ConsultationHistory
 from council_ai.core.persona import PersonaCategory, list_personas
@@ -22,9 +28,15 @@ from council_ai.domains import list_domains
 from council_ai.providers import list_model_capabilities, list_providers
 from council_ai.providers.tts import TTSProviderFactory, generate_speech_with_fallback
 
+# Import reviewer routes
+from council_ai.webapp.reviewer import router as reviewer_router
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Council AI", version="1.0.0")
+
+# Include reviewer API routes
+app.include_router(reviewer_router)
 
 # Initialize history (shared instance)
 _history = ConsultationHistory()
@@ -96,7 +108,8 @@ def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
     provider = payload.provider or config.api.provider
     model = payload.model or config.api.model
     base_url = payload.base_url or config.api.base_url
-    api_key = payload.api_key or get_api_key(provider)
+
+    api_key = sanitize_api_key(payload.api_key) if payload.api_key else get_api_key(provider)
 
     if not api_key:
         raise HTTPException(status_code=400, detail="API key is required for consultation.")
@@ -168,6 +181,21 @@ async def index() -> HTMLResponse:
         return HTMLResponse(
             "<html><body><h1>Council AI</h1>"
             "<p>index.html not found. Run from the webapp directory.</p>"
+            "</body></html>",
+            status_code=500,
+        )
+
+
+@app.get("/reviewer", response_class=HTMLResponse)
+async def reviewer_ui() -> HTMLResponse:
+    """Serve the LLM Response Reviewer UI."""
+    reviewer_html = WEBAPP_DIR / "reviewer_ui.html"
+    if reviewer_html.exists():
+        return FileResponse(str(reviewer_html))
+    else:
+        return HTMLResponse(
+            "<html><body><h1>LLM Response Reviewer</h1>"
+            "<p>reviewer_ui.html not found.</p>"
             "</body></html>",
             status_code=500,
         )

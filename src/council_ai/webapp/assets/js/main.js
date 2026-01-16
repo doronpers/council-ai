@@ -38,11 +38,30 @@ const synthesisAudioEl = document.getElementById("synthesis-audio");
 // Active request controller for cancellation
 let activeController = null;
 
+// Consultation progress tracking
+const consultationState = {
+  totalMembers: 0,
+  responding: new Set(),
+  completed: new Set(),
+  pending: new Set(),
+  memberData: new Map() // persona_id -> {name, emoji, status}
+};
+
 // Settings keys for localStorage
 const SETTINGS_KEY = 'council_ai_settings';
 
 // Store model capabilities data
 let modelCapabilities = [];
+
+// Store persona and domain data
+let allPersonas = [];
+let allDomains = [];
+
+// DOM element references for member preview
+const memberPreviewEl = document.getElementById("member-preview");
+const memberCardsEl = document.getElementById("member-cards");
+const memberCountEl = document.getElementById("member-count");
+const toggleComparisonEl = document.getElementById("toggle-comparison");
 
 // Load settings from localStorage
 function loadSettings() {
@@ -138,6 +157,69 @@ async function getRenderModule() {
   return renderModule;
 }
 
+// Render member cards based on selected members
+function renderMemberCards(selectedMemberIds, allPersonas) {
+  if (!memberCardsEl || !allPersonas || allPersonas.length === 0) return;
+
+  // Get selected personas
+  const selectedPersonas = selectedMemberIds
+    .map(id => allPersonas.find(p => p.id === id))
+    .filter(Boolean);
+
+  if (selectedPersonas.length === 0) {
+    memberCardsEl.innerHTML = '<p class="muted" style="text-align: center; padding: 24px;">No members selected. Choose a domain or add custom members.</p>';
+    if (memberCountEl) memberCountEl.textContent = "0 members selected";
+    return;
+  }
+
+  // Render cards
+  memberCardsEl.innerHTML = selectedPersonas.map(persona => {
+    const focusAreas = (persona.focus_areas || []).slice(0, 3); // Show first 3 focus areas
+    const focusTags = focusAreas.map(area =>
+      `<span class="focus-tag">${escapeHtml(area)}</span>`
+    ).join('');
+    return `
+      <div class="member-card member-card--selected" data-persona-id="${escapeHtml(persona.id)}">
+        <div class="member-card-header">
+          <span class="member-emoji">${escapeHtml(persona.emoji || '👤')}</span>
+          <div class="member-info">
+            <div class="member-name">${escapeHtml(persona.name || persona.id)}</div>
+            <div class="member-title">${escapeHtml(persona.title || '')}</div>
+          </div>
+        </div>
+        ${focusTags ? `<div class="member-focus-areas">${focusTags}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  // Update count
+  if (memberCountEl) {
+    memberCountEl.textContent = `${selectedPersonas.length} ${selectedPersonas.length === 1 ? 'member' : 'members'} selected`;
+  }
+}
+
+// Get currently selected member IDs
+function getSelectedMemberIds() {
+  const customMembers = membersEl.value.split(",").map(x => x.trim()).filter(Boolean);
+  if (customMembers.length > 0) {
+    return customMembers;
+  }
+
+  // Get from domain
+  const selectedDomain = allDomains.find(d => d.id === domainEl.value);
+  if (selectedDomain && selectedDomain.default_personas) {
+    return selectedDomain.default_personas;
+  }
+
+  return [];
+}
+
+// Update member preview when domain or members change
+function updateMemberPreview() {
+  const selectedIds = getSelectedMemberIds();
+  renderMemberCards(selectedIds, allPersonas);
+}
+
 // Initialize form with API data
 async function initForm() {
   try {
@@ -146,9 +228,20 @@ async function initForm() {
     // Store model capabilities for later use
     modelCapabilities = data.models || [];
 
+    // Store persona and domain data
+    allPersonas = data.personas || [];
+    allDomains = data.domains || [];
+
+    // Make available globally for render.js
+    window.allPersonas = allPersonas;
+
     providerEl.innerHTML = data.providers.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
     modeEl.innerHTML = data.modes.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
-    domainEl.innerHTML = data.domains.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`).join("");
+    // Enhanced domain dropdown with member count
+    domainEl.innerHTML = data.domains.map(d => {
+      const memberCount = d.default_personas ? d.default_personas.length : 0;
+      return `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}${memberCount > 0 ? ` (${memberCount} members)` : ''}</option>`;
+    }).join("");
     providerEl.value = data.defaults.provider || "openai";
     baseUrlEl.value = data.defaults.base_url || "";
     modeEl.value = data.defaults.mode || "synthesis";
@@ -161,6 +254,19 @@ async function initForm() {
     providerEl.addEventListener("change", () => {
       updateModelDropdown(providerEl.value);
     });
+
+    // Add event listeners for domain and member changes
+    domainEl.addEventListener("change", () => {
+      updateMemberPreview();
+      // Clear custom members when domain changes
+      if (membersEl) membersEl.value = "";
+    });
+
+    if (membersEl) {
+      membersEl.addEventListener("input", () => {
+        updateMemberPreview();
+      });
+    }
 
     // Initialize TTS settings
     if (data.tts) {
@@ -202,6 +308,17 @@ async function initForm() {
       temperatureEl.value = 0.7;
       temperatureValueEl.textContent = "0.7";
       maxTokensEl.value = "1000";
+    }
+
+    // Initialize member preview
+    updateMemberPreview();
+
+    // Initialize comparison mode toggle
+    if (toggleComparisonEl) {
+      toggleComparisonEl.addEventListener("click", () => {
+        const isComparison = responsesEl.classList.toggle("comparison-mode");
+        toggleComparisonEl.textContent = isComparison ? "📋 List View" : "📊 Compare Responses";
+      });
     }
   } catch (err) {
     statusEl.textContent = "Failed to load form data.";
@@ -344,6 +461,138 @@ function handleResetSettings() {
   }
 }
 
+// Initialize progress dashboard with selected members
+function initializeProgressDashboard(selectedMemberIds) {
+  const progressDashboard = document.getElementById("progress-dashboard");
+  const memberStatusList = document.getElementById("member-status-list");
+  const progressBar = document.getElementById("progress-bar");
+  const progressSummary = document.getElementById("progress-summary");
+
+  if (!progressDashboard || !memberStatusList) return;
+
+  // Reset state
+  consultationState.totalMembers = selectedMemberIds.length;
+  consultationState.responding.clear();
+  consultationState.completed.clear();
+  consultationState.pending.clear();
+  consultationState.memberData.clear();
+
+  // Initialize member data
+  selectedMemberIds.forEach(personaId => {
+    const persona = allPersonas.find(p => p.id === personaId);
+    consultationState.memberData.set(personaId, {
+      name: persona?.name || personaId,
+      emoji: persona?.emoji || "👤",
+      status: "pending"
+    });
+    consultationState.pending.add(personaId);
+  });
+
+  // Render initial status cards
+  updateMemberStatusCards();
+
+  // Reset progress bar
+  if (progressBar) {
+    progressBar.style.width = "0%";
+  }
+
+  // Update summary
+  if (progressSummary) {
+    progressSummary.textContent = `0 of ${consultationState.totalMembers} members have responded`;
+  }
+
+  // Show dashboard
+  progressDashboard.style.display = "block";
+}
+
+// Update member status cards
+function updateMemberStatusCards() {
+  const memberStatusList = document.getElementById("member-status-list");
+  if (!memberStatusList) return;
+
+  const cards = Array.from(consultationState.memberData.entries()).map(([personaId, data]) => {
+    const status = data.status;
+    let statusIcon = "⏳";
+    let statusText = "Pending";
+    let statusClass = "member-status-card--pending";
+
+    if (status === "responding") {
+      statusIcon = "💭";
+      statusText = "Responding...";
+      statusClass = "member-status-card--responding";
+    } else if (status === "completed") {
+      statusIcon = "✓";
+      statusText = "Completed";
+      statusClass = "member-status-card--completed";
+    }
+
+    return `
+      <div class="member-status-card ${statusClass}" data-persona-id="${escapeHtml(personaId)}">
+        <span class="member-status-emoji">${data.emoji}</span>
+        <div class="member-status-info">
+          <div class="member-status-name">${escapeHtml(data.name)}</div>
+          <div class="member-status-text">${statusIcon} ${statusText}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  memberStatusList.innerHTML = cards;
+  updateProgressBar();
+}
+
+// Update progress bar and summary
+function updateProgressBar() {
+  const progressBar = document.getElementById("progress-bar");
+  const progressSummary = document.getElementById("progress-summary");
+
+  const completed = consultationState.completed.size;
+  const total = consultationState.totalMembers;
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  if (progressBar) {
+    progressBar.style.width = `${percentage}%`;
+  }
+
+  if (progressSummary) {
+    const responding = consultationState.responding.size;
+    if (responding > 0) {
+      progressSummary.textContent = `${completed} of ${total} members completed, ${responding} responding...`;
+    } else {
+      progressSummary.textContent = `${completed} of ${total} members have responded`;
+    }
+  }
+}
+
+// Update member status
+function updateMemberStatus(personaId, status) {
+  const memberData = consultationState.memberData.get(personaId);
+  if (!memberData) return;
+
+  // Remove from old status sets
+  consultationState.responding.delete(personaId);
+  consultationState.completed.delete(personaId);
+  consultationState.pending.delete(personaId);
+
+  // Add to new status set
+  memberData.status = status;
+  if (status === "responding") {
+    consultationState.responding.add(personaId);
+  } else if (status === "completed") {
+    consultationState.completed.add(personaId);
+  } else {
+    consultationState.pending.add(personaId);
+  }
+
+  updateMemberStatusCards();
+}
+
+// Make updateMemberStatus available globally for render.js
+window.updateMemberStatus = updateMemberStatus;
+
+// Make allPersonas available globally for render.js
+window.allPersonas = allPersonas;
+
 // Handle consultation submission (with streaming support)
 async function handleSubmit(useStreaming = true) {
   if (!queryEl.value.trim()) {
@@ -357,7 +606,14 @@ async function handleSubmit(useStreaming = true) {
 
   submitEl.disabled = true;
   cancelEl.style.display = "block";
-  statusEl.innerHTML = '<span class="loading"></span>Consulting the council...';
+
+  // Show skeleton loader with progress
+  const loadingSkeleton = document.getElementById("loading-skeleton");
+  const progressText = document.getElementById("progress-text");
+  if (loadingSkeleton) loadingSkeleton.style.display = "block";
+  if (progressText) progressText.textContent = "Assembling council...";
+
+  statusEl.innerHTML = '';
   statusEl.className = "muted";
   synthesisEl.innerHTML = "";
   responsesEl.innerHTML = "";
@@ -365,6 +621,10 @@ async function handleSubmit(useStreaming = true) {
   // Hide audio player
   synthesisAudioPlayerEl.style.display = "none";
   synthesisAudioEl.src = "";
+
+  // Initialize progress dashboard
+  const selectedMemberIds = getSelectedMemberIds();
+  initializeProgressDashboard(selectedMemberIds);
 
   const payload = {
     query: queryEl.value.trim(),
@@ -454,6 +714,10 @@ async function handleSubmit(useStreaming = true) {
     submitEl.disabled = false;
     cancelEl.style.display = "none";
     activeController = null;
+
+    // Hide skeleton loader
+    const loadingSkeleton = document.getElementById("loading-skeleton");
+    if (loadingSkeleton) loadingSkeleton.style.display = "none";
   }
 }
 
@@ -525,6 +789,25 @@ async function initApp() {
     resetSettingsEl.addEventListener("click", handleResetSettings);
   }
 
+  // System Status / Diagnostics
+  const systemStatusBtn = document.getElementById("system-status-btn");
+  const diagnosticsModal = document.getElementById("diagnostics-modal");
+  const refreshDiagnosticsBtn = document.getElementById("refresh-diagnostics");
+
+  if (systemStatusBtn && diagnosticsModal) {
+    systemStatusBtn.addEventListener("click", () => {
+      diagnosticsModal.style.display = "flex";
+      runDiagnostics();
+    });
+
+    refreshDiagnosticsBtn.addEventListener("click", runDiagnostics);
+
+    // Close on outside click
+    diagnosticsModal.addEventListener("click", (e) => {
+      if (e.target === diagnosticsModal) diagnosticsModal.style.display = "none";
+    });
+  }
+
   // Ctrl+Enter to submit from query or context textareas
   const handleKeyboardSubmit = (e) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -561,4 +844,96 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
 } else {
   initApp();
+}
+
+// Run diagnostics logic
+async function runDiagnostics() {
+  const contentEl = document.getElementById("diagnostics-content");
+  contentEl.innerHTML = '<div style="text-align: center; padding: 40px;"><span class="loading"></span> Running diagnostics...</div>';
+
+  try {
+    const res = await fetch("/api/diagnostics");
+    const data = await res.json();
+
+    // Helper to escape HTML
+    const escapeHtml = (unsafe) => {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    };
+
+    // Render Keys Table
+    let html = '<h3>API Keys</h3><table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">';
+    html += '<tr style="border-bottom: 1px solid var(--border); text-align: left;"><th style="padding: 8px;">Provider</th><th style="padding: 8px;">Status</th><th style="padding: 8px;">Details</th></tr>';
+
+    for (const [provider, status] of Object.entries(data.keys.provider_status)) {
+      const hasKey = status.has_key;
+      const icon = hasKey ? "✅" : "❌";
+      const color = hasKey ? "var(--accent-green)" : "var(--accent-red)";
+      const keyPrefix = status.key_prefix || (status.env_var ? "Env Var" : "***");
+      const details = hasKey ? `Prefix: ${escapeHtml(keyPrefix)}` : `Missing (${status.env_var || ""})`;
+
+      html += `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 8px;">${escapeHtml(provider)}</td>
+                    <td style="padding: 8px; color: ${color}; font-weight: 500;">${icon} ${hasKey ? "Configured" : "Missing"}</td>
+                    <td style="padding: 8px; color: var(--text-secondary); font-size: 0.9em;">${details}</td>
+                </tr>
+            `;
+    }
+    html += '</table>';
+
+    // Render Connectivity
+    html += '<h3>Connectivity Test</h3>';
+    if (Object.keys(data.connectivity).length > 0) {
+      html += '<table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">';
+      html += '<tr style="border-bottom: 1px solid var(--border); text-align: left;"><th style="padding: 8px;">Provider</th><th style="padding: 8px;">Result</th><th style="padding: 8px;">Latency</th><th style="padding: 8px;">Message</th></tr>';
+
+      for (const [provider, res] of Object.entries(data.connectivity)) {
+        const icon = res.ok ? "✅" : "❌";
+        const color = res.ok ? "var(--accent-green)" : "var(--accent-red)";
+
+        html += `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 8px;">${escapeHtml(provider)}</td>
+                        <td style="padding: 8px; color: ${color}; font-weight: 500;">${icon} ${res.ok ? "Online" : "Failed"}</td>
+                        <td style="padding: 8px;">${Math.round(res.latency_ms)}ms</td>
+                        <td style="padding: 8px; color: var(--text-secondary); font-size: 0.9em;">${escapeHtml(res.message || "")}</td>
+                    </tr>
+                `;
+      }
+      html += '</table>';
+    } else {
+      html += '<p class="muted">No configured providers to test.</p>';
+    }
+
+    // Render TTS
+    html += '<h3>Voice (TTS)</h3>';
+    if (Object.keys(data.tts).length > 0) {
+      html += '<table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">';
+      for (const [provider, res] of Object.entries(data.tts)) {
+        const icon = res.ok ? "✅" : "❌";
+        const color = res.ok ? "var(--accent-green)" : "var(--accent-red)";
+
+        html += `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 8px;">${escapeHtml(provider)}</td>
+                        <td style="padding: 8px; color: ${color}; font-weight: 500;">${icon} ${res.ok ? "Ready" : "Error"}</td>
+                        <td style="padding: 8px; color: var(--text-secondary); font-size: 0.9em;">${escapeHtml(res.msg || "")}</td>
+                    </tr>
+                `;
+      }
+      html += '</table>';
+    } else {
+      html += '<p class="muted">No TTS providers configured.</p>';
+    }
+
+    contentEl.innerHTML = html;
+
+  } catch (err) {
+    contentEl.innerHTML = `<div class="error">Failed to run diagnostics: ${escapeHtml(err.message)}</div>`;
+  }
 }

@@ -4,27 +4,31 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/doronpers/council-ai)
 
 ---
+
+## ☁️ Open in Codespaces
+
+Get up and running immediately with a fully configured development environment in your browser:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/doronpers/council-ai)
 
 ## 🚀 Quickstart (No API Key Required)
 
 Want to explore Council AI before setting up an API key? Run:
 
 ```bash
-# Install the package
-pip install -e ".[dev]"
-
-# Run the interactive quickstart demo
-council quickstart
-# or
-python examples/quickstart.py
+# Run the interactive launcher (handles setup automatically)
+./launcher.sh
 ```
+
+Or manually:
 
 This interactive demo shows you:
 
-- All 7 built-in personas and their characteristics
-- 12 domain presets and what they're for
+- All 9 built-in personas and their characteristics
+- 14 domain presets and what they're for
 - How to set up and use councils
 - Example usage patterns
 
@@ -69,14 +73,15 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 
 **Key Features:**
 
-- 🎭 **7 Built-in Personas** - Advisory Council (build it right) + Red Team (break & survive)
-- 🌐 **12 Domain Presets** - Coding, business, startup, creative, career, and more
+- 🎭 **9 Built-in Personas** - Advisory Council (build it right) + Red Team (break & survive) + Experts
+- 🌐 **14 Domain Presets** - Coding, business, startup, creative, career, and more
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
 - 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints
 - 💬 **Multiple Modes** - Individual, synthesis, debate, or vote
 - 🧭 **Standalone Web App** - A focused, Dieter Rams-inspired web UI
 - 🔊 **Text-to-Speech** - Voice responses via ElevenLabs and OpenAI TTS
 - 📦 **Portable Package** - pip-installable, use in any project
+- 📖 **[Full API Documentation](documentation/API_REFERENCE.md)** - Complete Python API reference
 
 ---
 
@@ -89,16 +94,16 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 pip install council-ai
 
 # With Anthropic Claude support
-pip install council-ai[anthropic]
+pip install "council-ai[anthropic]"
 
 # With OpenAI GPT support
-pip install council-ai[openai]
+pip install "council-ai[openai]"
 
 # With Google Gemini support
-pip install council-ai[gemini]
+pip install "council-ai[gemini]"
 
 # Full installation (all providers)
-pip install council-ai[all]
+pip install "council-ai[all]"
 ```
 
 **Development Installation (from this repo):**
@@ -119,6 +124,9 @@ pip install -e ".[all]"
 # Or for development (includes testing tools)
 pip install -e ".[dev]"
 ```
+
+> [!NOTE]
+> **Windows Users:** If you encounter "command not found" errors, ensure your Python `Scripts` directory is in your PATH. Alternatively, you can run commands using the `python -m` syntax (e.g., `python -m pytest`, `python -m black src/`).
 
 ### Set Your API Key
 
@@ -239,6 +247,13 @@ for response in result.responses:
 | 🦢 **Nassim Taleb** | Risk, Antifragility | "What's the hidden risk?" |
 | 🎯 **Andy Grove** | Strategy, Competition | "What 10X force could make us irrelevant?" |
 
+### Specialist Council (Deep Domain Expertise)
+
+| Persona | Focus | Core Question |
+| ------- | ----- | ------------- |
+| 🛡️ **Signal Analyst** | Deepfake Defense, Audio | "Is this signal authentic or synthetic?" |
+| ⚖️ **Compliance Auditor** | Regulations, Fintech | "Does this comply with relevant regulations?" |
+
 ---
 
 ## Domain Presets
@@ -262,6 +277,8 @@ council domain list
 | `devops` | Infrastructure & ops | Dempsey, Holman, Taleb, Grove |
 | `data` | Data science | Kahneman, Taleb, Rams |
 | `general` | General purpose | Kahneman, Taleb, Grove, Rams |
+| `llm_review` | High-quality LLM review | Dempsey, Kahneman, Rams, Treasure |
+| `sonotheia` | Audio defense & fintech | signal_analyst, compliance_auditor, Holman, Taleb |
 
 ---
 
@@ -425,7 +442,8 @@ print(result.synthesis)             # Markdown-formatted synthesis text
 
 ### Config File
 
-Council AI stores configuration in `~/.config/council-ai/config.yaml`:
+Council AI stores configuration in `~/.config/council-ai/config.yaml`.
+Override the location with `COUNCIL_AI_CONFIG_DIR`.
 
 ```yaml
 api:
@@ -438,6 +456,9 @@ default_mode: synthesis
 default_domain: general
 temperature: 0.7
 max_tokens_per_response: 1000
+synthesis_provider: null
+synthesis_model: null
+synthesis_max_tokens: null
 
 presets:
   my_team:
@@ -543,7 +564,7 @@ register_provider("my_llm", HTTPProvider)
 council = Council(
     api_key="your-key",
     provider="http",
-    endpoint="http://localhost:8000/v1/completions"
+    base_url="http://localhost:8000/v1/completions"
 )
 ```
 
@@ -639,6 +660,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the testing, linting, and formatting 
 ---
 
 ## Python API Reference
+
+**📖 [Complete API Documentation](documentation/API_REFERENCE.md)**
+
+For comprehensive API documentation including all classes, methods, parameters, and examples, see the [API Reference Guide](documentation/API_REFERENCE.md).
+
+### Quick Reference
+
+Below is a quick reference for common API usage. For detailed documentation, see the [full API reference](documentation/API_REFERENCE.md).
 
 ### Council
 
@@ -816,6 +845,10 @@ result = council.consult("Review code quality and architecture...")
 # Also review design/UX and functionality/robustness
 # with different persona combinations
 ```
+
+### LLM Response Reviewer
+
+Council AI includes a specialized "Supreme Court-style" reviewer for evaluating multiple LLM responses. See the [LLM Response Reviewer Setup Guide](documentation/REVIEWER_SETUP.md) for details.
 
 ---
 

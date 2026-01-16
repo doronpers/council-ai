@@ -101,8 +101,9 @@ def test_http_provider_without_endpoint():
 
 
 def test_http_provider_env_api_key(monkeypatch):
-    """Test HTTP provider uses env API key defaults."""
     monkeypatch.setenv("HTTP_API_KEY", "env-key")
+    # Set LLM_ENDPOINT to avoid init failure if it's not set
+    monkeypatch.setenv("LLM_ENDPOINT", "https://example.com/v1/completions")
     provider = get_provider("http", endpoint="https://example.com/v1/completions")
     assert provider.api_key == "env-key"
 
@@ -112,7 +113,15 @@ def test_custom_provider_registration():
 
     class CustomProvider(LLMProvider):
         async def complete(self, system_prompt, user_prompt, max_tokens=1000, temperature=0.7):
-            return "Custom response"
+            from shared_ai_utils.llm import LLMResponse
+            return LLMResponse(text="Custom response", raw_response={})
+
+        @property
+        def provider_name(self):
+            return "custom_test"
+
+        def is_available(self):
+            return True
 
     register_provider("custom_test", CustomProvider)
 

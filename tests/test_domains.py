@@ -10,7 +10,7 @@ from council_ai import DomainCategory, get_domain, list_domains
 def test_all_domains_exist():
     """Test that all expected domains exist."""
     domains = list_domains()
-    assert len(domains) == 12, f"Expected 12 domains, got {len(domains)}"
+    assert len(domains) == 14, f"Expected 14 domains, got {len(domains)}"
 
     expected_ids = [
         "coding",
@@ -25,6 +25,8 @@ def test_all_domains_exist():
         "devops",
         "data",
         "general",
+        "llm_review",
+        "sonotheia",
     ]
 
     domain_ids = [d.id for d in domains]
