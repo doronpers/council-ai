@@ -799,7 +799,7 @@ REASONING: [your reasoning]
         try:
             member_provider = self._get_member_provider(member, provider)
             params = self._resolve_member_generation_params(member)
-            if member_provider is provider and not member.provider and not member.model:
+            if member_provider is provider:
                 manager = self._get_llm_manager()
                 response = await asyncio.wait_for(
                     manager.generate(
