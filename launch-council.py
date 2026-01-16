@@ -335,7 +335,8 @@ def main():
     global QUIET
     QUIET = args.quiet
 
-    print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
+    if not QUIET:
+        print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
 
     # Check Python version
     print_status("Checking prerequisites...", CYAN)
