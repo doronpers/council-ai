@@ -62,26 +62,24 @@
 ### Integration & Architecture
 
 #### 5. Migrate to shared-ai-utils LLMManager
-- **Status**: 📝 TODO
-- **Description**: Replace local provider glue with `shared_ai_utils.llm.LLMManager`
+- **Status**: ✅ COMPLETED
+- **Description**: Integrated with shared-ai-utils LLM provider abstraction
 - **Implementation**:
-  - Swap provider glue to `shared_ai_utils.llm.LLMManager`
-  - Remove duplicate wrappers
-  - Keep existing CLI flags/envs but route through shared types
-- **Files**: `src/council_ai/providers/`, `src/council_ai/core/council.py`
-- **Estimated Effort**: 1-2 days
-- **Reference**: `planning/integration-plan.md`
+  - Added shared-ai-utils as dependency from GitHub repository
+  - Using shared_ai_utils.llm.LLMManager for provider management
+  - Maintained existing CLI flags/envs compatibility
+- **Files**: `pyproject.toml`, `src/council_ai/providers/`, `src/council_ai/core/council.py`
+- **Completed**: 2026-01-16
 
 #### 6. Migrate to shared-ai-utils ConfigManager
-- **Status**: 📝 TODO
-- **Description**: Replace config loading with `shared_ai_utils.config.ConfigManager`
+- **Status**: ✅ COMPLETED
+- **Description**: Integrated with shared-ai-utils config manager
 - **Implementation**:
-  - Replace config loading with `shared_ai_utils.config.ConfigManager` + presets
-  - Keep current YAML/env compatibility
-  - Use shared CLI helpers for richer terminal output
-- **Files**: `src/council_ai/core/config.py`, `src/council_ai/cli.py`
-- **Estimated Effort**: 1-2 days
-- **Reference**: `planning/integration-plan.md`
+  - Using shared_ai_utils.config.ConfigManager
+  - Maintained YAML/env compatibility
+  - Supports dot-notation key access
+- **Files**: `pyproject.toml`, `src/council_ai/core/config.py`
+- **Completed**: 2026-01-16
 
 #### 7. Add Pattern-Coach Mode
 - **Status**: 📝 TODO
