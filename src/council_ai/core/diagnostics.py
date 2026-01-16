@@ -102,6 +102,52 @@ def diagnose_api_keys() -> Dict[str, Any]:
     return diagnostics
 
 
+def test_api_key(provider: str, api_key: Optional[str] = None) -> Tuple[bool, str]:
+    """
+    Test if an API key is valid for a given provider.
+
+    Args:
+        provider: The provider to test (openai, anthropic, gemini)
+        api_key: Optional API key to test. If not provided, uses environment variable.
+
+    Returns:
+        Tuple of (success, message)
+    """
+    # Get API key from parameter or environment
+    key = api_key or get_api_key(provider)
+
+    if not key:
+        return False, f"No API key found for {provider}"
+
+    if is_placeholder_key(key):
+        return False, f"Placeholder API key detected for {provider}"
+
+    # Basic format validation
+    if len(key) < 10:
+        return False, f"API key for {provider} appears too short"
+
+    # Provider-specific validation
+    if provider == "openai":
+        if not key.startswith("sk-"):
+            return False, "OpenAI API key should start with 'sk-'"
+        return True, "API key is valid (format check passed)"
+
+    elif provider == "anthropic":
+        if not key.startswith("sk-ant-"):
+            return False, "Anthropic API key should start with 'sk-ant-'"
+        return True, "API key is valid (format check passed)"
+
+    elif provider == "gemini":
+        # Gemini keys don't have a specific prefix
+        if len(key) < 20:
+            return False, "Gemini API key appears too short"
+        return True, "API key is valid (format check passed)"
+
+    else:
+        # Generic validation for unknown providers
+        return True, f"API key is valid for {provider} (basic check passed)"
+
+
 async def check_provider_connectivity(provider: str) -> Tuple[bool, str, float]:
     """
     Test actual connectivity to a provider by generating a minimal response.
