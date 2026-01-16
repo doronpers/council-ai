@@ -194,7 +194,7 @@ class Council:
             self._provider = manager.get_provider(self._provider_name)
 
             if self._provider is None and fallback:
-                preferred_provider = getattr(manager, "preferred_provider", self._provider_name)
+                preferred_provider = manager.preferred_provider
                 self._provider = manager.get_provider(preferred_provider)
                 if self._provider is not None and preferred_provider != self._provider_name:
                     logger.warning(
