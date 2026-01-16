@@ -108,10 +108,10 @@ def run_command(
 
 
 def check_python_version() -> bool:
-    """Check if Python 3.9+ is installed."""
+    """Check if Python 3.11+ is installed."""
     version = sys.version_info
-    if version.major < 3 or (version.major == 3 and version.minor < 9):
-        print_error(f"Python 3.9+ required, found {version.major}.{version.minor}")
+    if version.major < 3 or (version.major == 3 and version.minor < 11):
+        print_error(f"Python 3.11+ required, found {version.major}.{version.minor}")
         print_info("Please upgrade Python: https://www.python.org/downloads/")
         return False
     print_success(f"Python {version.major}.{version.minor}.{version.micro} detected")
@@ -188,6 +188,17 @@ def check_api_keys() -> Tuple[bool, Optional[str]]:
 
 def install_council(editable: bool = True) -> bool:
     """Install council-ai package."""
+    print_info("Upgrading pip...")
+    
+    # Upgrade pip first
+    upgrade_cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "pip"]
+    returncode, _, _ = run_command(upgrade_cmd, check=False, capture_output=True)
+    
+    if returncode == 0:
+        print_success("pip upgraded successfully")
+    else:
+        print_warning("Could not upgrade pip (continuing anyway)")
+    
     print_info("Installing council-ai...")
 
     if editable:

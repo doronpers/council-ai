@@ -2,7 +2,7 @@
 
 **Intelligent Advisory Council System** - Get advice from a council of AI-powered personas with diverse perspectives and expertise.
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/doronpers/council-ai)
 
@@ -77,8 +77,11 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 - 🌐 **14 Domain Presets** - Coding, business, startup, creative, career, and more
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
 - 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints. Personas can use various LLM providers simultaneously.
-- 💬 **Multiple Modes** - Individual, synthesis, debate, or vote
-- 🧭 **Standalone Web App** - A focused, Dieter Rams-inspired web UI
+- 💬 **Multiple Modes** - Individual, synthesis, debate, vote, or sequential
+- 🔍 **Web Search Integration** - Connect to live web data via Tavily, Serper, or Google Custom Search
+- 🧠 **Reasoning Modes** - Extended thinking for complex analysis
+- 📝 **Session & History Management** - Track, resume, search, and export consultations
+- 🧭 **Standalone Web App** - Modern React/TypeScript UI with Dieter Rams-inspired design
 - 🔊 **Text-to-Speech** - Voice responses via ElevenLabs and OpenAI TTS
 - 📦 **Portable Package** - pip-installable, use in any project
 - 📖 **[Full API Documentation](documentation/API_REFERENCE.md)** - Complete Python API reference
@@ -112,6 +115,9 @@ pip install "council-ai[all]"
 # Clone the repository
 git clone https://github.com/doronpers/council-ai.git
 cd council-ai
+
+# Upgrade pip (recommended)
+pip install --upgrade pip
 
 # Install with specific provider
 pip install -e ".[anthropic]"
@@ -195,8 +201,15 @@ council consult --members grove --members taleb "What's our biggest risk?"
 # With a specific mode
 council consult --mode sequential "Walk through this step-by-step"
 
-# Interactive mode
+# Interactive mode (with session tracking)
 council interactive
+
+# Session & History Management
+council history sessions          # List recent sessions
+council history resume SESSION_ID # Resume a previous session
+council history list              # List all consultations
+council history search "keyword"  # Search history
+council history export CONSULT_ID # Export to markdown/JSON
 
 # Web app (for user testing)
 council web --reload
@@ -403,6 +416,79 @@ result = council.consult(query, mode=ConsultationMode.VOTE)
 
 ---
 
+## Web Search & Reasoning Modes
+
+### Web Search Integration
+
+Council AI can search the web for current information during consultations. Useful for up-to-date facts, news, research, and current events.
+
+**Supported Providers:**
+- **Tavily** (Recommended) - Fast, AI-powered search
+- **Serper.dev** - Google search API  
+- **Google Custom Search** - Official Google API
+
+**Setup:**
+
+```bash
+# Add to your .env file
+TAVILY_API_KEY=your-tavily-key      # Or
+SERPER_API_KEY=your-serper-key      # Or
+GOOGLE_API_KEY=your-key
+GOOGLE_CSE_ID=your-cse-id
+```
+
+**Usage:**
+
+```python
+from council_ai import Council, CouncilConfig
+
+# Enable web search
+config = CouncilConfig(enable_web_search=True)
+council = Council(api_key="key", config=config)
+
+result = council.consult("What are the latest AI developments in 2026?")
+```
+
+### Reasoning Modes
+
+Enable deeper analysis with extended thinking for complex queries:
+
+```python
+config = CouncilConfig(
+    enable_reasoning=True,
+    reasoning_effort="high"  # low, medium, or high
+)
+council = Council(api_key="key", config=config)
+
+result = council.consult("Analyze the trade-offs of our scaling strategy")
+```
+
+**📖 Full Guide:** [Web Search and Reasoning Documentation](documentation/WEB_SEARCH_AND_REASONING.md)
+
+---
+
+## Context Injection
+
+Inject external context (documents, code, data) into consultations:
+
+```python
+context = """
+Company: TechStartup Inc.
+Revenue: $2M ARR
+Team: 15 people
+Challenge: Scaling infrastructure
+"""
+
+result = council.consult(
+    "Should we migrate to Kubernetes?",
+    context=context
+)
+```
+
+**📖 Full Guide:** [Context Injection Guide](documentation/CONTEXT_INJECTION_GUIDE.md)
+
+---
+
 ## Structured Synthesis, Weighting, and Failure Behavior
 
 Council AI can optionally request a structured, JSON-schema-backed synthesis. When enabled,
@@ -578,28 +664,33 @@ per council instance when needed.
 
 ## Web App (Standalone)
 
-The web app is the primary user-testing surface. It features a modern, Dieter Rams-inspired UI built with **React** and **TypeScript**.
+The web app is the primary user-testing surface. It features a modern, Dieter Rams-inspired UI built with **React 18** and **TypeScript**. The frontend architecture was migrated from vanilla JavaScript to a fully modular component-based system with 25+ React components, Context API for state management, and optimized build output.
 
 ### Quick Launch
 
-**Desktop Launcher (macOS):**
-Double-click `launch-council-web.command` in the project root to launch the web interface. The script will:
-- Check for Python and dependencies
-- Install if needed
+**1-Click Desktop Launchers:**
+
+- **macOS**: Double-click `launch-council-web.command`
+- **Windows**: Double-click `launch-council.bat`
+- **Linux/Unix**: Run `./launcher.sh`
+
+All launchers will:
+- Check for Python 3.11+ and dependencies
+- Install/build if needed
 - Launch the web server
 - Open your browser automatically
 
 **Command Line:**
-The easiest way to run the web app is using the launcher script, which automatically handles dependencies and building the frontend:
+The easiest way to run the web app is using the cross-platform launcher:
 
 ```bash
-# Run the interactive launcher (handles npm install & build automatically)
-./launcher.sh
+# Cross-platform launcher (handles npm install & build automatically)
+python3 launch-council.py --open
 ```
 
 ### Manual Launch
 
-If you prefer to run manually or differet parts separately:
+If you prefer to run manually or different parts separately:
 
 ```bash
 # 1. Install Python dependencies
@@ -899,6 +990,11 @@ Contributions welcome! Please read the [contributing guidelines](CONTRIBUTING.md
 # Development setup
 git clone https://github.com/doronpers/council-ai
 cd council-ai
+
+# Upgrade pip (recommended)
+pip install --upgrade pip
+
+# Install in development mode
 pip install -e ".[dev]"
 
 # Run tests
