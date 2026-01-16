@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Replaced "Custom Members" text input in Web UI with a visual selection grid
   - Added 120s timeout to council member queries to prevent system hangs
   - Refactored frontend logic for better modularity
+- **Frontend Architecture Migration (v2.0.0)**:
+  - Migrated from Vanilla JavaScript to React 18 with TypeScript
+  - Created 25+ modular components organized by feature area
+  - Implemented Context API for state management
+  - Added TypeScript for type safety
+  - Preserved Dieter Rams aesthetic (all CSS retained)
+  - Build produces optimized chunks: react-vendor (138KB), main (26KB)
 
 ## [1.0.0] - 2026-01-11
 
