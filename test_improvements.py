@@ -6,7 +6,6 @@ Test script for Council AI improvements:
 - Persona model settings
 """
 
-import os
 import sys
 from pathlib import Path
 

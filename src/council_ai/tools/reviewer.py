@@ -1,6 +1,4 @@
-"""
-Repository Reviewer Tool
-"""
+"""Repository Reviewer Tool."""
 
 import logging
 from pathlib import Path
@@ -113,7 +111,7 @@ class RepositoryReviewer:
         if current_depth >= max_depth:
             return []
 
-        structure = []
+        structure: List[Any] = []
         try:
             for item in sorted(path.iterdir()):
                 if item.name.startswith(".") or item.name in self.excluded_dirs:

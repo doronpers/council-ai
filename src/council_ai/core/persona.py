@@ -14,7 +14,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import yaml
+import yaml  # type: ignore
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -38,6 +38,7 @@ class Trait(BaseModel):
     weight: float = Field(default=1.0, ge=0.0, le=2.0)
 
     def __str__(self) -> str:
+        """Return string representation."""
         return f"{self.name}: {self.description}"
 
 
@@ -87,6 +88,10 @@ class Persona(BaseModel):
     weight: float = Field(default=1.0, ge=0.0, le=2.0)
     enabled: bool = True
 
+    # Reasoning and web search capabilities
+    reasoning_mode: Optional[str] = None  # "chain_of_thought", "tree_of_thought", etc.
+    enable_web_search: bool = False  # Allow this persona to use web search
+
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("id", mode="before")
@@ -97,7 +102,8 @@ class Persona(BaseModel):
         # Ensure it starts with a letter and only contains valid characters
         if not re.match(r"^[a-z][a-z0-9_]*$", normalized):
             raise ValueError(
-                f"ID must start with a letter and contain only lowercase letters, numbers, and underscores: {v}"
+                "ID must start with a letter and contain "
+                f"only lowercase letters, numbers, and underscores: {v}"
             )
         return normalized
 
@@ -208,9 +214,11 @@ When responding:
         return Persona.from_dict(data)
 
     def __str__(self) -> str:
+        """Return string representation."""
         return f"{self.emoji} {self.name} ({self.title})"
 
     def __repr__(self) -> str:
+        """Return debug representation."""
         return f"Persona(id='{self.id}', name='{self.name}')"
 
 
@@ -374,7 +382,10 @@ def get_persona_manager() -> PersonaManager:
         from .config import load_config
 
         config = load_config()
-        custom_paths = [config.custom_personas_path] if config.custom_personas_path else None
+        custom_personas_path = config.custom_personas_path
+        custom_paths: Optional[List[Union[str, Path]]] = (
+            [custom_personas_path] if custom_personas_path else None
+        )
         _default_manager = PersonaManager(custom_paths=custom_paths)
     return _default_manager
 

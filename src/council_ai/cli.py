@@ -102,7 +102,7 @@ def init(ctx):
 
     # Step 0: Detect all available API keys
     console.print("\n[bold]Step 0: Detecting available API keys...[/bold]")
-    diagnostics = diagnose_api_keys()
+    diagnose_api_keys()  # Run diagnostics (results used by get_available_providers)
     available_providers = get_available_providers()
 
     # Show what we found
@@ -229,7 +229,7 @@ def init(ctx):
 
     # Build summary with fallback info
     summary_lines = [
-        f"[green]✓ Setup complete![/green]\n",
+        "[green]✓ Setup complete![/green]\n",
         f"Provider: {provider}",
         f"Default domain: {default_domain}",
         f"Config saved to: {config_manager.path}",

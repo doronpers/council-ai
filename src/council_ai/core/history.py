@@ -207,7 +207,7 @@ class ConsultationHistory:
         else:
             consultation_id = result.id
 
-        data = {
+        data: Dict[str, Any] = {
             "id": consultation_id,
             "query": result.query,
             "context": result.context,
@@ -255,13 +255,12 @@ class ConsultationHistory:
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             os.chmod(json_path, 0o600)
-        except (OSError, PermissionError):
+        except OSError:
             pass
 
         # Also memorize with MemU if available
         if self.memu_service:
             try:
-
                 # Background memorization could be risky in sync context,
                 # but for simplicity we'll just run it in a new event loop or thread if needed,
                 # however council-ai usually runs in an async environment.
@@ -373,7 +372,10 @@ class ConsultationHistory:
 
             conn = sqlite3.connect(self.db_path)
             order = "DESC" if reverse else "ASC"
-            query = f"SELECT id, query, mode, timestamp, synthesis FROM consultations ORDER BY {order_by} {order}"
+            query = (
+                "SELECT id, query, mode, timestamp, synthesis FROM consultations "
+                f"ORDER BY {order_by} {order}"
+            )
             if limit:
                 query += f" LIMIT {limit} OFFSET {offset}"
             cursor = conn.execute(query)
@@ -623,7 +625,8 @@ class ConsultationHistory:
         if self.use_sqlite:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.execute(
-                "SELECT id, name, member_ids, started_at FROM sessions ORDER BY started_at DESC LIMIT ?",
+                "SELECT id, name, member_ids, started_at FROM sessions "
+                "ORDER BY started_at DESC LIMIT ?",
                 (limit,),
             )
             rows = cursor.fetchall()

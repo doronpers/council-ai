@@ -28,6 +28,7 @@ from ..providers import (
 )
 from .config import get_api_key
 from .persona import Persona, PersonaManager, get_persona_manager
+from .reasoning import ReasoningMode, get_reasoning_prompt, get_reasoning_suffix
 from .schemas import SynthesisSchema
 from .session import ConsultationResult, MemberResponse, Session
 
@@ -67,6 +68,10 @@ class CouncilConfig(BaseModel):
     export_enabled_state: bool = False
     # Enable separate consensus analysis pass
     enable_analysis: bool = True
+    # Web search and reasoning capabilities
+    enable_web_search: bool = False  # Enable web search for consultations
+    web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
+    reasoning_mode: Optional[str] = None  # "chain_of_thought", "tree_of_thought", etc.
 
 
 class Council:
@@ -134,6 +139,9 @@ class Council:
         self._sessions: List[Session] = []
         self._current_session: Optional[Session] = None
         self._history = history
+
+        # Web search tool (initialized lazily)
+        self._web_search_tool: Optional[Any] = None
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
@@ -262,9 +270,9 @@ class Council:
             if self._provider is None:
                 from .config import get_available_providers
 
-                available = [p for p, k in get_available_providers() if k]
-                if available:
-                    available_str = ", ".join(available)
+                available_names = [p for p, k in get_available_providers() if k]
+                if available_names:
+                    available_str = ", ".join(available_names)
                     raise ValueError(
                         f"Provider '{self._provider_name}' unavailable. "
                         f"Available providers: {available_str}. "
@@ -312,7 +320,7 @@ class Council:
                     model=model_name,
                     base_url=self._base_url,
                 )
-            except (ValueError, Exception) as e:
+            except Exception:
                 # If persona's provider is unavailable, fall back to default
                 logger.warning(
                     f"Persona '{member.id}' requested provider '{provider_name}' unavailable; "
@@ -357,6 +365,39 @@ class Council:
         }
         validate_model_params(params)
         return params
+
+    def _get_web_search_tool(self):
+        """Get or create web search tool."""
+        if self._web_search_tool is None and self.config.enable_web_search:
+            try:
+                from ..tools.web_search import WebSearchTool
+
+                self._web_search_tool = WebSearchTool()
+            except (ValueError, ImportError) as e:
+                logger.warning(f"Web search not available: {e}")
+                self._web_search_tool = None
+        return self._web_search_tool
+
+    async def _enhance_context_with_web_search(
+        self, query: str, context: Optional[str], member: Persona
+    ) -> Optional[str]:
+        """Enhance context with web search if enabled."""
+        # Check if web search is enabled (council-level or persona-level)
+        if not self.config.enable_web_search and not member.enable_web_search:
+            return None
+
+        web_search = self._get_web_search_tool()
+        if not web_search:
+            return None
+
+        try:
+            # Perform web search
+            search_response = await web_search.search(query, max_results=3)
+            search_context = web_search.format_search_results(search_response)
+            return f"{context or ''}\n\n{search_context}".strip()
+        except Exception as e:
+            logger.warning(f"Web search failed: {e}")
+            return None
 
     # ═══════════════════════════════════════════════════════════════════════════
     # Member Management
@@ -615,8 +656,8 @@ class Council:
         session.add_consultation(result)
 
         # Run post-consult hooks
-        for hook in self._post_consult_hooks:
-            result = hook(result)
+        for post_hook in self._post_consult_hooks:
+            result = post_hook(result)
 
         # Auto-save to history if enabled
         if self._history:
@@ -772,8 +813,8 @@ class Council:
         result.session_id = session.session_id
 
         # Run post-consult hooks
-        for hook in self._post_consult_hooks:
-            result = hook(result)
+        for post_hook in self._post_consult_hooks:
+            result = post_hook(result)
 
         # Auto-save to history if enabled
         if self._history:
@@ -886,8 +927,34 @@ REASONING: [your reasoning]
         Each persona can use a different LLM provider if configured.
         This enables heterogeneous councils with personas using various providers.
         """
+        # Enhance context with web search if enabled
+        enhanced_context = await self._enhance_context_with_web_search(query, context, member)
+        if enhanced_context:
+            context = enhanced_context
+
+        # Apply reasoning mode
+        reasoning_mode_str = member.reasoning_mode or self.config.reasoning_mode
+        reasoning_mode = None
+        if reasoning_mode_str:
+            try:
+                # Normalize to lowercase with underscores to match enum values
+                normalized = str(reasoning_mode_str).lower().replace("-", "_")
+                reasoning_mode = ReasoningMode(normalized)
+            except ValueError:
+                logger.warning(
+                    f"Invalid reasoning mode: {reasoning_mode_str}. "
+                    f"Valid modes: {[m.value for m in ReasoningMode]}"
+                )
+
         system_prompt = member.get_system_prompt()
+        if reasoning_mode:
+            system_prompt = get_reasoning_prompt(reasoning_mode, system_prompt)
+
         user_prompt = member.format_response_prompt(query, context)
+        if reasoning_mode:
+            suffix = get_reasoning_suffix(reasoning_mode)
+            if suffix:
+                user_prompt = f"{user_prompt}{suffix}"
 
         try:
             member_provider = self._get_member_provider(member, provider)

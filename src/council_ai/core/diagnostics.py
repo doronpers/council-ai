@@ -15,7 +15,7 @@ def diagnose_api_keys() -> Dict[str, Any]:
     Returns:
         Dictionary with diagnostic information including all available providers
     """
-    diagnostics = {
+    diagnostics: Dict[str, Any] = {
         "available_keys": {},
         "missing_keys": [],
         "recommendations": [],
@@ -43,7 +43,7 @@ def diagnose_api_keys() -> Dict[str, Any]:
 
         diagnostics["available_keys"][provider] = has_valid_key
 
-        if has_valid_key:
+        if has_valid_key and key:
             diagnostics["provider_status"][provider] = {
                 "has_key": True,
                 "key_length": len(key),
@@ -205,7 +205,7 @@ def check_tts_connectivity() -> Dict[str, Any]:
     if os.environ.get("ELEVENLABS_API_KEY"):
         # We won't generate audio to save credits, just check if we can list voices
         try:
-            import requests
+            import requests  # type: ignore
 
             key = os.environ.get("ELEVENLABS_API_KEY")
             resp = requests.get(
