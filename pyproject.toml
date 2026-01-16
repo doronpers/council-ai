@@ -12,7 +12,7 @@ authors = [
     {name = "Doron Reizes", email = "doron@sonotheia.com"}
 ]
 keywords = [
-    "ai", "llm", "advisory", "council", "decision-making", 
+    "ai", "llm", "advisory", "council", "decision-making",
     "strategy", "review", "personas", "anthropic", "openai"
 ]
 classifiers = [
@@ -104,3 +104,6 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
