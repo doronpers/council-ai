@@ -665,19 +665,24 @@ The web app is the primary user-testing surface. It features a modern, Dieter Ra
 
 ### Quick Launch
 
-**Desktop Launcher (macOS):**
-Double-click `launch-council-web.command` in the project root to launch the web interface. The script will:
-- Check for Python and dependencies
-- Install if needed
+**1-Click Desktop Launchers:**
+
+- **macOS**: Double-click `launch-council-web.command`
+- **Windows**: Double-click `launch-council.bat`
+- **Linux/Unix**: Run `./launcher.sh`
+
+All launchers will:
+- Check for Python 3.11+ and dependencies
+- Install/build if needed
 - Launch the web server
 - Open your browser automatically
 
 **Command Line:**
-The easiest way to run the web app is using the launcher script, which automatically handles dependencies and building the frontend:
+The easiest way to run the web app is using the cross-platform launcher:
 
 ```bash
-# Run the interactive launcher (handles npm install & build automatically)
-./launcher.sh
+# Cross-platform launcher (handles npm install & build automatically)
+python3 launch-council.py --open
 ```
 
 ### Manual Launch

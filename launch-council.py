@@ -108,10 +108,10 @@ def run_command(
 
 
 def check_python_version() -> bool:
-    """Check if Python 3.9+ is installed."""
+    """Check if Python 3.11+ is installed."""
     version = sys.version_info
-    if version.major < 3 or (version.major == 3 and version.minor < 9):
-        print_error(f"Python 3.9+ required, found {version.major}.{version.minor}")
+    if version.major < 3 or (version.major == 3 and version.minor < 11):
+        print_error(f"Python 3.11+ required, found {version.major}.{version.minor}")
         print_info("Please upgrade Python: https://www.python.org/downloads/")
         return False
     print_success(f"Python {version.major}.{version.minor}.{version.micro} detected")
