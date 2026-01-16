@@ -10,14 +10,12 @@ sys.path.insert(0, str(src_path))
 
 import pytest
 
-from council_ai.providers import LLMProvider
+from council_ai.providers import LLMProvider, LLMResponse
+
 
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
-
-
-from council_ai.providers import LLMResponse
 
 
 class MockProvider(LLMProvider):
@@ -51,8 +49,6 @@ def mock_get_provider(monkeypatch):
 
 @pytest.fixture
 def mock_llm_manager(monkeypatch, mock_get_provider):
-    from shared_ai_utils.llm import LLMResponse
-    
     class MockLLMManager:
         def __init__(self, preferred_provider, api_key=None, model=None, base_url=None):
             self.preferred_provider = preferred_provider
