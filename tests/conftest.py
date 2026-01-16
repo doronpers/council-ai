@@ -17,11 +17,15 @@ def anyio_backend():
     return "asyncio"
 
 
+from council_ai.providers import LLMResponse
+
+
 class MockProvider(LLMProvider):
     async def complete(self, system_prompt, user_prompt, max_tokens=1000, temperature=0.7):
-        response = MagicMock()
-        response.text = f"Response from {self.provider_name} model {self.model}"
-        return response
+        return LLMResponse(
+            content=f"Response from {self.provider_name} model {self.model}",
+            model=self.model
+        )
 
     @property
     def provider_name(self):
@@ -47,6 +51,8 @@ def mock_get_provider(monkeypatch):
 
 @pytest.fixture
 def mock_llm_manager(monkeypatch, mock_get_provider):
+    from shared_ai_utils.llm import LLMResponse
+    
     class MockLLMManager:
         def __init__(self, preferred_provider, api_key=None, model=None, base_url=None):
             self.preferred_provider = preferred_provider
@@ -68,12 +74,15 @@ def mock_llm_manager(monkeypatch, mock_get_provider):
             max_tokens=1000,
             temperature=0.7,
         ):
-            response = MagicMock()
             resolved_provider = provider or self.preferred_provider
-            response.text = f"Response from {resolved_provider} model {self.model}"
-            return response
+            return LLMResponse(
+                content=f"Response from {resolved_provider} model {self.model}",
+                model=self.model
+            )
 
     from council_ai.core import council as council_module
+    from council_ai import providers as providers_module
 
     monkeypatch.setattr(council_module, "LLMManager", MockLLMManager)
+    monkeypatch.setattr(providers_module, "get_llm_manager", lambda **kwargs: MockLLMManager(**kwargs))
     return MockLLMManager
