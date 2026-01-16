@@ -43,15 +43,19 @@ except Exception:
     # Failed to set up colors (e.g., unsupported terminal)
     GREEN = YELLOW = RED = BLUE = CYAN = MAGENTA = RESET = BOLD = ""
 
+QUIET = False
 
-def print_status(message: str, color: str = ""):
+
+def print_status(message: str, color: str = "", force: bool = False):
     """Print a status message with optional color."""
+    if QUIET and not force:
+        return
     print(f"{color}{message}{RESET}")
 
 
 def print_error(message: str):
     """Print an error message."""
-    print_status(f"❌ {message}", RED)
+    print_status(f"❌ {message}", RED, force=True)
 
 
 def print_success(message: str):
@@ -245,7 +249,8 @@ def launch_web_app(
 
     print_info(f"Launching Council AI web app on {url}")
     print_status("💡 Tip: Press Ctrl+C to stop the server", YELLOW)
-    print()
+    if not QUIET:
+        print()
 
     # Welcome message
     welcome = f"""
@@ -266,7 +271,8 @@ def launch_web_app(
 {BOLD}To stop:{RESET} Press {CYAN}Ctrl+C{RESET}
 
 """
-    print(welcome)
+    if not QUIET:
+        print(welcome)
 
     # Open browser if requested
     if open_browser_flag:
@@ -319,9 +325,18 @@ def main():
     )
     parser.add_argument("--open", action="store_true", help="Open browser automatically")
     parser.add_argument("--install", action="store_true", help="Install council-ai if not found")
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Silent mode (suppress non-error output)",
+    )
     args = parser.parse_args()
 
-    print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
+    global QUIET
+    QUIET = args.quiet
+
+    if not QUIET:
+        print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
 
     # Check Python version
     print_status("Checking prerequisites...", CYAN)
@@ -367,7 +382,8 @@ def main():
     else:
         print_success(f"API key detected for {provider}")
 
-    print()
+    if not QUIET:
+        print()
 
     # Launch web app
     return launch_web_app(
