@@ -18,7 +18,14 @@ from uuid import uuid4
 
 from pydantic import BaseModel
 
-from ..providers import LLMProvider, get_provider, normalize_model_params, validate_model_params
+from ..providers import (
+    LLMManager,
+    LLMProvider,
+    get_llm_manager,
+    get_provider,
+    normalize_model_params,
+    validate_model_params,
+)
 from .config import get_api_key
 from .persona import Persona, PersonaManager, get_persona_manager
 from .schemas import SynthesisSchema
@@ -110,6 +117,7 @@ class Council:
         self._persona_manager = persona_manager or get_persona_manager()
         self._members: Dict[str, Persona] = {}
         self._provider: Optional[LLMProvider] = None
+        self._llm_manager: Optional[LLMManager] = None
         self._provider_name = provider
         self._api_key = api_key
         self._model = model
@@ -160,6 +168,17 @@ class Council:
 
         return council
 
+    def _get_llm_manager(self) -> LLMManager:
+        """Get or create the LLMManager."""
+        if self._llm_manager is None:
+            self._llm_manager = get_llm_manager(
+                preferred_provider=self._provider_name,
+                api_key=self._api_key,
+                model=self._model,
+                base_url=self._base_url,
+            )
+        return self._llm_manager
+
     def _get_provider(self, fallback: bool = True) -> LLMProvider:
         """
         Get or create the LLM provider.
@@ -171,50 +190,25 @@ class Council:
             LLMProvider instance
         """
         if self._provider is None:
-            try:
-                self._provider = get_provider(
-                    self._provider_name,
-                    api_key=self._api_key,
-                    model=self._model,
-                    base_url=self._base_url,
+            manager = self._get_llm_manager()
+            self._provider = manager.get_provider(self._provider_name)
+
+            if self._provider is None and fallback:
+                preferred_provider = manager.preferred_provider
+                self._provider = manager.get_provider(preferred_provider)
+                if self._provider is not None and preferred_provider != self._provider_name:
+                    logger.warning(
+                        "Provider '%s' unavailable; falling back to '%s'.",
+                        self._provider_name,
+                        preferred_provider,
+                    )
+                    self._provider_name = preferred_provider
+
+            if self._provider is None:
+                raise ValueError(
+                    f"Provider '{self._provider_name}' unavailable. "
+                    "Please check your API keys or run 'council providers --diagnose'."
                 )
-            except (ValueError, ImportError) as e:
-                if fallback:
-                    # Try fallback providers in order: anthropic, gemini, openai
-                    fallback_order = ["anthropic", "gemini", "openai"]
-                    fallback_order = [p for p in fallback_order if p != self._provider_name]
-
-                    last_error = e
-                    for fallback_provider in fallback_order:
-                        fallback_key = get_api_key(fallback_provider)
-                        if fallback_key:
-                            try:
-                                self._provider = get_provider(
-                                    fallback_provider,
-                                    api_key=fallback_key,
-                                    model=self._model,
-                                    base_url=self._base_url,
-                                )
-                                logger.warning(
-                                    f"{self._provider_name} provider failed ({e}). "
-                                    f"Falling back to {fallback_provider}."
-                                )
-                                self._provider_name = fallback_provider
-                                break
-                            except Exception as fallback_error:
-                                logger.debug(
-                                    f"Fallback to {fallback_provider} also failed: {fallback_error}"
-                                )
-                                continue
-
-                    if self._provider is None:
-                        raise ValueError(
-                            f"Primary provider '{self._provider_name}' failed: {str(last_error)}. "
-                            f"No fallback providers available. Please check your API keys. "
-                            f"Run 'council providers --diagnose' for troubleshooting."
-                        ) from last_error
-                else:
-                    raise
         return self._provider
 
     def _get_member_provider(self, member: Persona, default_provider: LLMProvider) -> LLMProvider:
@@ -805,15 +799,29 @@ REASONING: [your reasoning]
         try:
             member_provider = self._get_member_provider(member, provider)
             params = self._resolve_member_generation_params(member)
-            response = await asyncio.wait_for(
-                member_provider.complete(
-                    system_prompt=system_prompt,
-                    user_prompt=user_prompt,
-                    max_tokens=params["max_tokens"],
-                    temperature=params["temperature"],
-                ),
-                timeout=120.0,
-            )
+            if member_provider is provider:
+                manager = self._get_llm_manager()
+                response = await asyncio.wait_for(
+                    manager.generate(
+                        system_prompt=system_prompt,
+                        user_prompt=user_prompt,
+                        provider=self._provider_name,
+                        fallback=True,
+                        max_tokens=params["max_tokens"],
+                        temperature=params["temperature"],
+                    ),
+                    timeout=120.0,
+                )
+            else:
+                response = await asyncio.wait_for(
+                    member_provider.complete(
+                        system_prompt=system_prompt,
+                        user_prompt=user_prompt,
+                        max_tokens=params["max_tokens"],
+                        temperature=params["temperature"],
+                    ),
+                    timeout=120.0,
+                )
             content = response.text
 
             # Run response hooks
@@ -1045,12 +1053,27 @@ Please provide a comprehensive synthesis that:
                 if self.config.synthesis_max_tokens is not None
                 else self.config.max_tokens_per_response * 2
             )
-            response = await provider.complete(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                max_tokens=max_tokens,  # Synthesis can be longer
-                temperature=self.config.temperature,
-            )
+            if (
+                provider is self._provider
+                and not self.config.synthesis_provider
+                and not self.config.synthesis_model
+            ):
+                manager = self._get_llm_manager()
+                response = await manager.generate(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    provider=self._provider_name,
+                    fallback=True,
+                    max_tokens=max_tokens,
+                    temperature=self.config.temperature,
+                )
+            else:
+                response = await provider.complete(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    max_tokens=max_tokens,  # Synthesis can be longer
+                    temperature=self.config.temperature,
+                )
             return response.text
         except Exception as e:
             logger.error(f"Failed to generate synthesis: {e}")

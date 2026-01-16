@@ -4,33 +4,9 @@ Ensures that personas can use different providers and models within the same cou
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from council_ai.core.persona import Persona, Trait
 from council_ai.core.council import Council, CouncilConfig
-from council_ai.providers import LLMProvider
-
-class MockProvider(LLMProvider):
-    async def complete(self, system_prompt, user_prompt, max_tokens=1000, temperature=0.7):
-        response = MagicMock()
-        response.text = f"Response from {self.provider_name} model {self.model}"
-        return response
-
-    @property
-    def provider_name(self):
-        return getattr(self, "_provider_name", "mock")
-
-    def is_available(self):
-        return True
-
-@pytest.fixture
-def mock_get_provider():
-    with patch("council_ai.core.council.get_provider") as mock:
-        def side_effect(name, **kwargs):
-            provider = MockProvider(api_key=kwargs.get("api_key"), model=kwargs.get("model"))
-            provider._provider_name = name
-            return provider
-        mock.side_effect = side_effect
-        yield mock
 
 @pytest.fixture
 def mock_get_api_key():
@@ -52,7 +28,7 @@ def test_persona_provider_field():
     assert persona.provider == "anthropic"
     assert persona.model == "claude-3"
 
-def test_council_member_provider_resolution(mock_get_provider, mock_get_api_key):
+def test_council_member_provider_resolution(mock_get_provider, mock_llm_manager, mock_get_api_key):
     """Test that Council correctly resolves per-persona providers."""
     council = Council(provider="openai", model="gpt-4", api_key="openai-key")
     
@@ -84,7 +60,9 @@ def test_council_member_provider_resolution(mock_get_provider, mock_get_api_key)
     assert prov3.api_key == "key-for-anthropic"
 
 @pytest.mark.asyncio
-async def test_heterogeneous_council_consultation(mock_get_provider, mock_get_api_key):
+async def test_heterogeneous_council_consultation(
+    mock_get_provider, mock_llm_manager, mock_get_api_key
+):
     """Test a consultation with a heterogeneous council."""
     council = Council(provider="openai", model="gpt-4", api_key="openai-key")
     
