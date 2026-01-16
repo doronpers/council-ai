@@ -13,13 +13,19 @@ git clone https://github.com/doronpers/council-ai.git
 cd council-ai
 ```
 
-1. **Install in development mode**
+2. **Upgrade pip (recommended)**
+
+```bash
+pip install --upgrade pip
+```
+
+3. **Install in development mode**
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-1. **Run tests**
+4. **Run tests**
 
 ```bash
 ```bash

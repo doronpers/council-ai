@@ -116,6 +116,9 @@ pip install "council-ai[all]"
 git clone https://github.com/doronpers/council-ai.git
 cd council-ai
 
+# Upgrade pip (recommended)
+pip install --upgrade pip
+
 # Install with specific provider
 pip install -e ".[anthropic]"
 pip install -e ".[openai]"
@@ -687,7 +690,7 @@ python3 launch-council.py --open
 
 ### Manual Launch
 
-If you prefer to run manually or differet parts separately:
+If you prefer to run manually or different parts separately:
 
 ```bash
 # 1. Install Python dependencies
@@ -987,6 +990,11 @@ Contributions welcome! Please read the [contributing guidelines](CONTRIBUTING.md
 # Development setup
 git clone https://github.com/doronpers/council-ai
 cd council-ai
+
+# Upgrade pip (recommended)
+pip install --upgrade pip
+
+# Install in development mode
 pip install -e ".[dev]"
 
 # Run tests
