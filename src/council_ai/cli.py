@@ -83,7 +83,11 @@ def init(ctx):
     Initialize Council AI with a setup wizard.
 
     Guides you through first-time setup including API keys and preferences.
+    Automatically detects all available API keys and suggests the best provider.
     """
+    from .core.config import get_available_providers, get_best_available_provider
+    from .core.diagnostics import diagnose_api_keys
+
     config_manager = ctx.obj["config_manager"]
 
     console.print(
@@ -96,15 +100,63 @@ def init(ctx):
         )
     )
 
+    # Step 0: Detect all available API keys
+    console.print("\n[bold]Step 0: Detecting available API keys...[/bold]")
+    diagnostics = diagnose_api_keys()
+    available_providers = get_available_providers()
+
+    # Show what we found
+    found_keys = []
+    for provider_name, api_key in available_providers:
+        if api_key:
+            found_keys.append(provider_name)
+            console.print(f"[green]✓[/green] Found {provider_name.upper()} API key")
+
+    if not found_keys:
+        console.print("[yellow]⚠[/yellow] No API keys detected in environment variables")
+        console.print("[dim]We'll help you configure one in the next step[/dim]")
+    else:
+        console.print(
+            f"\n[bold]Found {len(found_keys)} available provider(s):[/bold] {', '.join(found_keys)}"
+        )
+        best = get_best_available_provider()
+        if best:
+            console.print(f"[cyan]💡 Recommended:[/cyan] {best[0]} (best supported provider)")
+
     # Step 1: Choose provider
     console.print("\n[bold]Step 1: Choose your LLM provider[/bold]")
-    providers = list_providers()
-    console.print(f"Available providers: {', '.join(providers)}")
+    all_providers = list_providers()
+    console.print(f"Supported providers: {', '.join(all_providers)}")
+
+    # Build choices with availability indicators
+    default_provider = config_manager.get("api.provider", "anthropic")
+    provider_availability = {}
+
+    for provider_name in all_providers:
+        has_key = any(p == provider_name and k for p, k in available_providers)
+        provider_availability[provider_name] = has_key
+        if has_key:
+            # Use first available as default if no config
+            if not config_manager.get("api.provider") and default_provider == "anthropic":
+                default_provider = provider_name
+
+    # If we have a best provider, use it as default
+    best = get_best_available_provider()
+    if best and best[0] in all_providers:
+        default_provider = best[0]
+
+    console.print("\nAvailable options:")
+    for provider_name in all_providers:
+        has_key = provider_availability[provider_name]
+        if has_key:
+            console.print(f"  • {provider_name} [green](API key available)[/green]")
+        else:
+            console.print(f"  • {provider_name} [dim](no API key)[/dim]")
 
     provider = Prompt.ask(
-        "Which provider would you like to use?",
-        choices=providers,
-        default=config_manager.get("api.provider", "openai"),
+        "\nWhich provider would you like to use?",
+        choices=all_providers,
+        default=default_provider,
     )
     config_manager.set("api.provider", provider)
 
@@ -112,12 +164,21 @@ def init(ctx):
     console.print("\n[bold]Step 2: Configure API key[/bold]")
     existing_key = get_api_key(provider)
 
-    if existing_key and "your-" not in existing_key.lower():
+    # Also check for vercel/generic if using openai
+    if provider == "openai":
+        vercel_key = get_api_key("vercel")
+        if vercel_key:
+            existing_key = vercel_key
+            console.print("[cyan]ℹ[/cyan] Using AI_GATEWAY_API_KEY (Vercel AI Gateway)")
+
+    if existing_key and "your-" not in existing_key.lower() and "here" not in existing_key.lower():
         console.print(f"[green]✓[/green] Found existing {provider.upper()} API key")
         if not Confirm.ask("Do you want to update it?", default=False):
             existing_key = None  # Skip update
+    else:
+        existing_key = None
 
-    if not existing_key or ("your-" in existing_key.lower()):
+    if not existing_key:
         console.print("\n[dim]You can get an API key from:[/dim]")
         if provider == "anthropic":
             console.print("  https://console.anthropic.com/")
@@ -129,12 +190,25 @@ def init(ctx):
         console.print(
             f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your environment"
         )
+        if provider == "openai":
+            console.print(
+                "[dim]Or use AI_GATEWAY_API_KEY for Vercel AI Gateway (OpenAI-compatible)[/dim]"
+            )
 
         if Confirm.ask("Do you have an API key to configure now?", default=True):
             api_key = Prompt.ask(f"{provider.capitalize()} API key", password=True)
             if api_key:
                 config_manager.set("api.api_key", api_key)
                 console.print("[green]✓[/green] API key saved to config")
+        else:
+            # Show fallback information
+            if found_keys:
+                console.print(
+                    f"\n[cyan]ℹ[/cyan] You have {len(found_keys)} other provider(s) available: {', '.join(found_keys)}"
+                )
+                console.print(
+                    "[dim]Council AI will automatically use these as fallbacks if needed[/dim]"
+                )
 
     # Step 3: Default domain
     console.print("\n[bold]Step 3: Choose default domain[/bold]")
@@ -153,16 +227,38 @@ def init(ctx):
     # Step 4: Save
     config_manager.save()
 
+    # Build summary with fallback info
+    summary_lines = [
+        f"[green]✓ Setup complete![/green]\n",
+        f"Provider: {provider}",
+        f"Default domain: {default_domain}",
+        f"Config saved to: {config_manager.path}",
+    ]
+
+    # Add fallback information
+    if len(found_keys) > 1 or (len(found_keys) == 1 and provider not in found_keys):
+        fallback_providers = [p for p in found_keys if p != provider]
+        if fallback_providers:
+            summary_lines.append(
+                f"\n[cyan]Fallback providers:[/cyan] {', '.join(fallback_providers)}"
+            )
+            summary_lines.append(
+                "[dim]Council AI will automatically use these if the primary provider fails[/dim]"
+            )
+
+    summary_lines.extend(
+        [
+            "\n[bold]Next steps:[/bold]",
+            "  • Run 'council consult \"your question\"' to get started",
+            "  • Run 'council interactive' for a session",
+            "  • Run 'council --help' to see all commands",
+            "  • Run 'council providers --diagnose' to check API key status",
+        ]
+    )
+
     console.print(
         Panel(
-            f"[green]✓ Setup complete![/green]\n\n"
-            f"Provider: {provider}\n"
-            f"Default domain: {default_domain}\n"
-            f"Config saved to: {config_manager.path}\n\n"
-            f"[bold]Next steps:[/bold]\n"
-            f"  • Run 'council consult \"your question\"' to get started\n"
-            f"  • Run 'council interactive' for a session\n"
-            f"  • Run 'council --help' to see all commands",
+            "\n".join(summary_lines),
             title="Setup Complete",
             border_style="green",
         )
@@ -1521,12 +1617,16 @@ def doctor():
     Checks API keys, provider connectivity, and system health.
     """
     import asyncio
-    from .core.diagnostics import check_provider_connectivity, check_tts_connectivity, diagnose_api_keys
+
+    from .core.diagnostics import (
+        check_provider_connectivity,
+        check_tts_connectivity,
+        diagnose_api_keys,
+    )
 
     console.print(
         Panel(
-            "[bold]🏥 Council Doctor[/bold]\n"
-            "Checking vital signs...",
+            "[bold]🏥 Council Doctor[/bold]\n" "Checking vital signs...",
             border_style="green",
         )
     )
@@ -1576,10 +1676,7 @@ def doctor():
             status_icon = "✅ Online" if success else "❌ Failed"
             status_style = "green" if success else "red"
             conn_table.add_row(
-                provider, 
-                f"[{status_style}]{status_icon}[/{status_style}]", 
-                f"{latency:.0f}ms", 
-                msg
+                provider, f"[{status_style}]{status_icon}[/{status_style}]", f"{latency:.0f}ms", msg
             )
 
         console.print(conn_table)
@@ -1590,22 +1687,22 @@ def doctor():
     # 3. TTS Check
     with console.status("[bold green]Checking Voice capability..."):
         tts_results = check_tts_connectivity()
-    
+
     if tts_results:
         tts_table = Table(title="Text-to-Speech Status", box=None)
         tts_table.add_column("Provider", style="cyan")
         tts_table.add_column("Status", style="bold")
         tts_table.add_column("Message", style="dim")
-        
+
         for provider, res in tts_results.items():
             icon = "✅ Ready" if res["ok"] else "❌ Error"
             style = "green" if res["ok"] else "red"
             tts_table.add_row(provider, f"[{style}]{icon}[/{style}]", res["msg"])
-            
+
         console.print(tts_table)
     else:
         console.print("[dim]No TTS providers configured.[/dim]")
-    
+
     console.print("\n[bold]Diagnosis:[/bold]")
     if key_diag["recommendations"]:
         for rec in key_diag["recommendations"]:

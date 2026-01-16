@@ -114,12 +114,14 @@ def get_llm_manager(
     model: Optional[str] = None,
     base_url: Optional[str] = None,
 ) -> LLMManager:
-    """Create an LLMManager configured for Council defaults."""
+    """Create an LLMManager configured for Council defaults.
+
+    Note: api_key, model, and base_url are not passed to LLMManager
+    as it initializes providers from environment variables.
+    These parameters are kept for API compatibility but unused.
+    """
     return LLMManager(
         preferred_provider=preferred_provider,
-        api_key=api_key,
-        model=model,
-        base_url=base_url,
     )
 
 

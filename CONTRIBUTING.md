@@ -101,12 +101,12 @@ Create a class in `src/council_ai/providers/__init__.py`:
 ```python
 class YourProvider(LLMProvider):
     """Your LLM provider."""
-    
+
     def __init__(self, api_key: Optional[str] = None):
         super().__init__(api_key or os.environ.get("YOUR_API_KEY"))
         if not self.api_key:
             raise ValueError("API key required")
-    
+
     async def complete(
         self,
         system_prompt: str,
@@ -130,10 +130,10 @@ def test_your_feature():
     """Test description."""
     # Arrange
     council = Council(api_key="test-key")
-    
+
     # Act
     result = council.some_method()
-    
+
     # Assert
     assert result == expected_value
 ```

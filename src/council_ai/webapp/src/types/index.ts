@@ -151,6 +151,8 @@ export interface HistoryEntry {
     timestamp: string;
     mode: string;
     member_count: number;
+    tags?: string[];
+    notes?: string;
 }
 
 // TTS types

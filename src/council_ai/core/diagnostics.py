@@ -13,79 +13,92 @@ def diagnose_api_keys() -> Dict[str, Any]:
     Diagnose API key configuration and provide troubleshooting information.
 
     Returns:
-        Dictionary with diagnostic information
+        Dictionary with diagnostic information including all available providers
     """
     diagnostics = {
         "available_keys": {},
         "missing_keys": [],
         "recommendations": [],
         "provider_status": {},
+        "best_provider": None,
     }
 
-    # Check each provider
-    providers_to_check = ["openai", "anthropic", "gemini"]
+    # Check all providers including vercel and generic
+    providers_to_check = ["openai", "anthropic", "gemini", "vercel", "generic"]
 
     for provider in providers_to_check:
-        key = get_api_key(provider)
-        diagnostics["available_keys"][provider] = bool(key)
+        if provider == "vercel":
+            key = sanitize_api_key(os.environ.get("AI_GATEWAY_API_KEY"))
+            env_var = "AI_GATEWAY_API_KEY"
+        elif provider == "generic":
+            key = sanitize_api_key(os.environ.get("COUNCIL_API_KEY"))
+            env_var = "COUNCIL_API_KEY"
+        else:
+            key = get_api_key(provider)
+            env_var = f"{provider.upper()}_API_KEY"
 
-        if key:
+        # Check if it's a placeholder
+        is_placeholder = is_placeholder_key(key) if key else False
+        has_valid_key = bool(key) and not is_placeholder
+
+        diagnostics["available_keys"][provider] = has_valid_key
+
+        if has_valid_key:
             diagnostics["provider_status"][provider] = {
                 "has_key": True,
                 "key_length": len(key),
                 "key_prefix": key[:8] + "..." if len(key) > 8 else "***",
+                "env_var": env_var,
             }
         else:
-            diagnostics["missing_keys"].append(provider)
-            diagnostics["provider_status"][provider] = {
-                "has_key": False,
-                "env_var": f"{provider.upper()}_API_KEY",
-            }
+            if is_placeholder:
+                diagnostics["missing_keys"].append(provider)
+                diagnostics["provider_status"][provider] = {
+                    "has_key": False,
+                    "env_var": env_var,
+                    "note": "Placeholder API key detected - please replace with real key",
+                }
+            else:
+                diagnostics["missing_keys"].append(provider)
+                diagnostics["provider_status"][provider] = {
+                    "has_key": False,
+                    "env_var": env_var,
+                }
 
-    # Check Vercel AI Gateway
-    vercel_key = sanitize_api_key(os.environ.get("AI_GATEWAY_API_KEY"))
-    if vercel_key:
-        diagnostics["available_keys"]["vercel"] = True
-        diagnostics["provider_status"]["vercel"] = {
-            "has_key": True,
-            "key_length": len(vercel_key),
-            "key_prefix": vercel_key[:8] + "..." if len(vercel_key) > 8 else "***",
-            "note": "Vercel AI Gateway can be used with OpenAI provider",
-        }
-    else:
-        diagnostics["provider_status"]["vercel"] = {
-            "has_key": False,
-            "env_var": "AI_GATEWAY_API_KEY",
-        }
-        if is_placeholder_key(os.environ.get("AI_GATEWAY_API_KEY", "")):
-            diagnostics["provider_status"]["vercel"]["note"] = "Placeholder API key detected"
+    # Determine best provider
+    from .config import get_best_available_provider
 
-    # Check generic key
-    generic_key = sanitize_api_key(os.environ.get("COUNCIL_API_KEY"))
-    if generic_key:
-        diagnostics["available_keys"]["generic"] = True
-        diagnostics["provider_status"]["generic"] = {
+    best = get_best_available_provider()
+    if best:
+        diagnostics["best_provider"] = {
+            "name": best[0],
             "has_key": True,
-            "key_length": len(generic_key),
-        }
-    elif is_placeholder_key(os.environ.get("COUNCIL_API_KEY", "")):
-        diagnostics["provider_status"]["generic"] = {
-            "has_key": False,
-            "env_var": "COUNCIL_API_KEY",
-            "note": "Placeholder API key detected",
         }
 
     # Generate recommendations
-    if not any(diagnostics["available_keys"].values()):
+    available_providers = [p for p, has_key in diagnostics["available_keys"].items() if has_key]
+
+    if not available_providers:
         diagnostics["recommendations"].append(
             "No API keys found. Please set at least one of: "
-            "OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or AI_GATEWAY_API_KEY"
+            "OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, AI_GATEWAY_API_KEY, or COUNCIL_API_KEY"
+        )
+        diagnostics["recommendations"].append(
+            "You can get API keys from:\n"
+            "  • Anthropic: https://console.anthropic.com/\n"
+            "  • OpenAI: https://platform.openai.com/api-keys\n"
+            "  • Gemini: https://ai.google.dev/"
         )
     else:
-        available = [p for p, has_key in diagnostics["available_keys"].items() if has_key]
         diagnostics["recommendations"].append(
-            f"Available providers: {', '.join(available)}. "
-            f"Council AI will use these with automatic fallback."
+            f"Found {len(available_providers)} available provider(s): {', '.join(available_providers)}"
+        )
+        if best:
+            diagnostics["recommendations"].append(
+                f"Recommended provider: {best[0]} (will be used as default with automatic fallback)"
+            )
+        diagnostics["recommendations"].append(
+            "Council AI will automatically use available providers with fallback if one fails."
         )
 
     # TTS checks

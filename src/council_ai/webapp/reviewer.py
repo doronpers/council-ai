@@ -21,12 +21,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from council_ai import Council
-from council_ai.core.config import (
-    ConfigManager,
-    get_api_key,
-    is_placeholder_key,
-    sanitize_api_key,
-)
+from council_ai.core.config import ConfigManager, get_api_key, is_placeholder_key, sanitize_api_key
 from council_ai.core.council import ConsultationMode, CouncilConfig
 from council_ai.core.persona import list_personas
 
@@ -163,6 +158,7 @@ class ReviewResult(BaseModel):
         default_factory=list, description="Warnings about partial failures or rate limits"
     )
 
+
 # Staging Store (Simple in-memory cache for demo purposes)
 # In production, use Redis or database
 _STAGING_CACHE: Dict[str, ReviewRequest] = {}
@@ -170,12 +166,14 @@ _STAGING_CACHE: Dict[str, ReviewRequest] = {}
 
 class StagingRequest(BaseModel):
     """Request to stage a consultation for review."""
+
     question: str
     responses: List[Dict[str, Any]]  # From MemberResponse.to_dict()
 
 
 class StagingResponse(BaseModel):
     """Response from staging."""
+
     staging_id: str
 
 
@@ -183,7 +181,7 @@ class StagingResponse(BaseModel):
 async def stage_review(request: StagingRequest) -> StagingResponse:
     """Stage a consultation for review."""
     staging_id = str(uuid4())
-    
+
     # Convert member responses to ReviewRequest format
     llm_responses = []
     for i, r in enumerate(request.responses, 1):
@@ -191,12 +189,8 @@ async def stage_review(request: StagingRequest) -> StagingResponse:
         persona = r.get("persona_name", "Unknown")
         content = r.get("content", "")
         if content:
-            llm_responses.append(LLMResponse(
-                id=i,
-                content=content,
-                source=persona
-            ))
-            
+            llm_responses.append(LLMResponse(id=i, content=content, source=persona))
+
     # Create ReviewRequest with defaults
     review_req = ReviewRequest(
         question=request.question,
@@ -204,9 +198,9 @@ async def stage_review(request: StagingRequest) -> StagingResponse:
         # Default council config
         justices=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove"],
         chair="dempsey",
-        vice_chair="kahneman"
+        vice_chair="kahneman",
     )
-    
+
     _STAGING_CACHE[staging_id] = review_req
     return StagingResponse(staging_id=staging_id)
 
@@ -1064,8 +1058,14 @@ async def _fetch_google_docs_content(url: str) -> Optional[str]:
     """
     Fetch content from Google Docs URL.
 
-    Note: This requires Google API credentials. For now, we'll return None
-    and rely on exported content instead.
+    TODO: This feature is incomplete and requires Google API credentials.
+    Currently returns None and relies on manually exported/pasted content.
+
+    To implement:
+    1. Set up Google API credentials at ~/.config/council-ai/google_credentials.json
+    2. Install google-api-python-client: pip install google-api-python-client
+    3. Implement OAuth2 flow for authentication
+    4. Use Google Docs API to fetch document content
 
     Args:
         url: Google Docs URL

@@ -87,6 +87,27 @@ export async function deleteHistoryEntry(id: string): Promise<void> {
 }
 
 /**
+ * Get a specific consultation by ID
+ */
+export async function getConsultation(id: string): Promise<ConsultationResult> {
+    return fetchApi<ConsultationResult>(`/history/${id}`);
+}
+
+/**
+ * Update tags and notes for a consultation
+ */
+export async function updateConsultationMetadata(
+    id: string,
+    tags?: string[],
+    notes?: string
+): Promise<{ status: string; id: string }> {
+    return fetchApi<{ status: string; id: string }>(`/history/${id}/save`, {
+        method: 'POST',
+        body: JSON.stringify({ tags, notes }),
+    });
+}
+
+/**
  * Load TTS voices
  */
 export async function loadTTSVoices(): Promise<

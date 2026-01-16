@@ -76,7 +76,7 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 - 🎭 **9 Built-in Personas** - Advisory Council (build it right) + Red Team (break & survive) + Experts
 - 🌐 **14 Domain Presets** - Coding, business, startup, creative, career, and more
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
-- 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints
+- 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints. Personas can use various LLM providers simultaneously.
 - 💬 **Multiple Modes** - Individual, synthesis, debate, or vote
 - 🧭 **Standalone Web App** - A focused, Dieter Rams-inspired web UI
 - 🔊 **Text-to-Speech** - Voice responses via ElevenLabs and OpenAI TTS
@@ -582,6 +582,14 @@ The web app is the primary user-testing surface. It features a modern, Dieter Ra
 
 ### Quick Launch
 
+**Desktop Launcher (macOS):**
+Double-click `launch-council-web.command` in the project root to launch the web interface. The script will:
+- Check for Python and dependencies
+- Install if needed
+- Launch the web server
+- Open your browser automatically
+
+**Command Line:**
 The easiest way to run the web app is using the launcher script, which automatically handles dependencies and building the frontend:
 
 ```bash
@@ -938,6 +946,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on adding domains, providers,
 ## License
 
 MIT License - see LICENSE file.
+
+---
+
+## 📋 Roadmap & TODOs
+
+For a complete list of planned features, improvements, and TODOs, see [ROADMAP.md](./ROADMAP.md).
 
 ---
 

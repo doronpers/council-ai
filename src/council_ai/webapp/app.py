@@ -444,12 +444,6 @@ async def history_delete(consultation_id: str) -> dict:
     raise HTTPException(status_code=404, detail="Consultation not found")
 
 
-@app.get("/api/history/search_legacy")
-async def history_search_legacy(q: str, limit: Optional[int] = None) -> dict:
-    # This was the old search route, keep it for now if needed or just remove it
-    return await history_search(q, limit)
-
-
 # TTS Helper Functions
 
 

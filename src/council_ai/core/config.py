@@ -198,12 +198,57 @@ def get_available_providers() -> list[tuple[str, Optional[str]]]:
 
     Returns:
         List of (provider_name, api_key) tuples. api_key is None if not available.
+        Includes all supported providers: openai, anthropic, gemini, vercel, and generic.
     """
     providers = []
+
+    # Check standard providers
     for provider_name in ["openai", "anthropic", "gemini"]:
         key = get_api_key(provider_name)
         providers.append((provider_name, key))
+
+    # Check Vercel AI Gateway (OpenAI-compatible)
+    vercel_key = sanitize_api_key(os.environ.get("AI_GATEWAY_API_KEY"))
+    if vercel_key and not is_placeholder_key(vercel_key):
+        providers.append(("vercel", vercel_key))
+    else:
+        providers.append(("vercel", None))
+
+    # Check generic COUNCIL_API_KEY (can work with any provider)
+    generic_key = sanitize_api_key(os.environ.get("COUNCIL_API_KEY"))
+    if generic_key and not is_placeholder_key(generic_key):
+        providers.append(("generic", generic_key))
+    else:
+        providers.append(("generic", None))
+
     return providers
+
+
+def get_best_available_provider() -> Optional[tuple[str, Optional[str]]]:
+    """
+    Get the best available provider based on availability and preferences.
+
+    Priority order:
+    1. Anthropic (if available)
+    2. OpenAI (if available)
+    3. Gemini (if available)
+    4. Vercel AI Gateway (if available)
+    5. Generic COUNCIL_API_KEY (if available)
+
+    Returns:
+        Tuple of (provider_name, api_key) or None if no providers available
+    """
+    providers = get_available_providers()
+
+    # Priority order
+    priority = ["anthropic", "openai", "gemini", "vercel", "generic"]
+
+    for preferred in priority:
+        for provider_name, api_key in providers:
+            if provider_name == preferred and api_key:
+                return (provider_name, api_key)
+
+    return None
 
 
 def get_tts_api_key(provider: str = "elevenlabs") -> Optional[str]:

@@ -76,10 +76,17 @@ class Council:
     The Council orchestrates conversations with multiple personas,
     synthesizes their perspectives, and provides comprehensive advice.
 
+    Key Features:
+    - Personas can use various LLM providers simultaneously
+    - Each persona can have unique model/provider settings
+    - Automatic fallback to available LLM providers
+    - Heterogeneous councils: different personas use different providers
+
     Example:
         council = Council(api_key="your-key", provider="anthropic")
-        council.add_member("rams")
-        council.add_member("grove")
+        council.add_member("rams")  # Uses Claude Opus (if available)
+        council.add_member("kahneman")  # Uses GPT-4 Turbo (if available)
+        council.add_member("grove")  # Uses council default provider
 
         result = council.consult("Should we redesign our API?")
         print(result.synthesis)
@@ -102,8 +109,9 @@ class Council:
         Initialize a Council.
 
         Args:
-            api_key: API key for the LLM provider (or set via environment)
-            provider: LLM provider name ("anthropic", "openai", etc.)
+            api_key: API key for the default LLM provider (or set via environment)
+            provider: Default LLM provider name ("anthropic", "openai", etc.)
+                     Individual personas can override this with their own providers
             config: Council configuration
             persona_manager: Custom persona manager (uses global if None)
             model: Model name override
@@ -181,10 +189,13 @@ class Council:
 
     def _get_provider(self, fallback: bool = True) -> LLMProvider:
         """
-        Get or create the LLM provider.
+        Get or create the default LLM provider with robust fallback mechanism.
+
+        This is the default provider used by personas that don't specify their own.
+        Individual personas can override this via their provider/model settings.
 
         Args:
-            fallback: If True, will try fallback providers if primary fails
+            fallback: If True, will try all available LLM providers if primary fails
 
         Returns:
             LLMProvider instance
@@ -194,28 +205,94 @@ class Council:
             self._provider = manager.get_provider(self._provider_name)
 
             if self._provider is None and fallback:
+                # Try LLMManager's preferred provider first
                 preferred_provider = manager.preferred_provider
-                self._provider = manager.get_provider(preferred_provider)
-                if self._provider is not None and preferred_provider != self._provider_name:
-                    logger.warning(
-                        "Provider '%s' unavailable; falling back to '%s'.",
-                        self._provider_name,
-                        preferred_provider,
-                    )
-                    self._provider_name = preferred_provider
+                if preferred_provider != self._provider_name:
+                    self._provider = manager.get_provider(preferred_provider)
+                    if self._provider is not None:
+                        logger.warning(
+                            "Provider '%s' unavailable; falling back to '%s'.",
+                            self._provider_name,
+                            preferred_provider,
+                        )
+                        self._provider_name = preferred_provider
+
+                # If still no provider, try all available providers in priority order
+                if self._provider is None:
+                    from .config import get_available_providers
+
+                    available = get_available_providers()
+                    # Priority order: anthropic > openai > gemini > vercel > generic
+                    priority = ["anthropic", "openai", "gemini", "vercel", "generic"]
+
+                    for preferred in priority:
+                        for provider_name, api_key in available:
+                            if (
+                                provider_name == preferred
+                                and api_key
+                                and provider_name != self._provider_name
+                            ):
+                                try:
+                                    from ..providers import get_provider
+
+                                    test_provider = get_provider(
+                                        provider_name,
+                                        api_key=api_key,
+                                        model=self._model,
+                                        base_url=self._base_url,
+                                    )
+                                    if test_provider:
+                                        self._provider = test_provider
+                                        logger.warning(
+                                            "Provider '%s' unavailable; falling back to '%s'.",
+                                            self._provider_name,
+                                            provider_name,
+                                        )
+                                        self._provider_name = provider_name
+                                        self._api_key = api_key
+                                        break
+                                except Exception as e:
+                                    logger.debug(
+                                        f"Failed to initialize fallback provider {provider_name}: {e}"
+                                    )
+                                    continue
+                        if self._provider is not None:
+                            break
 
             if self._provider is None:
-                raise ValueError(
-                    f"Provider '{self._provider_name}' unavailable. "
-                    "Please check your API keys or run 'council providers --diagnose'."
-                )
+                from .config import get_available_providers
+
+                available = [p for p, k in get_available_providers() if k]
+                if available:
+                    available_str = ", ".join(available)
+                    raise ValueError(
+                        f"Provider '{self._provider_name}' unavailable. "
+                        f"Available providers: {available_str}. "
+                        "Please check your API keys or run 'council providers --diagnose'."
+                    )
+                else:
+                    raise ValueError(
+                        f"Provider '{self._provider_name}' unavailable and no fallback providers found. "
+                        "Please set at least one API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, etc.) "
+                        "or run 'council providers --diagnose' for help."
+                    )
         return self._provider
 
     def _get_member_provider(self, member: Persona, default_provider: LLMProvider) -> LLMProvider:
-        """Get or create a provider for a specific member's model/provider override."""
+        """
+        Get or create an LLM provider for a specific member's model/provider override.
+
+        Council AI supports personas using various LLM providers simultaneously.
+        Each persona can have unique model/provider settings. If the persona's
+        specified provider is unavailable, falls back to the default provider.
+
+        This enables heterogeneous councils where different personas use different
+        LLM providers (e.g., rams uses Claude, kahneman uses GPT-4) simultaneously.
+        """
         provider_name = member.provider or self._provider_name
         model_name = member.model or self._model
 
+        # If persona uses same provider/model as default, reuse it
         if provider_name == self._provider_name and model_name == self._model:
             return default_provider
 
@@ -226,12 +303,23 @@ class Council:
                 if provider_name != self._provider_name
                 else self._api_key
             )
-            self._provider_cache[cache_key] = get_provider(
-                provider_name,
-                api_key=api_key,
-                model=model_name,
-                base_url=self._base_url,
-            )
+
+            # Try to create provider for persona's specific model/provider
+            try:
+                self._provider_cache[cache_key] = get_provider(
+                    provider_name,
+                    api_key=api_key,
+                    model=model_name,
+                    base_url=self._base_url,
+                )
+            except (ValueError, Exception) as e:
+                # If persona's provider is unavailable, fall back to default
+                logger.warning(
+                    f"Persona '{member.id}' requested provider '{provider_name}' unavailable; "
+                    f"using default provider '{self._provider_name}' instead."
+                )
+                return default_provider
+
         return self._provider_cache[cache_key]
 
     def _get_synthesis_provider(self, default_provider: LLMProvider) -> LLMProvider:
@@ -792,7 +880,12 @@ REASONING: [your reasoning]
         query: str,
         context: Optional[str],
     ) -> MemberResponse:
-        """Get a single member's response."""
+        """
+        Get a single member's response using their preferred LLM provider.
+
+        Each persona can use a different LLM provider if configured.
+        This enables heterogeneous councils with personas using various providers.
+        """
         system_prompt = member.get_system_prompt()
         user_prompt = member.format_response_prompt(query, context)
 
@@ -935,13 +1028,68 @@ REASONING: [your reasoning]
         query: str,
         context: Optional[str],
     ) -> AsyncIterator[Dict[str, Any]]:
-        """Get individual responses from all members (streaming, sequential for simplicity)."""
-        # Stream each member's response sequentially
-        # TODO: Optimize to stream multiple members concurrently in future
-        for member in members:
-            yield {"type": "progress", "message": f"Consulting {member.name}..."}
-            async for update in self._get_member_response_stream(provider, member, query, context):
+        """
+        Get individual responses from all members concurrently (streaming).
+
+        All personas are consulted in parallel, with their stream updates
+        merged and yielded as they arrive. This provides faster overall
+        response time while still streaming real-time updates.
+        """
+        if not members:
+            return
+
+        # Use asyncio.Queue to merge streams as they arrive
+        queue: asyncio.Queue[Optional[Dict[str, Any]]] = asyncio.Queue()
+        active_streams = len(members)
+        completed_streams = 0
+
+        async def consume_member_stream(member: Persona, member_index: int):
+            """Consume a single member's stream and put updates in the queue."""
+            nonlocal completed_streams
+            try:
+                async for update in self._get_member_response_stream(
+                    provider, member, query, context
+                ):
+                    await queue.put(update)
+            except Exception as e:
+                logger.error(f"Error in stream for {member.name}: {e}")
+                # Yield error update for this member
+                await queue.put(
+                    {
+                        "type": "error",
+                        "persona_id": member.id,
+                        "error": str(e),
+                    }
+                )
+            finally:
+                completed_streams += 1
+                # Signal completion when all streams are done
+                if completed_streams >= active_streams:
+                    await queue.put(None)  # Sentinel to signal all streams done
+
+        # Start all stream consumers concurrently
+        tasks = [
+            asyncio.create_task(consume_member_stream(member, i))
+            for i, member in enumerate(members)
+        ]
+
+        # Yield updates as they arrive from any stream
+        try:
+            while completed_streams < active_streams:
+                update = await queue.get()
+                if update is None:
+                    # All streams completed
+                    break
                 yield update
+        finally:
+            # Clean up: cancel any remaining tasks
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
 
     async def _consult_sequential_stream(
         self,

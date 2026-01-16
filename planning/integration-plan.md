@@ -1,5 +1,7 @@
 # Integration Plan (Workspace Cross-Pollination)
 
+**Note**: This document contains integration planning details. For active TODOs and roadmap items, see [ROADMAP.md](../ROADMAP.md).
+
 Purpose: unify stable capabilities across the workspace with minimal duplication and clear validation.
 
 ## Repositories in scope (local workspace)
