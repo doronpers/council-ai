@@ -18,7 +18,7 @@ echo "║                                                           ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-echo -e "${BLUE}ℹ️  Starting Council AI...${NC}"
+# echo -e "${BLUE}ℹ️  Starting Council AI...${NC}"
 
 if command -v osascript &> /dev/null; then
     osascript -e 'display notification "Opening Council AI in your browser..." with title "Council AI"'
