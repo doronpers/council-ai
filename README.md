@@ -578,18 +578,49 @@ per council instance when needed.
 
 ## Web App (Standalone)
 
-The web app is the primary user-testing surface. It provides a simple, focused UI for
-consultations and is intentionally minimal.
+The web app is the primary user-testing surface. It features a modern, Dieter Rams-inspired UI built with **React** and **TypeScript**.
+
+### Quick Launch
+
+The easiest way to run the web app is using the launcher script, which automatically handles dependencies and building the frontend:
 
 ```bash
-# Install web dependencies
+# Run the interactive launcher (handles npm install & build automatically)
+./launcher.sh
+```
+
+### Manual Launch
+
+If you prefer to run manually or differet parts separately:
+
+```bash
+# 1. Install Python dependencies
 pip install -e ".[web]"
 
-# Run the web app
+# 2. Build the React frontend (requires Node.js & npm)
+npm install
+npm run build
+
+# 3. Run the web server
 council web --reload
 ```
 
 Then open <http://127.0.0.1:8000>.
+
+### Development Mode
+
+For frontend development with hot-reloading:
+
+1. Start the backend API:
+   ```bash
+   council web --reload
+   ```
+
+2. In a separate terminal, start the React dev server:
+   ```bash
+   npm run dev
+   ```
+   Access the app at <http://localhost:5173>.
 
 ### Text-to-Speech (TTS) Integration 🔊
 

@@ -311,6 +311,90 @@ def launch_web_app(
         return 1
 
 
+def check_npm_installed() -> bool:
+    """Check if npm is installed."""
+    try:
+        subprocess.run(
+            ["npm", "--version"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            shell=IS_WINDOWS,
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
+def build_frontend() -> bool:
+    """Install dependencies and build the frontend."""
+    print_info("Building frontend assets (this may take a minute)...")
+
+    try:
+        # Install dependencies
+        print_status("Installing npm dependencies...", CYAN)
+        returncode, _, stderr = run_command(["npm", "install"], check=False, capture_output=True)
+        if returncode != 0:
+            print_error("Failed to install npm dependencies")
+            print_info(f"Error: {stderr}")
+            return False
+
+        # Build
+        print_status("Building React app...", CYAN)
+        returncode, _, stderr = run_command(
+            ["npm", "run", "build"], check=False, capture_output=True
+        )
+        if returncode != 0:
+            print_error("Failed to build frontend")
+            print_info(f"Error: {stderr}")
+            return False
+
+        print_success("Frontend built successfully")
+        return True
+    except Exception as e:
+        print_error(f"Build failed: {e}")
+        return False
+
+
+def check_frontend_ready() -> bool:
+    """
+    Check if frontend assets are built, and offer to build them if not.
+
+    Returns:
+        bool: True if ready to launch, False otherwise.
+    """
+    # Check for built index.html
+    # Path logic: launch-council.py is in root
+    # Build output is in src/council_ai/webapp/static/index.html
+    static_index = Path(__file__).parent / "src" / "council_ai" / "webapp" / "static" / "index.html"
+
+    if static_index.exists():
+        return True
+
+    print_warning("Frontend assets not found (fresh install?)")
+
+    if not check_npm_installed():
+        print_error("npm is not installed. Cannot build frontend.")
+        print_info("Please install Node.js and npm to build the web interface.")
+        print_info("Or download a pre-built release.")
+        return False
+
+    if not QUIET:
+        # If interactive or force, ask user
+        # But for simplified launcher, we might just want to do it or fail
+        # Let's try to build automatically if we can
+        print_info("Frontend needs to be built before first launch.")
+        try:
+            # Simple timeout-based input implementation or just go ahead
+            # For this script, let's just do it
+            if not build_frontend():
+                return False
+        except Exception:
+            return False
+
+    return True
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Launch the Council AI web app")
@@ -367,6 +451,10 @@ def main():
             return 1
     else:
         print_success("Web dependencies are available")
+
+    # Check Frontend Build (New Step)
+    if not check_frontend_ready():
+        return 1
 
     # Check API keys (warning only, not blocking)
     has_key, provider = check_api_keys()

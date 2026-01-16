@@ -1,6 +1,4 @@
-"""
-Diagnostic utilities for troubleshooting API keys and providers.
-"""
+"""Diagnostic utilities for troubleshooting API keys and providers."""
 
 from __future__ import annotations
 
@@ -94,10 +92,10 @@ def diagnose_api_keys() -> Dict[str, Any]:
     if os.environ.get("ELEVENLABS_API_KEY"):
         diagnostics["available_keys"]["elevenlabs"] = True
         diagnostics["provider_status"]["elevenlabs"] = {"has_key": True}
-    
+
     if os.environ.get("OPENAI_API_KEY"):
-         # OpenAI key serves both LLM and TTS
-         pass
+        # OpenAI key serves both LLM and TTS
+        pass
 
     return diagnostics
 
@@ -151,65 +149,60 @@ def test_api_key(provider: str, api_key: Optional[str] = None) -> Tuple[bool, st
 async def check_provider_connectivity(provider: str) -> Tuple[bool, str, float]:
     """
     Test actual connectivity to a provider by generating a minimal response.
-    
+
     Returns:
         Tuple of (success, message, latency_ms)
     """
     import time
-    from ..core.council import Council
-    
+
     if not get_api_key(provider):
-         return False, f"No API key for {provider}", 0.0
+        return False, f"No API key for {provider}", 0.0
 
     try:
         start_time = time.time()
-        # Initialize council with just one member to minimize token usage
-        # We use a throwaway instance
-        council = Council(provider=provider, model="default") 
-        # But Council usually needs a persona. 
-        # Let's try to instantiate the provider directly to avoid overhead?
-        # Actually, best to test the full stack including Council class if possible,
-        # but Council requires personas.
-        
-        # Let's use the provider factory directly for a lighter test
+
+        # Use the provider factory directly for a lighter test
         from ..providers import get_provider
+
         # Pass api_key as keyword argument if required by factory
         llm = get_provider(provider, api_key=get_api_key(provider))
-        
+
         # Simple ping
         response = await llm.complete(
-            system_prompt="",
-            user_prompt="Ping. Reply with 'Pong'.",
-            max_tokens=10
+            system_prompt="", user_prompt="Ping. Reply with 'Pong'.", max_tokens=10
         )
-        
+
         latency = (time.time() - start_time) * 1000
         content = response.text.strip() if response.text else ""
-        
+
         if content:
-             return True, f"Success: {content[:20]}...", latency
+            return True, f"Success: {content[:20]}...", latency
         else:
-             return False, "Empty response received", latency
+            return False, "Empty response received", latency
 
     except Exception as e:
         return False, str(e), 0.0
 
+
 def check_tts_connectivity() -> Dict[str, Any]:
     """Check availability of configured TTS providers."""
     results = {}
-    
+
     # ElevenLabs
     if os.environ.get("ELEVENLABS_API_KEY"):
         # We won't generate audio to save credits, just check if we can list voices
         try:
-             import requests
-             key = os.environ.get("ELEVENLABS_API_KEY")
-             resp = requests.get("https://api.elevenlabs.io/v1/voices", headers={"xi-api-key": key}, timeout=5)
-             if resp.status_code == 200:
-                 results["elevenlabs"] = {"ok": True, "msg": "Connected (Voice list accessible)"}
-             else:
-                 results["elevenlabs"] = {"ok": False, "msg": f"http {resp.status_code}"}
+            import requests
+
+            key = os.environ.get("ELEVENLABS_API_KEY")
+            resp = requests.get(
+                "https://api.elevenlabs.io/v1/voices", headers={"xi-api-key": key}, timeout=5
+            )
+            if resp.status_code == 200:
+                results["elevenlabs"] = {"ok": True, "msg": "Connected (Voice list accessible)"}
+            else:
+                results["elevenlabs"] = {"ok": False, "msg": f"http {resp.status_code}"}
         except Exception as e:
-             results["elevenlabs"] = {"ok": False, "msg": str(e)}
-    
+            results["elevenlabs"] = {"ok": False, "msg": str(e)}
+
     return results

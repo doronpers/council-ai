@@ -14,13 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from council_ai import Council
-from council_ai.core.config import (
-    ConfigManager,
-    get_api_key,
-    get_tts_api_key,
-    is_placeholder_key,
-    sanitize_api_key,
-)
+from council_ai.core.config import ConfigManager, get_api_key, get_tts_api_key, sanitize_api_key
 from council_ai.core.council import ConsultationMode
 from council_ai.core.history import ConsultationHistory
 from council_ai.core.persona import PersonaCategory, list_personas
@@ -174,8 +168,40 @@ async def index() -> HTMLResponse:
         # Serve built HTML from static directory
         return FileResponse(str(BUILT_HTML))
     elif DEV_HTML.exists():
-        # Development mode: serve HTML from source file
-        return FileResponse(str(DEV_HTML))
+        # In development mode with React, we can't just serve the source HTML
+        # because it uses .tsx files and needs Vite.
+        # We should redirect to the Vite dev server if running, or show a helpful message.
+        return HTMLResponse(
+            """
+            <html>
+                <body style="font-family: system-ui, sans-serif; max-width: 600px;
+                    margin: 40px auto; padding: 20px; line-height: 1.6;
+                    background: #f9fafb; color: #111827;">
+                    <div style="background: white; padding: 32px; border-radius: 8px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
+                        <h1 style="margin-top: 0; color: #DC2626;">Frontend Build Required</h1>
+                        <p>The Council AI web interface has been migrated to React and
+                            requires a build step.</p>
+                        <h3 style="margin-top: 24px;">Option 1: Production (Recommended)</h3>
+                        <p>Run the build command to generate static assets:</p>
+                        <pre style="background: #1F2937; color: #E5E7EB;
+                            padding: 12px; border-radius: 6px; overflow-x: auto;">
+                            npm install && npm run build</pre>
+                        <p>Then restart this server.</p>
+
+                        <h3 style="margin-top: 24px;">Option 2: Development</h3>
+                        <p>Run the Vite development server in a separate terminal:</p>
+                        <pre style="background: #1F2937; color: #E5E7EB; padding: 12px;
+                            border-radius: 6px; overflow-x: auto;">npm run dev</pre>
+                        <p>Then access the app at
+                            <a href="http://localhost:5173" style="color: #2563EB;">
+                                http://localhost:5173</a>.</p>
+                    </div>
+                </body>
+            </html>
+            """,
+            status_code=500,
+        )
     else:
         # Fallback: minimal error page if no HTML found
         return HTMLResponse(
@@ -208,7 +234,7 @@ async def manifest() -> JSONResponse:
         {
             "name": "Council AI",
             "short_name": "Council AI",
-            "description": "AI-powered advisory council system with customizable personas",
+            "description": ("AI-powered advisory council system with customizable personas"),
             "start_url": "/",
             "display": "standalone",
             "background_color": "#0c0f14",
@@ -216,7 +242,10 @@ async def manifest() -> JSONResponse:
             "orientation": "portrait-primary",
             "icons": [
                 {
-                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>",
+                    "src": (
+                        "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' "
+                        "viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>"
+                    ),
                     "sizes": "any",
                     "type": "image/svg+xml",
                     "purpose": "any maskable",
