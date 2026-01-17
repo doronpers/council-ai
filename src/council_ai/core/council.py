@@ -352,10 +352,8 @@ class Council:
                 )
             except Exception as e:
                 logger.warning(
-                    "Synthesis provider '%s' unavailable; using default provider '%s' instead: %s",
-                    provider_name,
-                    self._provider_name,
-                    e,
+                    f"Synthesis provider '{provider_name}' unavailable; "
+                    f"using default provider '{self._provider_name}' instead: {e}"
                 )
                 return default_provider
         return self._provider_cache[cache_key]
