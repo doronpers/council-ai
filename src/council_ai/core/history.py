@@ -66,10 +66,16 @@ class ConsultationHistory:
         self._init_memu()
 
     def _init_memu(self) -> None:
-        """Initialize MemU service if available."""
-        memu_path = "/Volumes/Treehorn/Gits/memu"
-        if os.path.exists(memu_path):
-            sys.path.append(os.path.join(memu_path, "src"))
+        """Initialize MemU service if available.
+        
+        MemU integration is optional and can be enabled by setting the MEMU_PATH
+        environment variable to the path of your memu installation.
+        """
+        memu_path = os.environ.get("MEMU_PATH")
+        if memu_path and os.path.exists(memu_path):
+            memu_src = os.path.join(memu_path, "src")
+            if os.path.exists(memu_src) and memu_src not in sys.path:
+                sys.path.append(memu_src)
             try:
                 from memu.app import MemoryService
 
@@ -87,9 +93,9 @@ class ConsultationHistory:
                 )
                 logger.info(f"MemU service initialized from {memu_path}")
             except ImportError as e:
-                logger.warning(f"Failed to import memu from {memu_path}: {e}")
+                logger.debug(f"Failed to import memu from {memu_path}: {e}")
             except Exception as e:
-                logger.warning(f"Failed to initialize MemU: {e}")
+                logger.debug(f"Failed to initialize MemU: {e}")
 
     def _init_db(self) -> None:
         """Initialize SQLite database."""

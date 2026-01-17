@@ -196,7 +196,7 @@ class TestPersonaCommands:
         result = runner.invoke(main, ["persona", "list", "--category", "advisory"])
         assert result.exit_code == 0
 
-    @patch("council_ai.cli.get_persona")
+    @patch("council_ai.cli_persona.get_persona")
     def test_persona_show(self, mock_get_persona, runner):
         """Test showing persona details."""
         mock_persona = MagicMock()
@@ -214,7 +214,7 @@ class TestPersonaCommands:
         assert result.exit_code == 0
         assert "Dieter Rams" in result.output
 
-    @patch("council_ai.cli.get_persona")
+    @patch("council_ai.cli_persona.get_persona")
     def test_persona_show_not_found(self, mock_get_persona, runner):
         """Test showing non-existent persona."""
         mock_get_persona.side_effect = ValueError("Persona not found")
@@ -222,7 +222,7 @@ class TestPersonaCommands:
         assert result.exit_code == 1
         assert "Error" in result.output
 
-    @patch("council_ai.cli.PersonaManager")
+    @patch("council_ai.cli_persona.PersonaManager")
     def test_persona_create_from_file(self, mock_manager_class, runner, tmp_path):
         """Test creating persona from YAML file."""
         mock_manager = MagicMock()
@@ -234,7 +234,7 @@ class TestPersonaCommands:
         yaml_file = tmp_path / "persona.yaml"
         yaml_file.write_text("id: test\nname: Test")
 
-        with patch("council_ai.cli.Persona.from_yaml_file", return_value=mock_persona):
+        with patch("council_ai.cli_persona.Persona.from_yaml_file", return_value=mock_persona):
             result = runner.invoke(main, ["persona", "create", "--from-file", str(yaml_file)])
             assert result.exit_code == 0
 
@@ -244,8 +244,8 @@ class TestPersonaCommands:
         assert result.exit_code == 0
         assert "Use --interactive or --from-file" in result.output
 
-    @patch("council_ai.cli.PersonaManager")
-    @patch("council_ai.cli.get_persona")
+    @patch("council_ai.cli_persona.PersonaManager")
+    @patch("council_ai.cli_persona.get_persona")
     def test_persona_edit(self, mock_get_persona, mock_manager_class, runner):
         """Test editing persona."""
         mock_persona = MagicMock()
@@ -267,7 +267,7 @@ class TestDomainCommands:
         assert result.exit_code == 0
         assert "Available Domains" in result.output
 
-    @patch("council_ai.cli.get_domain")
+    @patch("council_ai.cli_domain.get_domain")
     def test_domain_show(self, mock_get_domain, runner):
         """Test showing domain details."""
         mock_domain = MagicMock()
@@ -285,7 +285,7 @@ class TestDomainCommands:
         assert result.exit_code == 0
         assert "Business" in result.output
 
-    @patch("council_ai.cli.get_domain")
+    @patch("council_ai.cli_domain.get_domain")
     def test_domain_show_not_found(self, mock_get_domain, runner):
         """Test showing non-existent domain."""
         mock_get_domain.side_effect = ValueError("Domain not found")
@@ -556,7 +556,7 @@ class TestWebCommand:
         with patch.dict("sys.modules", {"uvicorn": None}):
             result = runner.invoke(main, ["web"])
             assert result.exit_code == 1
-            assert "uvicorn is not installed" in result.output
+            assert "Missing dependency" in result.output
 
 
 class TestInteractiveCommand:

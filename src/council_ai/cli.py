@@ -483,6 +483,9 @@ def consult(
             except ValueError as e:
                 console.print(f"[red]Error:[/red] {e}")
                 sys.exit(1)
+            except Exception as e:
+                console.print(f"[red]Error:[/red] {e}")
+                sys.exit(1)
 
     # Output
     if output_json:
