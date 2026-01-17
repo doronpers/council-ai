@@ -1,5 +1,7 @@
 """
-Configuration Management
+Configuration Management (Council AI)
+
+Standalone configuration management to remove external dependencies.
 """
 
 from __future__ import annotations
@@ -9,8 +11,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import yaml
 from pydantic import BaseModel, Field
-from shared_ai_utils.config import ConfigManager as SharedConfigManager
 
 logger = logging.getLogger(__name__)
 
@@ -53,18 +55,15 @@ def sanitize_api_key(value: Optional[str]) -> Optional[str]:
 try:
     from dotenv import load_dotenv
 
-    # Load .env from project root (wherever the package is installed/run from)
-    # Try multiple common locations
     _env_loaded = False
     env_paths_to_try = [
-        Path.cwd() / ".env",  # Current working directory
-        Path(__file__).parent.parent.parent.parent / ".env",  # Project root (if running from repo)
-        Path.home() / ".council-ai" / ".env",  # User home directory
+        Path.cwd() / ".env",
+        Path(__file__).parent.parent.parent.parent / ".env",
+        Path.home() / ".council-ai" / ".env",
     ]
 
     for env_path in env_paths_to_try:
         if env_path.exists():
-            # Check if any API key env vars are placeholders - if so, override them
             api_key_vars = [
                 "OPENAI_API_KEY",
                 "ANTHROPIC_API_KEY",
@@ -80,38 +79,35 @@ try:
                     has_placeholder = True
                     break
 
-            # Override placeholders or use override=False to preserve real env vars
             load_dotenv(env_path, override=has_placeholder)
             _env_loaded = True
             break
-    # Also try loading from current directory as fallback
     if not _env_loaded:
         load_dotenv(override=False)
 except ImportError:
-    # python-dotenv not installed, skip .env loading
     pass
 
 
 class APIConfig(BaseModel):
     """API configuration."""
 
-    provider: str = "openai"
+    provider: str = "anthropic"
     api_key: Optional[str] = None
-    model: Optional[str] = None  # Uses provider default if not set
+    model: Optional[str] = None
     base_url: Optional[str] = None
 
 
 class TTSConfig(BaseModel):
     """Text-to-Speech configuration."""
 
-    enabled: bool = False  # TTS disabled by default
-    provider: str = "elevenlabs"  # Primary provider
-    api_key: Optional[str] = None  # Primary API key
-    voice: Optional[str] = None  # Voice ID/name (uses provider default if not set)
-    model: Optional[str] = None  # TTS model (uses provider default if not set)
-    fallback_provider: Optional[str] = "openai"  # Fallback provider
-    fallback_api_key: Optional[str] = None  # Fallback API key
-    fallback_voice: Optional[str] = None  # Fallback voice
+    enabled: bool = False
+    provider: str = "elevenlabs"
+    api_key: Optional[str] = None
+    voice: Optional[str] = None
+    model: Optional[str] = None
+    fallback_provider: Optional[str] = "openai"
+    fallback_api_key: Optional[str] = None
+    fallback_voice: Optional[str] = None
 
 
 class Config(BaseModel):
@@ -135,21 +131,92 @@ class ConfigManager:
     """Manages loading and saving configuration."""
 
     def __init__(self, config_path: Optional[str] = None):
-        self._manager = SharedConfigManager(config_path, app_name="council-ai")
-        self.path = self._manager.path
-        self.config = self._manager.load(Config)
+        if config_path:
+            self.path = Path(config_path)
+        else:
+            # Try to find a writable path for config
+            options = [
+                os.environ.get("COUNCIL_CONFIG_PATH"),
+                Path.home() / ".config" / "council-ai" / "config.yaml",
+                Path.cwd() / "config.yaml",
+            ]
+            for option in options:
+                if not option:
+                    continue
+                path = Path(option)
+                try:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    self.path = path
+                    break
+                except OSError:
+                    continue
+            else:
+                self.path = Path("config.yaml")
 
-    def save(self) -> None:
+        self.config = self.load()
+
+    def load(self) -> Config:
+        """Load configuration from file."""
+        if self.path.exists():
+            try:
+                with open(self.path, encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+                return Config(**data)
+            except Exception as e:
+                logger.warning(f"Failed to load config from {self.path}: {e}")
+                return Config()
+        return Config()
+
+    def save(self, config: Optional[Config] = None) -> None:
         """Save configuration to file."""
-        self._manager.save(self.config)
+        if config:
+            self.config = config
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.path, "w", encoding="utf-8") as f:
+                yaml.dump(
+                    self.config.model_dump(exclude_none=True),
+                    f,
+                    default_flow_style=False,
+                    sort_keys=False,
+                )
+        except OSError as e:
+            logger.warning(f"Failed to save configuration to {self.path}: {e}")
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value by dot-notation key."""
-        return self._manager.get(key, default)
+        parts = key.split(".")
+        value = self.config
+        for part in parts:
+            if hasattr(value, part):
+                value = getattr(value, part)
+            elif isinstance(value, dict) and part in value:
+                value = value[part]
+            else:
+                return default
+        return value
 
     def set(self, key: str, value: Any) -> None:
         """Set a configuration value by dot-notation key."""
-        self._manager.set(key, value)
+        parts = key.split(".")
+        obj = self.config
+        for part in parts[:-1]:
+            if hasattr(obj, part):
+                obj = getattr(obj, part)
+            elif isinstance(obj, dict):
+                if part not in obj:
+                    obj[part] = {}
+                obj = obj[part]
+            else:
+                raise KeyError(f"Invalid config path: {key}")
+
+        final_key = parts[-1]
+        if hasattr(obj, final_key):
+            setattr(obj, final_key, value)
+        elif isinstance(obj, dict):
+            obj[final_key] = value
+        else:
+            raise KeyError(f"Invalid config key: {key}")
 
 
 def load_config(path: Optional[str] = None) -> Config:
@@ -161,30 +228,25 @@ def load_config(path: Optional[str] = None) -> Config:
 def save_config(config: Config, path: Optional[str] = None) -> None:
     """Save configuration."""
     manager = ConfigManager(path)
-    manager.config = config
-    manager.save()
+    manager.save(config)
 
 
 def get_api_key(provider: str = "anthropic") -> Optional[str]:
     """Get API key for a provider from environment or config."""
-    # Try provider-specific env var first
     provider_upper = provider.upper()
     env_key = sanitize_api_key(os.environ.get(f"{provider_upper}_API_KEY"))
     if env_key:
         return env_key
 
-    # Special handling for Vercel AI Gateway (OpenAI-compatible)
     if provider == "openai" or provider == "vercel":
         gateway_key = sanitize_api_key(os.environ.get("AI_GATEWAY_API_KEY"))
         if gateway_key:
             return gateway_key
 
-    # Try generic env var
     env_key = sanitize_api_key(os.environ.get("COUNCIL_API_KEY"))
     if env_key:
         return env_key
 
-    # Try config file
     try:
         config = load_config()
         return sanitize_api_key(config.api.api_key)
@@ -193,12 +255,7 @@ def get_api_key(provider: str = "anthropic") -> Optional[str]:
 
 
 def get_available_providers() -> list[tuple[str, Optional[str]]]:
-    """
-    Get list of available providers with their API keys.
-
-    Returns:
-        List of (provider_name, api_key) tuples. api_key is None if not available.
-    """
+    """Get list of available providers with their API keys."""
     providers = []
     for provider_name in ["openai", "anthropic", "gemini"]:
         key = get_api_key(provider_name)
@@ -208,13 +265,11 @@ def get_available_providers() -> list[tuple[str, Optional[str]]]:
 
 def get_tts_api_key(provider: str = "elevenlabs") -> Optional[str]:
     """Get API key for a TTS provider from environment or config."""
-    # Try provider-specific env var first
     provider_upper = provider.upper()
     env_key = os.environ.get(f"{provider_upper}_API_KEY")
     if env_key:
         return env_key
 
-    # Try config file
     try:
         config = load_config()
         if provider == config.tts.provider:
@@ -223,5 +278,4 @@ def get_tts_api_key(provider: str = "elevenlabs") -> Optional[str]:
             return config.tts.fallback_api_key
     except Exception:
         pass
-
     return None

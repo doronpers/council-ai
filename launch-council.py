@@ -13,8 +13,18 @@ import platform
 import socket
 import subprocess
 import sys
+import time
+import webbrowser
 from pathlib import Path
 from typing import Optional, Tuple
+
+# Fix Unicode encoding issues on Windows
+if sys.platform == "win32":
+    try:
+        if sys.stdout.encoding != "utf-8":
+            sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, Exception):
+        pass
 
 # Platform detection
 IS_WINDOWS = platform.system() == "Windows"
@@ -272,8 +282,6 @@ def launch_web_app(
     if open_browser_flag:
         print_info("Opening browser...")
         # Small delay to let server start
-        import time
-
         time.sleep(1)
         if not open_browser(url):
             print_warning("Could not open browser automatically")
