@@ -67,7 +67,7 @@ class ConsultationHistory:
 
     def _init_memu(self) -> None:
         """Initialize MemU service if available.
-        
+
         MemU integration is optional and can be enabled by setting the MEMU_PATH
         environment variable to the path of your memu installation.
         """
