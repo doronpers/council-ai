@@ -24,6 +24,21 @@ This document is the **Single Source of Truth** for all AI agents (Claude, Curso
    - **Daniel Kahneman**: Reduce cognitive load. "System 1 vs System 2".
    - **CONSTRAINT**: Use these lenses to audit and improve, but **DO NOT** brand features with persona names.
 
+5. **Hippocratic Principle: "First, Do No Harm"**:
+   > *"To do good or to do no harm"* — Hippocratic tradition
+
+   - **Avoid Deleterious Changes**: Do not introduce changes that harm functionality, security, or maintainability.
+   - **Preserve Working Systems**: If code works correctly, changes must maintain or improve its behavior.
+   - **Minimize Side Effects**: Consider downstream impacts before modifying shared code.
+   - **Document Breaking Changes**: If unavoidable, document clearly with migration paths.
+   - **Err on the Side of Caution**: When uncertain, ask for clarification rather than making assumptions.
+
+   **Pre-commit checklist**:
+   - [ ] Does this change preserve existing functionality?
+   - [ ] Are there any unintended side effects?
+   - [ ] Have I tested affected code paths?
+   - [ ] Is backward compatibility maintained (or documented if not)?
+
 ---
 
 ## 1. Operational Guardrails
@@ -223,3 +238,27 @@ def command_name(ctx, arg, flag):
 - Use docstrings for all public functions and classes
 - Keep examples in `examples/` directory current
 - **Never create new top-level documentation folders** - use `documentation/` for all non-root docs
+
+---
+
+## 8. Reasoning Logs
+
+After completing significant tasks, document your reasoning in the central logs folder.
+
+**Location**: `../.agent_reasoning_logs/logs/` (parent directory of this repo)
+
+**When to Log**:
+
+- Complex problem-solving tasks
+- Architectural decisions
+- Bug fixes with non-obvious solutions
+- Refactoring work
+- Any task with valuable lessons learned
+
+**Template**: Use `../.agent_reasoning_logs/templates/reasoning_entry.md`
+
+**File Naming**: `YYYY-MM-DD_council-ai_<brief-task>.md`
+
+**Example**: `2026-01-16_council-ai_documentation-consolidation.md`
+
+This creates institutional knowledge that helps future agents and developers understand past decisions.
