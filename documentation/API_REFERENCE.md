@@ -47,15 +47,15 @@ Council(
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `api_key` | `Optional[str]` | `None` | API key for the LLM provider. If not provided, will be read from environment variables or config file. |
-| `provider` | `str` | `"anthropic"` | LLM provider name. Options: `"anthropic"`, `"openai"`, `"gemini"`, `"http"`. |
-| `config` | `Optional[CouncilConfig]` | `None` | Council configuration. Uses default config if not provided. |
-| `persona_manager` | `Optional[PersonaManager]` | `None` | Custom persona manager. Uses global persona manager if not provided. |
-| `model` | `Optional[str]` | `None` | Model name override (e.g., `"gpt-4"`, `"claude-3-opus-20240229"`). |
-| `base_url` | `Optional[str]` | `None` | Base URL override for custom endpoints. |
-| `history` | `Optional[Any]` | `None` | ConsultationHistory instance for auto-saving consultations. |
+| Parameter         | Type                       | Default       | Description                                                                                            |
+| ----------------- | -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
+| `api_key`         | `Optional[str]`            | `None`        | API key for the LLM provider. If not provided, will be read from environment variables or config file. |
+| `provider`        | `str`                      | `"anthropic"` | LLM provider name. Options: `"anthropic"`, `"openai"`, `"gemini"`, `"http"`.                           |
+| `config`          | `Optional[CouncilConfig]`  | `None`        | Council configuration. Uses default config if not provided.                                            |
+| `persona_manager` | `Optional[PersonaManager]` | `None`        | Custom persona manager. Uses global persona manager if not provided.                                   |
+| `model`           | `Optional[str]`            | `None`        | Model name override (e.g., `"gpt-4"`, `"claude-3-opus-20240229"`).                                     |
+| `base_url`        | `Optional[str]`            | `None`        | Base URL override for custom endpoints.                                                                |
+| `history`         | `Optional[Any]`            | `None`        | ConsultationHistory instance for auto-saving consultations.                                            |
 
 **Example:**
 
@@ -93,12 +93,12 @@ def for_domain(
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `domain` | `str` | Required | Domain ID (e.g., `"coding"`, `"business"`, `"startup"`). |
-| `api_key` | `Optional[str]` | `None` | API key for the LLM provider. |
-| `provider` | `str` | `"anthropic"` | LLM provider name. |
-| `**kwargs` | | | Additional arguments passed to the Council constructor. |
+| Parameter  | Type            | Default       | Description                                              |
+| ---------- | --------------- | ------------- | -------------------------------------------------------- |
+| `domain`   | `str`           | Required      | Domain ID (e.g., `"coding"`, `"business"`, `"startup"`). |
+| `api_key`  | `Optional[str]` | `None`        | API key for the LLM provider.                            |
+| `provider` | `str`           | `"anthropic"` | LLM provider name.                                       |
+| `**kwargs` |                 |               | Additional arguments passed to the Council constructor.  |
 
 **Returns:** `Council` instance with domain-specific personas pre-loaded.
 
@@ -130,10 +130,10 @@ def add_member(
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `persona` | `Union[str, Persona]` | Required | Persona ID string (e.g., `"rams"`) or Persona instance. |
-| `weight` | `Optional[float]` | `None` | Influence weight (0.0-2.0). If not provided, uses persona's default weight. |
+| Parameter | Type                  | Default  | Description                                                                 |
+| --------- | --------------------- | -------- | --------------------------------------------------------------------------- |
+| `persona` | `Union[str, Persona]` | Required | Persona ID string (e.g., `"rams"`) or Persona instance.                     |
+| `weight`  | `Optional[float]`     | `None`   | Influence weight (0.0-2.0). If not provided, uses persona's default weight. |
 
 **Example:**
 
@@ -160,8 +160,8 @@ def remove_member(self, persona_id: str) -> None
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter    | Type  | Description                  |
+| ------------ | ----- | ---------------------------- |
 | `persona_id` | `str` | ID of the persona to remove. |
 
 **Example:**
@@ -180,8 +180,8 @@ def get_member(self, persona_id: str) -> Optional[Persona]
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter    | Type  | Description                    |
+| ------------ | ----- | ------------------------------ |
 | `persona_id` | `str` | ID of the persona to retrieve. |
 
 **Returns:** `Persona` instance if found, `None` otherwise.
@@ -236,10 +236,10 @@ def set_member_weight(self, persona_id: str, weight: float) -> None
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `persona_id` | `str` | ID of the persona to update. |
-| `weight` | `float` | New weight value (0.0-2.0). Higher values increase influence. |
+| Parameter    | Type    | Description                                                   |
+| ------------ | ------- | ------------------------------------------------------------- |
+| `persona_id` | `str`   | ID of the persona to update.                                  |
+| `weight`     | `float` | New weight value (0.0-2.0). Higher values increase influence. |
 
 **Example:**
 
@@ -261,8 +261,8 @@ def enable_member(self, persona_id: str) -> None
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter    | Type  | Description                  |
+| ------------ | ----- | ---------------------------- |
 | `persona_id` | `str` | ID of the persona to enable. |
 
 **Example:**
@@ -281,8 +281,8 @@ def disable_member(self, persona_id: str) -> None
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter    | Type  | Description                   |
+| ------------ | ----- | ----------------------------- |
 | `persona_id` | `str` | ID of the persona to disable. |
 
 **Example:**
@@ -309,12 +309,12 @@ def consult(
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `query` | `str` | Required | The question or topic to consult about. |
-| `context` | `Optional[str]` | `None` | Additional context or background information. |
-| `mode` | `Optional[ConsultationMode]` | `None` | Consultation mode. Uses config default if not provided. |
-| `members` | `Optional[List[str]]` | `None` | List of persona IDs to consult. If not provided, uses all enabled members. |
+| Parameter | Type                         | Default  | Description                                                                |
+| --------- | ---------------------------- | -------- | -------------------------------------------------------------------------- |
+| `query`   | `str`                        | Required | The question or topic to consult about.                                    |
+| `context` | `Optional[str]`              | `None`   | Additional context or background information.                              |
+| `mode`    | `Optional[ConsultationMode]` | `None`   | Consultation mode. Uses config default if not provided.                    |
+| `members` | `Optional[List[str]]`        | `None`   | List of persona IDs to consult. If not provided, uses all enabled members. |
 
 **Returns:** `ConsultationResult` with individual responses and synthesis.
 
@@ -362,14 +362,14 @@ async def consult_async(
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `query` | `str` | Required | The question or topic to consult about. |
-| `context` | `Optional[str]` | `None` | Additional context information. |
-| `mode` | `Optional[ConsultationMode]` | `None` | Consultation mode. |
-| `members` | `Optional[List[str]]` | `None` | List of persona IDs to consult. |
-| `session_id` | `Optional[str]` | `None` | Session ID for conversation history. |
-| `auto_recall` | `bool` | `True` | Whether to automatically include conversation history. |
+| Parameter     | Type                         | Default  | Description                                            |
+| ------------- | ---------------------------- | -------- | ------------------------------------------------------ |
+| `query`       | `str`                        | Required | The question or topic to consult about.                |
+| `context`     | `Optional[str]`              | `None`   | Additional context information.                        |
+| `mode`        | `Optional[ConsultationMode]` | `None`   | Consultation mode.                                     |
+| `members`     | `Optional[List[str]]`        | `None`   | List of persona IDs to consult.                        |
+| `session_id`  | `Optional[str]`              | `None`   | Session ID for conversation history.                   |
+| `auto_recall` | `bool`                       | `True`   | Whether to automatically include conversation history. |
 
 **Returns:** `ConsultationResult` with individual responses and synthesis.
 
@@ -406,6 +406,7 @@ async def consult_stream(
 **Parameters:** Same as `consult_async()`.
 
 **Yields:** Dictionary events with keys:
+
 - `event`: Event type (`"progress"`, `"response"`, `"synthesis"`, `"complete"`)
 - `data`: Event-specific data
 
@@ -458,22 +459,22 @@ config = CouncilConfig(
 
 **Fields:**
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `name` | `str` | `"Advisory Council"` | Council name for identification. |
-| `description` | `str` | `""` | Council description. |
-| `mode` | `ConsultationMode` | `SYNTHESIS` | Default consultation mode. |
-| `max_tokens_per_response` | `int` | `1000` | Maximum tokens per member response. |
-| `temperature` | `float` | `0.7` | Sampling temperature (0.0-2.0). |
-| `include_reasoning` | `bool` | `True` | Whether to include reasoning in responses. |
-| `include_confidence` | `bool` | `True` | Whether to include confidence levels. |
-| `synthesis_prompt` | `Optional[str]` | `None` | Custom synthesis prompt template. |
-| `synthesis_provider` | `Optional[str]` | `None` | Provider override for synthesis (when set, uses a separate provider instance). |
-| `synthesis_model` | `Optional[str]` | `None` | Model override for synthesis. Can be used with or without `synthesis_provider`. |
-| `synthesis_max_tokens` | `Optional[int]` | `None` | Max tokens override for synthesis. |
-| `context_window` | `int` | `10` | Number of previous exchanges to include. |
-| `use_structured_output` | `bool` | `False` | Enable structured synthesis output (experimental). |
-| `export_enabled_state` | `bool` | `False` | Include enabled flags in exports. |
+| Field                     | Type               | Default              | Description                                                                     |
+| ------------------------- | ------------------ | -------------------- | ------------------------------------------------------------------------------- |
+| `name`                    | `str`              | `"Advisory Council"` | Council name for identification.                                                |
+| `description`             | `str`              | `""`                 | Council description.                                                            |
+| `mode`                    | `ConsultationMode` | `SYNTHESIS`          | Default consultation mode.                                                      |
+| `max_tokens_per_response` | `int`              | `1000`               | Maximum tokens per member response.                                             |
+| `temperature`             | `float`            | `0.7`                | Sampling temperature (0.0-2.0).                                                 |
+| `include_reasoning`       | `bool`             | `True`               | Whether to include reasoning in responses.                                      |
+| `include_confidence`      | `bool`             | `True`               | Whether to include confidence levels.                                           |
+| `synthesis_prompt`        | `Optional[str]`    | `None`               | Custom synthesis prompt template.                                               |
+| `synthesis_provider`      | `Optional[str]`    | `None`               | Provider override for synthesis (when set, uses a separate provider instance).  |
+| `synthesis_model`         | `Optional[str]`    | `None`               | Model override for synthesis. Can be used with or without `synthesis_provider`. |
+| `synthesis_max_tokens`    | `Optional[int]`    | `None`               | Max tokens override for synthesis.                                              |
+| `context_window`          | `int`              | `10`                 | Number of previous exchanges to include.                                        |
+| `use_structured_output`   | `bool`             | `False`              | Enable structured synthesis output (experimental).                              |
+| `export_enabled_state`    | `bool`             | `False`              | Include enabled flags in exports.                                               |
 
 **Example:**
 
@@ -503,13 +504,13 @@ from council_ai import ConsultationMode
 
 **Values:**
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| `INDIVIDUAL` | Each member responds separately in parallel. | Quick, independent opinions. |
-| `SEQUENTIAL` | Members respond in order, seeing previous responses. | Building on each other's ideas. |
-| `SYNTHESIS` | Individual responses + synthesized summary (default). | Comprehensive advice with summary. |
-| `DEBATE` | Multi-round debate between members. | Exploring multiple perspectives deeply. |
-| `VOTE` | Members vote on a decision. | Binary or multiple-choice decisions. |
+| Mode         | Description                                           | Use Case                                |
+| ------------ | ----------------------------------------------------- | --------------------------------------- |
+| `INDIVIDUAL` | Each member responds separately in parallel.          | Quick, independent opinions.            |
+| `SEQUENTIAL` | Members respond in order, seeing previous responses.  | Building on each other's ideas.         |
+| `SYNTHESIS`  | Individual responses + synthesized summary (default). | Comprehensive advice with summary.      |
+| `DEBATE`     | Multi-round debate between members.                   | Exploring multiple perspectives deeply. |
+| `VOTE`       | Members vote on a decision.                           | Binary or multiple-choice decisions.    |
 
 **Example:**
 
@@ -541,23 +542,23 @@ The result of a council consultation.
 
 **Attributes:**
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `query` | `str` | The original query. |
-| `responses` | `List[MemberResponse]` | Individual member responses. |
-| `synthesis` | `Optional[str]` | Synthesized summary of all responses. |
-| `context` | `Optional[str]` | Context that was provided with the query. |
-| `mode` | `str` | Consultation mode used. |
-| `timestamp` | `datetime` | When the consultation occurred. |
-| `id` | `Optional[str]` | Unique consultation ID. |
-| `tags` | `List[str]` | Tags for categorization. |
-| `notes` | `Optional[str]` | Additional notes. |
-| `structured_synthesis` | `Optional[Any]` | Structured output (if enabled). |
-| `action_items` | `List[Any]` | Extracted action items. |
-| `recommendations` | `List[Any]` | Extracted recommendations. |
-| `pros_cons` | `Optional[Any]` | Pros/cons analysis. |
-| `synthesis_audio_url` | `Optional[str]` | Audio URL for synthesis (if TTS enabled). |
-| `session_id` | `Optional[str]` | Session ID for conversation tracking. |
+| Attribute              | Type                   | Description                               |
+| ---------------------- | ---------------------- | ----------------------------------------- |
+| `query`                | `str`                  | The original query.                       |
+| `responses`            | `List[MemberResponse]` | Individual member responses.              |
+| `synthesis`            | `Optional[str]`        | Synthesized summary of all responses.     |
+| `context`              | `Optional[str]`        | Context that was provided with the query. |
+| `mode`                 | `str`                  | Consultation mode used.                   |
+| `timestamp`            | `datetime`             | When the consultation occurred.           |
+| `id`                   | `Optional[str]`        | Unique consultation ID.                   |
+| `tags`                 | `List[str]`            | Tags for categorization.                  |
+| `notes`                | `Optional[str]`        | Additional notes.                         |
+| `structured_synthesis` | `Optional[Any]`        | Structured output (if enabled).           |
+| `action_items`         | `List[Any]`            | Extracted action items.                   |
+| `recommendations`      | `List[Any]`            | Extracted recommendations.                |
+| `pros_cons`            | `Optional[Any]`        | Pros/cons analysis.                       |
+| `synthesis_audio_url`  | `Optional[str]`        | Audio URL for synthesis (if TTS enabled). |
+| `session_id`           | `Optional[str]`        | Session ID for conversation tracking.     |
 
 **Methods:**
 
@@ -609,9 +610,9 @@ def from_dict(cls, data: Dict[str, Any]) -> ConsultationResult
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `data` | `Dict[str, Any]` | Dictionary representation of a consultation result. |
+| Parameter | Type             | Description                                         |
+| --------- | ---------------- | --------------------------------------------------- |
+| `data`    | `Dict[str, Any]` | Dictionary representation of a consultation result. |
 
 **Returns:** `ConsultationResult` instance.
 
@@ -634,13 +635,13 @@ Response from a single council member.
 
 **Attributes:**
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `persona` | `Persona` | The persona who responded. |
-| `content` | `str` | The response content. |
-| `timestamp` | `datetime` | When the response was generated. |
-| `error` | `Optional[str]` | Error message if response failed. |
-| `audio_url` | `Optional[str]` | Audio URL if TTS is enabled. |
+| Attribute   | Type            | Description                       |
+| ----------- | --------------- | --------------------------------- |
+| `persona`   | `Persona`       | The persona who responded.        |
+| `content`   | `str`           | The response content.             |
+| `timestamp` | `datetime`      | When the response was generated.  |
+| `error`     | `Optional[str]` | Error message if response failed. |
+| `audio_url` | `Optional[str]` | Audio URL if TTS is enabled.      |
 
 **Methods:**
 
@@ -700,26 +701,26 @@ persona = Persona(
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `id` | `str` | Required | Unique identifier (lowercase, underscores allowed). |
-| `name` | `str` | Required | Display name (e.g., "Dieter Rams"). |
-| `title` | `str` | Required | Role/title (e.g., "Design Philosopher"). |
-| `emoji` | `str` | `"👤"` | Visual identifier. |
-| `category` | `PersonaCategory` | `CUSTOM` | Organizational category. |
-| `core_question` | `str` | Required | Fundamental question this persona asks. |
-| `razor` | `str` | Required | Decision-making principle. |
-| `traits` | `List[Trait]` | `[]` | Personality/expertise traits. |
-| `focus_areas` | `List[str]` | `[]` | Areas of expertise. |
-| `prompt_prefix` | `Optional[str]` | `None` | Prefix added to prompts. |
-| `prompt_suffix` | `Optional[str]` | `None` | Suffix added to prompts. |
-| `system_prompt_override` | `Optional[str]` | `None` | Complete system prompt override. |
-| `model` | `Optional[str]` | `None` | Model override for this persona. |
-| `provider` | `Optional[str]` | `None` | Provider override for this persona. |
-| `model_params` | `Dict[str, Any]` | `{}` | Model parameter overrides. |
-| `weight` | `float` | `1.0` | Influence weight (0.0-2.0). |
-| `enabled` | `bool` | `True` | Whether persona is active. |
-| `metadata` | `Dict[str, Any]` | `{}` | Custom metadata. |
+| Parameter                | Type              | Default  | Description                                         |
+| ------------------------ | ----------------- | -------- | --------------------------------------------------- |
+| `id`                     | `str`             | Required | Unique identifier (lowercase, underscores allowed). |
+| `name`                   | `str`             | Required | Display name (e.g., "Dieter Rams").                 |
+| `title`                  | `str`             | Required | Role/title (e.g., "Design Philosopher").            |
+| `emoji`                  | `str`             | `"👤"`   | Visual identifier.                                  |
+| `category`               | `PersonaCategory` | `CUSTOM` | Organizational category.                            |
+| `core_question`          | `str`             | Required | Fundamental question this persona asks.             |
+| `razor`                  | `str`             | Required | Decision-making principle.                          |
+| `traits`                 | `List[Trait]`     | `[]`     | Personality/expertise traits.                       |
+| `focus_areas`            | `List[str]`       | `[]`     | Areas of expertise.                                 |
+| `prompt_prefix`          | `Optional[str]`   | `None`   | Prefix added to prompts.                            |
+| `prompt_suffix`          | `Optional[str]`   | `None`   | Suffix added to prompts.                            |
+| `system_prompt_override` | `Optional[str]`   | `None`   | Complete system prompt override.                    |
+| `model`                  | `Optional[str]`   | `None`   | Model override for this persona.                    |
+| `provider`               | `Optional[str]`   | `None`   | Provider override for this persona.                 |
+| `model_params`           | `Dict[str, Any]`  | `{}`     | Model parameter overrides.                          |
+| `weight`                 | `float`           | `1.0`    | Influence weight (0.0-2.0).                         |
+| `enabled`                | `bool`            | `True`   | Whether persona is active.                          |
+| `metadata`               | `Dict[str, Any]`  | `{}`     | Custom metadata.                                    |
 
 **Example:**
 
@@ -864,11 +865,11 @@ def add_trait(self, name: str, description: str, weight: float = 1.0) -> None
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `name` | `str` | Required | Trait name. |
-| `description` | `str` | Required | Trait description. |
-| `weight` | `float` | `1.0` | Trait weight/importance. |
+| Parameter     | Type    | Default  | Description              |
+| ------------- | ------- | -------- | ------------------------ |
+| `name`        | `str`   | Required | Trait name.              |
+| `description` | `str`   | Required | Trait description.       |
+| `weight`      | `float` | `1.0`    | Trait weight/importance. |
 
 **Example:**
 
@@ -891,8 +892,8 @@ def remove_trait(self, trait_name: str) -> None
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter    | Type  | Description                                 |
+| ------------ | ----- | ------------------------------------------- |
 | `trait_name` | `str` | Name of trait to remove (case-insensitive). |
 
 **Example:**
@@ -917,11 +918,11 @@ def update_trait(
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `trait_name` | `str` | Required | Name of trait to update. |
-| `weight` | `Optional[float]` | `None` | New weight value. |
-| `description` | `Optional[str]` | `None` | New description. |
+| Parameter     | Type              | Default  | Description              |
+| ------------- | ----------------- | -------- | ------------------------ |
+| `trait_name`  | `str`             | Required | Name of trait to update. |
+| `weight`      | `Optional[float]` | `None`   | New weight value.        |
+| `description` | `Optional[str]`   | `None`   | New description.         |
 
 **Example:**
 
@@ -940,10 +941,10 @@ def clone(self, new_id: Optional[str] = None, **overrides) -> Persona
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `new_id` | `Optional[str]` | `None` | ID for the cloned persona. |
-| `**overrides` | | | Field values to override in the clone. |
+| Parameter     | Type            | Default | Description                            |
+| ------------- | --------------- | ------- | -------------------------------------- |
+| `new_id`      | `Optional[str]` | `None`  | ID for the cloned persona.             |
+| `**overrides` |                 |         | Field values to override in the clone. |
 
 **Returns:** New `Persona` instance.
 
@@ -993,10 +994,10 @@ def format_response_prompt(
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `query` | `str` | Required | User query. |
-| `context` | `Optional[str]` | `None` | Additional context. |
+| Parameter | Type            | Default  | Description         |
+| --------- | --------------- | -------- | ------------------- |
+| `query`   | `str`           | Required | User query.         |
+| `context` | `Optional[str]` | `None`   | Additional context. |
 
 **Returns:** Formatted prompt string.
 
@@ -1012,12 +1013,12 @@ from council_ai import PersonaCategory
 
 **Values:**
 
-| Category | Description |
-|----------|-------------|
-| `ADVISORY` | Advisory council members (build it right). |
-| `RED_TEAM` | Red team members (break & survive). |
-| `SPECIALIST` | Domain specialists. |
-| `CUSTOM` | User-created personas. |
+| Category     | Description                                |
+| ------------ | ------------------------------------------ |
+| `ADVISORY`   | Advisory council members (build it right). |
+| `RED_TEAM`   | Red team members (break & survive).        |
+| `SPECIALIST` | Domain specialists.                        |
+| `CUSTOM`     | User-created personas.                     |
 
 **Example:**
 
@@ -1050,11 +1051,11 @@ trait = Trait(
 
 **Fields:**
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `name` | `str` | Required | Trait name. |
-| `description` | `str` | Required | Trait description. |
-| `weight` | `float` | `1.0` | Trait weight/importance (0.0-2.0). |
+| Field         | Type    | Default  | Description                        |
+| ------------- | ------- | -------- | ---------------------------------- |
+| `name`        | `str`   | Required | Trait name.                        |
+| `description` | `str`   | Required | Trait description.                 |
+| `weight`      | `float` | `1.0`    | Trait weight/importance (0.0-2.0). |
 
 **Example:**
 
@@ -1155,16 +1156,16 @@ A domain configuration with recommended personas and settings.
 
 **Attributes:**
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `id` | `str` | Unique domain identifier. |
-| `name` | `str` | Display name. |
-| `description` | `str` | Domain description. |
-| `category` | `DomainCategory` | Organizational category. |
-| `default_personas` | `List[str]` | Personas to include by default. |
-| `optional_personas` | `List[str]` | Optional personas that can be added. |
-| `recommended_mode` | `str` | Recommended consultation mode. |
-| `example_queries` | `List[str]` | Example queries for this domain. |
+| Attribute           | Type             | Description                          |
+| ------------------- | ---------------- | ------------------------------------ |
+| `id`                | `str`            | Unique domain identifier.            |
+| `name`              | `str`            | Display name.                        |
+| `description`       | `str`            | Domain description.                  |
+| `category`          | `DomainCategory` | Organizational category.             |
+| `default_personas`  | `List[str]`      | Personas to include by default.      |
+| `optional_personas` | `List[str]`      | Optional personas that can be added. |
+| `recommended_mode`  | `str`            | Recommended consultation mode.       |
+| `example_queries`   | `List[str]`      | Example queries for this domain.     |
 
 **Example:**
 
@@ -1192,13 +1193,13 @@ from council_ai import DomainCategory
 
 **Values:**
 
-| Category | Description |
-|----------|-------------|
+| Category    | Description                    |
+| ----------- | ------------------------------ |
 | `TECHNICAL` | Technical/engineering domains. |
-| `BUSINESS` | Business strategy domains. |
-| `CREATIVE` | Creative/artistic domains. |
-| `PERSONAL` | Personal development domains. |
-| `GENERAL` | General-purpose domains. |
+| `BUSINESS`  | Business strategy domains.     |
+| `CREATIVE`  | Creative/artistic domains.     |
+| `PERSONAL`  | Personal development domains.  |
+| `GENERAL`   | General-purpose domains.       |
 
 ---
 
@@ -1212,12 +1213,12 @@ Abstract base class for LLM providers.
 
 #### Supported Providers
 
-| Provider | Value | Models |
-|----------|-------|--------|
+| Provider         | Value         | Models                                                                          |
+| ---------------- | ------------- | ------------------------------------------------------------------------------- |
 | Anthropic Claude | `"anthropic"` | `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307` |
-| OpenAI GPT | `"openai"` | `gpt-4-turbo-preview`, `gpt-4`, `gpt-3.5-turbo` |
-| Google Gemini | `"gemini"` | `gemini-pro`, `gemini-pro-vision` |
-| Custom HTTP | `"http"` | Custom endpoint |
+| OpenAI GPT       | `"openai"`    | `gpt-4-turbo-preview`, `gpt-4`, `gpt-3.5-turbo`                                 |
+| Google Gemini    | `"gemini"`    | `gemini-pro`, `gemini-pro-vision`                                               |
+| Custom HTTP      | `"http"`      | Custom endpoint                                                                 |
 
 #### Methods
 
@@ -1275,8 +1276,8 @@ persona = get_persona(persona_id: str) -> Persona
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter    | Type  | Description                    |
+| ------------ | ----- | ------------------------------ |
 | `persona_id` | `str` | ID of the persona to retrieve. |
 
 **Returns:** `Persona` instance.
@@ -1305,9 +1306,9 @@ personas = list_personas(category: Optional[PersonaCategory] = None) -> List[Per
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `category` | `Optional[PersonaCategory]` | `None` | Filter by category. |
+| Parameter  | Type                        | Default | Description         |
+| ---------- | --------------------------- | ------- | ------------------- |
+| `category` | `Optional[PersonaCategory]` | `None`  | Filter by category. |
 
 **Returns:** List of `Persona` instances.
 
@@ -1339,8 +1340,8 @@ domain = get_domain(domain_id: str) -> Domain
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter   | Type  | Description                   |
+| ----------- | ----- | ----------------------------- |
 | `domain_id` | `str` | ID of the domain to retrieve. |
 
 **Returns:** `Domain` instance.
@@ -1369,9 +1370,9 @@ domains = list_domains(category: Optional[DomainCategory] = None) -> List[Domain
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `category` | `Optional[DomainCategory]` | `None` | Filter by category. |
+| Parameter  | Type                       | Default | Description         |
+| ---------- | -------------------------- | ------- | ------------------- |
+| `category` | `Optional[DomainCategory]` | `None`  | Filter by category. |
 
 **Returns:** List of `Domain` instances.
 
@@ -1408,12 +1409,12 @@ provider = get_provider(
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `provider_name` | `str` | Required | Provider name (`"anthropic"`, `"openai"`, etc.). |
-| `api_key` | `Optional[str]` | `None` | API key for the provider. |
-| `model` | `Optional[str]` | `None` | Model name override. |
-| `base_url` | `Optional[str]` | `None` | Base URL override. |
+| Parameter       | Type            | Default  | Description                                      |
+| --------------- | --------------- | -------- | ------------------------------------------------ |
+| `provider_name` | `str`           | Required | Provider name (`"anthropic"`, `"openai"`, etc.). |
+| `api_key`       | `Optional[str]` | `None`   | API key for the provider.                        |
+| `model`         | `Optional[str]` | `None`   | Model name override.                             |
+| `base_url`      | `Optional[str]` | `None`   | Base URL override.                               |
 
 **Returns:** Provider instance.
 

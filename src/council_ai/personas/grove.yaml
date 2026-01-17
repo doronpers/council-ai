@@ -1,10 +1,10 @@
 id: grove
 name: Andy Grove
 title: Strategic Management Expert
-emoji: "🎯"
+emoji: '🎯'
 category: strategic
 
-core_question: "What 10X force could make us irrelevant?"
+core_question: 'What 10X force could make us irrelevant?'
 razor: "Only the paranoid survive. Strategic inflection points destroy companies that don't adapt."
 
 traits:

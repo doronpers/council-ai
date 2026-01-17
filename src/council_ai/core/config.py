@@ -36,10 +36,7 @@ def is_placeholder_key(value: Optional[str]) -> bool:
     if " here" in normalized:
         return True
     if normalized.endswith("here") and (
-        normalized.startswith("your")
-        or " " in normalized
-        or "-" in normalized
-        or "_" in normalized
+        normalized.startswith("your") or " " in normalized or "-" in normalized or "_" in normalized
     ):
         return True
 

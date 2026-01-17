@@ -25,8 +25,8 @@ This document is the **Single Source of Truth** for all AI agents (Claude, Curso
    - **CONSTRAINT**: Use these lenses to audit and improve, but **DO NOT** brand features with persona names.
 
 5. **Hippocratic Principle: "First, Do No Harm"**:
-   > *"To do good or to do no harm"* — Hippocratic tradition
 
+   > _"To do good or to do no harm"_ — Hippocratic tradition
    - **Avoid Deleterious Changes**: Do not introduce changes that harm functionality, security, or maintainability.
    - **Preserve Working Systems**: If code works correctly, changes must maintain or improve its behavior.
    - **Minimize Side Effects**: Consider downstream impacts before modifying shared code.
@@ -156,15 +156,15 @@ council-ai/
 
 ## 6. Quick Reference
 
-| Task | Command |
-| :--- | :--- |
-| Install (dev) | `pip install -e ".[dev]"` |
-| Format | `black src/` |
-| Lint | `ruff check src/` |
-| Test | `pytest` |
-| Run CLI | `council --help` |
-| Run web | `council web --reload` |
-| Consult | `council consult "Your question"` |
+| Task          | Command                           |
+| :------------ | :-------------------------------- |
+| Install (dev) | `pip install -e ".[dev]"`         |
+| Format        | `black src/`                      |
+| Lint          | `ruff check src/`                 |
+| Test          | `pytest`                          |
+| Run CLI       | `council --help`                  |
+| Run web       | `council web --reload`            |
+| Consult       | `council consult "Your question"` |
 
 ### Key Files
 

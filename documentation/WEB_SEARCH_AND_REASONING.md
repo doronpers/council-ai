@@ -395,12 +395,14 @@ result = council.consult(
 ### When to Use Web Search
 
 ✅ **Use web search when:**
+
 - You need current information (news, trends, recent research)
 - Facts may have changed since model training
 - You want to verify information
 - You need specific technical documentation
 
 ❌ **Don't use web search when:**
+
 - Question is about general principles or philosophy
 - You already have all necessary context
 - You want faster responses (web search adds latency)
@@ -409,26 +411,31 @@ result = council.consult(
 ### When to Use Reasoning Modes
 
 ✅ **Chain-of-Thought:**
+
 - Complex technical decisions
 - Problems with clear logical steps
 - When you want to see the reasoning process
 
 ✅ **Tree-of-Thought:**
+
 - Problems with multiple valid solutions
 - When you want to explore alternatives
 - Design decisions with trade-offs
 
 ✅ **Reflective:**
+
 - Important strategic decisions
 - When you want careful consideration
 - High-stakes choices
 
 ✅ **Analytical:**
+
 - Research questions
 - Evidence-based decisions
 - When you need thorough analysis
 
 ✅ **Creative:**
+
 - Brainstorming sessions
 - Innovation challenges
 - When you need novel perspectives
@@ -452,11 +459,13 @@ result = council.consult(
 ### Web Search Not Working
 
 1. **Check API keys:**
+
    ```bash
    echo $TAVILY_API_KEY  # or SERPER_API_KEY, GOOGLE_API_KEY
    ```
 
 2. **Verify provider:**
+
    ```python
    from council_ai.tools.web_search import WebSearchTool
    tool = WebSearchTool()
@@ -470,6 +479,7 @@ result = council.consult(
 ### Reasoning Mode Not Applied
 
 1. **Check configuration:**
+
    ```python
    print(council.config.reasoning_mode)
    print(persona.reasoning_mode)

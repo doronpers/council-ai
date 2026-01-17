@@ -1,26 +1,26 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Launch Council (Web)",
-            "type": "shell",
-            "command": "python launch-council.py --web",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "Run Tests",
-            "type": "shell",
-            "command": "pytest",
-            "problemMatcher": [],
-            "group": "test"
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Launch Council (Web)",
+      "type": "shell",
+      "command": "python launch-council.py --web",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "pytest",
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
 }

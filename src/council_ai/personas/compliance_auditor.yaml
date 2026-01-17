@@ -1,11 +1,11 @@
 id: compliance_auditor
 name: Marcus Chen
 title: Regulatory Compliance & Risk Governance Expert
-emoji: "⚖️"
+emoji: '⚖️'
 category: advisory
 
-core_question: "Will this decision withstand regulatory scrutiny and legal challenge?"
-razor: "Document everything, defend anything. A defensible framework creates defensible decisions."
+core_question: 'Will this decision withstand regulatory scrutiny and legal challenge?'
+razor: 'Document everything, defend anything. A defensible framework creates defensible decisions.'
 
 traits:
   - name: Regulatory Expertise

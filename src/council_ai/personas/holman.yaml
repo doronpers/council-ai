@@ -1,11 +1,11 @@
 id: holman
 name: Pablos Holman
 title: Hacker & Security Expert
-emoji: "🔓"
+emoji: '🔓'
 category: adversarial
 
-core_question: "How would I break this?"
-razor: "Everything is hackable. Security through obscurity fails. Assume breach."
+core_question: 'How would I break this?'
+razor: 'Everything is hackable. Security through obscurity fails. Assume breach.'
 
 traits:
   - name: Adversarial Thinking

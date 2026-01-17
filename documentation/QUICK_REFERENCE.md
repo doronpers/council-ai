@@ -110,5 +110,6 @@ export SERPER_API_KEY="your-key"
 - `creative` - Divergent thinking
 
 See full documentation:
+
 - `documentation/CONTEXT_INJECTION_GUIDE.md`
 - `documentation/WEB_SEARCH_AND_REASONING.md`

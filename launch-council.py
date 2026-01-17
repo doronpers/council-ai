@@ -22,7 +22,7 @@ if sys.platform == "win32":
     try:
         if sys.stdout.encoding != "utf-8":
             sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, Exception):
+    except Exception:
         pass
 
 # Platform detection
@@ -624,7 +624,7 @@ def main():
                             CYAN,
                         )
                         args.role = "satellite"
-                    except (socket.timeout, ConnectionRefusedError, OSError):
+                    except (socket.timeout, OSError):
                         print_info("Remote host not reachable. Launching as local host.")
                         args.role = "host"
             else:

@@ -12,7 +12,7 @@ export async function loadInfo() {
     return cachedInfo;
   }
 
-  const res = await fetch("/api/info");
+  const res = await fetch('/api/info');
   const data = await res.json();
   cachedInfo = data;
   return data;
@@ -22,15 +22,15 @@ export async function loadInfo() {
  * Submit consultation request
  */
 export async function submitConsultation(payload) {
-  const res = await fetch("/api/consult", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+  const res = await fetch('/api/consult', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(err.detail || "Request failed.");
+    throw new Error(err.detail || 'Request failed.');
   }
 
   return await res.json();

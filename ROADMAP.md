@@ -8,12 +8,14 @@
 ## ✅ Recently Completed
 
 ### Web UI Improvements (2026-01-16)
+
 1. ✅ **Removed Legacy Search Route** - Deleted `/api/history/search_legacy` endpoint
 2. ✅ **Added Tags/Notes Editing UI** - History items now support inline editing of tags and notes
 3. ✅ **Added View Full Consultation Details** - Modal dialog to view complete consultation history
 4. ✅ **Documented Google Docs Feature** - Enhanced TODO documentation with implementation steps
 
 ### Core Improvements (2026-01-16)
+
 5. ✅ **Concurrent Streaming** - Optimized streaming consultations to run personas in parallel
 6. ✅ **Enhanced API Key Detection** - Improved detection of multiple LLM providers
 7. ✅ **Robust Fallback Mechanism** - Better fallback handling for LLM providers
@@ -23,7 +25,7 @@
 
 ## 🔴 High Priority
 
-*No high priority items at this time.*
+_No high priority items at this time._
 
 ---
 
@@ -32,6 +34,7 @@
 ### Web UI Enhancements
 
 #### 1. History Search UI
+
 - **Status**: 📝 TODO
 - **Description**: Backend has `/api/history/search` endpoint, but no UI component
 - **Implementation**: Add search bar to HistoryPanel component
@@ -39,6 +42,7 @@
 - **Estimated Effort**: 2-3 hours
 
 #### 2. Session Management UI
+
 - **Status**: 📝 TODO
 - **Description**: Backend has session endpoints (`/api/sessions`, `/api/sessions/{id}`), but no UI
 - **Implementation**: Add session view/management to history panel
@@ -46,6 +50,7 @@
 - **Estimated Effort**: 4-6 hours
 
 #### 3. Consultation Export
+
 - **Status**: 📝 TODO
 - **Description**: No way to export consultations (JSON, Markdown, PDF)
 - **Implementation**: Add export functionality to history items
@@ -53,6 +58,7 @@
 - **Estimated Effort**: 3-4 hours
 
 #### 4. Advanced Filtering
+
 - **Status**: 📝 TODO
 - **Description**: History panel shows all consultations, no filtering by date/domain/mode
 - **Implementation**: Add filter controls to HistoryPanel
@@ -62,6 +68,7 @@
 ### Integration & Architecture
 
 #### 5. Migrate to shared-ai-utils LLMManager
+
 - **Status**: ✅ COMPLETED
 - **Description**: Integrated with shared-ai-utils LLM provider abstraction
 - **Implementation**:
@@ -72,6 +79,7 @@
 - **Completed**: 2026-01-16
 
 #### 6. Migrate to shared-ai-utils ConfigManager
+
 - **Status**: ✅ COMPLETED
 - **Description**: Integrated with shared-ai-utils config manager
 - **Implementation**:
@@ -82,6 +90,7 @@
 - **Completed**: 2026-01-16
 
 #### 7. Add Pattern-Coach Mode
+
 - **Status**: 📝 TODO
 - **Description**: Add pattern-aware council mode with recommendations from feedback-loop
 - **Implementation**:
@@ -92,6 +101,7 @@
 - **Reference**: `planning/integration-plan.md`
 
 #### 8. Add QA Command for sono-eval
+
 - **Status**: 📝 TODO
 - **Description**: Optional QA command to run council outputs through sono-eval assessment
 - **Implementation**:
@@ -108,6 +118,7 @@
 ### Web UI Enhancements
 
 #### 9. Consultation Sharing
+
 - **Status**: 📝 TODO
 - **Description**: No way to share consultations with others
 - **Implementation**: Add share/permalink functionality
@@ -115,6 +126,7 @@
 - **Estimated Effort**: 2-3 hours
 
 #### 10. Consultation Comparison
+
 - **Status**: 📝 TODO
 - **Description**: No way to compare multiple consultations side-by-side
 - **Implementation**: Add comparison view component
@@ -122,6 +134,7 @@
 - **Estimated Effort**: 4-6 hours
 
 #### 11. Keyboard Shortcuts
+
 - **Status**: 📝 TODO
 - **Description**: No keyboard shortcuts for common actions
 - **Implementation**: Add keyboard shortcuts (e.g., Ctrl+Enter to submit)
@@ -129,6 +142,7 @@
 - **Estimated Effort**: 2-3 hours
 
 #### 12. Error Boundaries
+
 - **Status**: 📝 TODO
 - **Description**: React error boundaries not implemented
 - **Implementation**: Add error boundaries for better error handling
@@ -136,6 +150,7 @@
 - **Estimated Effort**: 1-2 hours
 
 #### 13. Loading States Review
+
 - **Status**: 📝 TODO
 - **Description**: Some async operations may lack loading indicators
 - **Implementation**: Review and add loading states where missing
@@ -143,6 +158,7 @@
 - **Estimated Effort**: 2-3 hours
 
 #### 14. Mobile Responsiveness Review
+
 - **Status**: 📝 TODO
 - **Description**: Some components may need mobile optimization
 - **Implementation**: Review and enhance mobile CSS
@@ -152,6 +168,7 @@
 ### Features
 
 #### 15. Google Docs Content Fetching
+
 - **Status**: ⚠️ Incomplete
 - **Description**: Google Docs URL fetching requires Google API credentials
 - **Current State**: Returns `None`, relies on manually exported/pasted content
@@ -165,6 +182,7 @@
 - **Priority**: Low (workaround exists - manual paste)
 
 #### 16. Optional MemU Backend for History
+
 - **Status**: 📝 TODO
 - **Description**: Add MemU-backed conversation/history persistence as optional memory backend
 - **Implementation**:
@@ -180,6 +198,7 @@
 ## 📋 Future Considerations
 
 ### Phase 3 Integration Items (from integration-plan.md)
+
 These are lower priority and depend on Phase 1 & 2 completion:
 
 - **drrweb integration**: Add council consult server action for creative intent detection
@@ -187,6 +206,7 @@ These are lower priority and depend on Phase 1 & 2 completion:
 - **tex-assist-coding integration**: Reference shared pattern library (documentation-only)
 
 ### Testing & Quality
+
 - Unit tests around provider/config swaps (mocked LLM calls)
 - CLI smoke tests: `council quickstart`, pattern CRUD via shared manager
 - Contract tests for sono-eval QA hook against local server stub

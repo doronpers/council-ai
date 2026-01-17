@@ -23,7 +23,7 @@ echo 🚀 Connecting to Council AI...
 python launch-council.py --role satellite
 if %ERRORLEVEL% neq 0 (
     echo.
-    echo ❌ Connection failed. 
+    echo ❌ Connection failed.
     echo 💡 Tip: To change the host or fix connection issues, delete the '.council_host' file.
     pause
 )

@@ -89,7 +89,7 @@ result = council.consult(
 
 ### Method 1: Read and Format Manually
 
-```python
+````python
 from pathlib import Path
 from council_ai import Council
 
@@ -106,14 +106,16 @@ Relevant Code File: {code_path}
 
 ```python
 {code_content}
-```
+````
+
 """
 
 result = council.consult(
-    "Review this code for security issues",
-    context=context
+"Review this code for security issues",
+context=context
 )
-```
+
+````
 
 ### Method 2: Using Helper Utility
 
@@ -135,7 +137,7 @@ result = council.consult(
     "Review code quality and suggest improvements",
     context=context
 )
-```
+````
 
 ---
 
@@ -234,11 +236,11 @@ You can inject context at the persona level using `prompt_prefix`, `prompt_suffi
 id: custom_expert
 name: Domain Expert
 title: Specialized Advisor
-emoji: "🎯"
+emoji: '🎯'
 category: custom
 
-core_question: "Does this align with best practices?"
-razor: "Expertise-driven decision making"
+core_question: 'Does this align with best practices?'
+razor: 'Expertise-driven decision making'
 
 # Inject context via prompt prefix
 prompt_prefix: |

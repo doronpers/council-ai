@@ -256,27 +256,27 @@ for response in result.responses:
 
 ### Advisory Council (Build It Right)
 
-| Persona | Focus | Core Question |
-| ------- | ----- | ------------- |
-| 🎨 **Dieter Rams** | Simplification, Design | "Is this as simple as possible?" |
-| 🎖️ **Martin Dempsey** | Mission Clarity, Autonomy | "Can this operate without asking permission?" |
-| 🧠 **Daniel Kahneman** | Cognitive Load, UX | "Does this work with human cognition?" |
-| 🔊 **Julian Treasure** | Communication, Listening | "Are we listening with integrity?" |
+| Persona                | Focus                     | Core Question                                 |
+| ---------------------- | ------------------------- | --------------------------------------------- |
+| 🎨 **Dieter Rams**     | Simplification, Design    | "Is this as simple as possible?"              |
+| 🎖️ **Martin Dempsey**  | Mission Clarity, Autonomy | "Can this operate without asking permission?" |
+| 🧠 **Daniel Kahneman** | Cognitive Load, UX        | "Does this work with human cognition?"        |
+| 🔊 **Julian Treasure** | Communication, Listening  | "Are we listening with integrity?"            |
 
 ### Red Team Council (Break & Survive)
 
-| Persona | Focus | Core Question |
-| ------- | ----- | ------------- |
-| 🔓 **Pablos Holman** | Security, Exploits | "How would I break this?" |
-| 🦢 **Nassim Taleb** | Risk, Antifragility | "What's the hidden risk?" |
-| 🎯 **Andy Grove** | Strategy, Competition | "What 10X force could make us irrelevant?" |
+| Persona              | Focus                 | Core Question                              |
+| -------------------- | --------------------- | ------------------------------------------ |
+| 🔓 **Pablos Holman** | Security, Exploits    | "How would I break this?"                  |
+| 🦢 **Nassim Taleb**  | Risk, Antifragility   | "What's the hidden risk?"                  |
+| 🎯 **Andy Grove**    | Strategy, Competition | "What 10X force could make us irrelevant?" |
 
 ### Specialist Council (Deep Domain Expertise)
 
-| Persona | Focus | Core Question |
-| ------- | ----- | ------------- |
-| 🛡️ **Signal Analyst** | Deepfake Defense, Audio | "Is this signal authentic or synthetic?" |
-| ⚖️ **Compliance Auditor** | Regulations, Fintech | "Does this comply with relevant regulations?" |
+| Persona                   | Focus                   | Core Question                                 |
+| ------------------------- | ----------------------- | --------------------------------------------- |
+| 🛡️ **Signal Analyst**     | Deepfake Defense, Audio | "Is this signal authentic or synthetic?"      |
+| ⚖️ **Compliance Auditor** | Regulations, Fintech    | "Does this comply with relevant regulations?" |
 
 ---
 
@@ -287,22 +287,22 @@ for response in result.responses:
 council domain list
 ```
 
-| Domain | Description | Default Personas |
-| ------ | ----------- | ---------------- |
-| `coding` | Software development | Rams, Kahneman, Holman, Taleb |
-| `business` | Business strategy | Grove, Taleb, Dempsey, Kahneman |
-| `startup` | Early-stage decisions | Grove, Taleb, Kahneman, Rams |
-| `product` | Product management | Kahneman, Rams, Treasure, Grove |
-| `leadership` | Team & org leadership | Dempsey, Kahneman, Grove |
-| `creative` | Creative projects | Treasure, Rams, Kahneman |
-| `writing` | Written content | Treasure, Kahneman, Rams |
-| `career` | Career decisions | Grove, Kahneman, Dempsey, Taleb |
-| `decisions` | Major life decisions | Kahneman, Taleb, Dempsey |
-| `devops` | Infrastructure & ops | Dempsey, Holman, Taleb, Grove |
-| `data` | Data science | Kahneman, Taleb, Rams |
-| `general` | General purpose | Kahneman, Taleb, Grove, Rams |
-| `llm_review` | High-quality LLM review | Dempsey, Kahneman, Rams, Treasure |
-| `sonotheia` | Audio defense & fintech | signal_analyst, compliance_auditor, Holman, Taleb |
+| Domain       | Description             | Default Personas                                  |
+| ------------ | ----------------------- | ------------------------------------------------- |
+| `coding`     | Software development    | Rams, Kahneman, Holman, Taleb                     |
+| `business`   | Business strategy       | Grove, Taleb, Dempsey, Kahneman                   |
+| `startup`    | Early-stage decisions   | Grove, Taleb, Kahneman, Rams                      |
+| `product`    | Product management      | Kahneman, Rams, Treasure, Grove                   |
+| `leadership` | Team & org leadership   | Dempsey, Kahneman, Grove                          |
+| `creative`   | Creative projects       | Treasure, Rams, Kahneman                          |
+| `writing`    | Written content         | Treasure, Kahneman, Rams                          |
+| `career`     | Career decisions        | Grove, Kahneman, Dempsey, Taleb                   |
+| `decisions`  | Major life decisions    | Kahneman, Taleb, Dempsey                          |
+| `devops`     | Infrastructure & ops    | Dempsey, Holman, Taleb, Grove                     |
+| `data`       | Data science            | Kahneman, Taleb, Rams                             |
+| `general`    | General purpose         | Kahneman, Taleb, Grove, Rams                      |
+| `llm_review` | High-quality LLM review | Dempsey, Kahneman, Rams, Treasure                 |
+| `sonotheia`  | Audio defense & fintech | signal_analyst, compliance_auditor, Holman, Taleb |
 
 ---
 
@@ -319,11 +319,11 @@ Create a YAML file in `~/.config/council-ai/personas/` or a custom directory spe
 id: my_advisor
 name: My Custom Advisor
 title: Domain Expert
-emoji: "🔮"
+emoji: '🔮'
 category: custom
 
-core_question: "What would a domain expert ask?"
-razor: "The key principle for decisions."
+core_question: 'What would a domain expert ask?'
+razor: 'The key principle for decisions.'
 
 traits:
   - name: Expertise
@@ -427,6 +427,7 @@ result = council.consult(query, mode=ConsultationMode.VOTE)
 Council AI can search the web for current information during consultations. Useful for up-to-date facts, news, research, and current events.
 
 **Supported Providers:**
+
 - **Tavily** (Recommended) - Fast, AI-powered search
 - **Serper.dev** - Google search API
 - **Google Custom Search** - Official Google API
@@ -538,17 +539,17 @@ Override the location with `COUNCIL_AI_CONFIG_DIR`.
 ```yaml
 api:
   provider: openai
-  api_key: null  # Use environment variable instead
-  model: gpt-4-turbo-preview  # or your preferred model
-  base_url: null  # Optional for OpenAI-compatible endpoints
+  api_key: null # Use environment variable instead
+  model: gpt-4-turbo-preview # or your preferred model
+  base_url: null # Optional for OpenAI-compatible endpoints
 
 default_mode: synthesis
 default_domain: general
 temperature: 0.7
 max_tokens_per_response: 1000
-synthesis_provider: null  # Optional: set to use a separate provider for synthesis
-synthesis_model: null  # Optional: set to use a different model for synthesis
-synthesis_max_tokens: null  # Optional: override max tokens for synthesis
+synthesis_provider: null # Optional: set to use a separate provider for synthesis
+synthesis_model: null # Optional: set to use a different model for synthesis
+synthesis_max_tokens: null # Optional: override max tokens for synthesis
 
 presets:
   my_team:
@@ -689,6 +690,7 @@ If you are hosting Council AI on one machine (e.g., your Mac) and want to access
 > To find your host's IP, run **`launch-council-lan.command`** on the host machine. It will display the correct network URL in the terminal.
 
 **Command Line equivalents:**
+
 ```bash
 # Standard
 ./launch-council.py --open
@@ -723,6 +725,7 @@ Then open <http://127.0.0.1:8000>.
 For frontend development with hot-reloading:
 
 1. Start the backend API:
+
    ```bash
    council web --reload
    ```
@@ -756,11 +759,11 @@ Create or edit `~/.config/council-ai/config.yaml`:
 
 ```yaml
 tts:
-  enabled: false  # Set to true to enable by default
-  provider: "elevenlabs"  # Primary provider
-  voice: "EXAVITQu4vr4xnSDxMaL"  # Optional: specific voice ID
-  fallback_provider: "openai"  # Fallback provider
-  fallback_voice: "alloy"  # Optional: fallback voice
+  enabled: false # Set to true to enable by default
+  provider: 'elevenlabs' # Primary provider
+  voice: 'EXAVITQu4vr4xnSDxMaL' # Optional: specific voice ID
+  fallback_provider: 'openai' # Fallback provider
+  fallback_voice: 'alloy' # Optional: fallback voice
 ```
 
 See `config.yaml.example` for full configuration options.
@@ -775,10 +778,10 @@ See `config.yaml.example` for full configuration options.
 
 **Supported Providers:**
 
-| Provider | Quality | Speed | Voices | Cost |
-| :--- | :--- | :--- | :--- | :--- |
-| **ElevenLabs** | ⭐⭐⭐⭐⭐ | Fast | 50+ | $$ |
-| **OpenAI TTS** | ⭐⭐⭐⭐ | Very Fast | 6 | $ |
+| Provider       | Quality    | Speed     | Voices | Cost |
+| :------------- | :--------- | :-------- | :----- | :--- |
+| **ElevenLabs** | ⭐⭐⭐⭐⭐ | Fast      | 50+    | $$   |
+| **OpenAI TTS** | ⭐⭐⭐⭐   | Very Fast | 6      | $    |
 
 ### Web App Features
 
@@ -1031,11 +1034,11 @@ Create a YAML file in `src/council_ai/personas/`:
 id: your_persona
 name: Full Name
 title: Brief Title
-emoji: "🎭"
+emoji: '🎭'
 category: advisory
 
-core_question: "The key question?"
-razor: "The decision principle."
+core_question: 'The key question?'
+razor: 'The decision principle.'
 
 traits:
   - name: Trait Name

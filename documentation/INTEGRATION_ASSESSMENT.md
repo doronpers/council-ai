@@ -18,7 +18,7 @@
 
 **Integration:**
 
-```python
+````python
 # In feedback-loop's code_reviewer.py
 from council_ai import Council
 
@@ -62,7 +62,7 @@ class CouncilCodeReviewer(CodeReviewer):
             "patterns": patterns,
             "debrief": self._generate_debrief(result)
         }
-```
+````
 
 **Benefits:**
 
@@ -281,7 +281,7 @@ council-ai-custom/       (PRIVATE - optional)
 
 ## Code Example: Integration
 
-```python
+````python
 # feedback-loop/metrics/council_integration.py
 
 from typing import Optional
@@ -328,7 +328,7 @@ class FeedbackLoopCouncil:
             f"Our tests are failing:\n\n{failures}\n\nWhat should we do?"
         )
         return {"advice": result.synthesis, "details": result.responses}
-```
+````
 
 ---
 

@@ -7,9 +7,11 @@ This directory contains automated workflows for the Council AI project.
 **File:** `trufflehog-secrets-scan.yml`
 
 ### Purpose
+
 Automatically scans the repository for accidentally committed secrets, API keys, tokens, and other sensitive data using TruffleHog.
 
 ### Features
+
 - **Smart BASE/HEAD Detection**: Automatically detects when BASE and HEAD commits are equal
 - **Graceful Skipping**: Skips the scan instead of failing when:
   - This is an initial commit (no parent)
@@ -34,11 +36,13 @@ Automatically scans the repository for accidentally committed secrets, API keys,
 ### Why This Matters
 
 Without the pre-check, TruffleHog would fail with errors like:
+
 ```
 fatal: ambiguous argument '[sha]~1': unknown revision or path not in the working tree
 ```
 
 This makes the CI more robust and prevents false failures in edge cases like:
+
 - Repository initialization
 - Force pushes
 - Single-commit branches
@@ -46,6 +50,7 @@ This makes the CI more robust and prevents false failures in edge cases like:
 ### Triggers
 
 The workflow runs on:
+
 - Pushes to `main` and `develop` branches
 - Pull requests targeting `main` and `develop` branches
 

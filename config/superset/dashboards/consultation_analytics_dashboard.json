@@ -6,23 +6,23 @@
     "GRID_ID": {
       "type": "GRID",
       "id": "GRID_ID",
-      "children": [
-        "ROW-header",
-        "ROW-overview",
-        "ROW-consultation-trends",
-        "ROW-persona-analysis"
-      ]
+      "children": ["ROW-header", "ROW-overview", "ROW-consultation-trends", "ROW-persona-analysis"]
     },
     "ROW-header": {
       "type": "ROW",
       "id": "ROW-header",
       "children": ["CHART-title", "CHART-summary"],
-      "meta": {"background": "BACKGROUND_TRANSPARENT"}
+      "meta": { "background": "BACKGROUND_TRANSPARENT" }
     },
     "ROW-overview": {
       "type": "ROW",
       "id": "ROW-overview",
-      "children": ["CHART-total-consultations", "CHART-avg-responses", "CHART-modes-distribution", "CHART-unique-members"]
+      "children": [
+        "CHART-total-consultations",
+        "CHART-avg-responses",
+        "CHART-modes-distribution",
+        "CHART-unique-members"
+      ]
     },
     "ROW-consultation-trends": {
       "type": "ROW",

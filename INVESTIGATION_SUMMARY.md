@@ -1,6 +1,7 @@
 # Investigation Summary: Council Init and Launch Issues
 
 ## Reported Issue
+
 ```
 File "/Volumes/Treehorn/Gits/council-ai/venv/bin/council", line 3, in <module>
     from council_ai.cli import main
@@ -12,13 +13,16 @@ SyntaxError: expected 'except' or 'finally' block
 ## Investigation Results
 
 ### Code Analysis ✅
+
 - **Python Syntax**: PASSED - No errors detected
-- **AST Parser**: PASSED - File parses successfully  
+- **AST Parser**: PASSED - File parses successfully
 - **Linting (ruff)**: PASSED - All checks passed
 - **Line 478**: Contains `if output:` (not `except ValueError as e:`)
 
 ### Functional Testing ✅
+
 All commands tested and working:
+
 ```bash
 council --help          # ✅ Shows help
 council --version       # ✅ Returns version 1.0.0
@@ -28,12 +32,15 @@ council domain list    # ✅ Lists all domains
 ```
 
 ### Test Suite ✅
+
 - **Total Tests**: 163
 - **Passed**: 161 (98.8%)
 - **Failed**: 2 (unrelated to syntax)
 
 ### Try-Except Block Validation ✅
+
 All try-except blocks in cli.py are properly formed:
+
 - Lines 285, 408, 421, 449, 464: All have correct try-except-finally structure
 - No orphaned except blocks found
 - No syntax errors in exception handling
@@ -51,4 +58,5 @@ The reported SyntaxError does not exist in the current codebase. All functionali
 **No code changes required.** The system is in a fully functional state.
 
 ---
-*Investigation completed: 2026-01-16*
+
+_Investigation completed: 2026-01-16_

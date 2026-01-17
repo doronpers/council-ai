@@ -126,8 +126,8 @@ def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     council_config = CouncilConfig(
-        temperature=payload.temperature,
-        max_tokens_per_response=payload.max_tokens,
+        temperature=payload.temperature if payload.temperature is not None else 0.7,
+        max_tokens_per_response=payload.max_tokens if payload.max_tokens is not None else 1000,
     )
 
     if payload.members:

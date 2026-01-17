@@ -64,16 +64,16 @@ Create a YAML file in `src/council_ai/personas/`:
 id: your_persona
 name: Full Name
 title: Brief Title
-emoji: "🎭"
-category: advisory  # or adversarial, creative, analytical, strategic, operational
+emoji: '🎭'
+category: advisory # or adversarial, creative, analytical, strategic, operational
 
-core_question: "The fundamental question this persona asks?"
-razor: "Their decision-making principle."
+core_question: 'The fundamental question this persona asks?'
+razor: 'Their decision-making principle.'
 
 traits:
   - name: Trait Name
     description: What this trait means
-    weight: 1.5  # 0.0-2.0, affects influence
+    weight: 1.5 # 0.0-2.0, affects influence
 
 focus_areas:
   - Area 1

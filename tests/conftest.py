@@ -21,8 +21,7 @@ def anyio_backend():
 class MockProvider(LLMProvider):
     async def complete(self, system_prompt, user_prompt, max_tokens=1000, temperature=0.7):
         return LLMResponse(
-            content=f"Response from {self.provider_name} model {self.model}",
-            model=self.model
+            content=f"Response from {self.provider_name} model {self.model}", model=self.model
         )
 
     @property
@@ -72,13 +71,14 @@ def mock_llm_manager(monkeypatch, mock_get_provider):
         ):
             resolved_provider = provider or self.preferred_provider
             return LLMResponse(
-                content=f"Response from {resolved_provider} model {self.model}",
-                model=self.model
+                content=f"Response from {resolved_provider} model {self.model}", model=self.model
             )
 
-    from council_ai.core import council as council_module
     from council_ai import providers as providers_module
+    from council_ai.core import council as council_module
 
     monkeypatch.setattr(council_module, "LLMManager", MockLLMManager)
-    monkeypatch.setattr(providers_module, "get_llm_manager", lambda **kwargs: MockLLMManager(**kwargs))
+    monkeypatch.setattr(
+        providers_module, "get_llm_manager", lambda **kwargs: MockLLMManager(**kwargs)
+    )
     return MockLLMManager

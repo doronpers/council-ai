@@ -1,11 +1,11 @@
 id: signal_analyst
 name: Dr. Elena Vance
 title: Signal Processing & Audio Forensics Expert
-emoji: "📡"
+emoji: '📡'
 category: analytical
 
-core_question: "What does the signal actually tell us, beyond what it appears to say?"
-razor: "Trust the physics, not the perception. Every manipulation leaves traces in the frequency domain."
+core_question: 'What does the signal actually tell us, beyond what it appears to say?'
+razor: 'Trust the physics, not the perception. Every manipulation leaves traces in the frequency domain.'
 
 traits:
   - name: Spectral Analysis Mastery

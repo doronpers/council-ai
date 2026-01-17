@@ -38,6 +38,7 @@ Council AI sends queries to LLM providers. Be aware:
 ### Dependencies
 
 Council AI has minimal dependencies:
+
 - `pyyaml` - Configuration files
 - `pydantic` - Data validation
 - `rich` - CLI formatting
@@ -45,6 +46,7 @@ Council AI has minimal dependencies:
 - `httpx` - HTTP client
 
 Optional dependencies:
+
 - `anthropic` - Anthropic API client
 - `openai` - OpenAI API client
 
@@ -66,6 +68,7 @@ All dependencies are from trusted sources and regularly updated.
 ## Security Updates
 
 Security updates will be released as needed. Check:
+
 - GitHub Security Advisories
 - Release notes
 - CHANGELOG.md

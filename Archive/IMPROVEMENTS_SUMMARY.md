@@ -28,6 +28,7 @@ Enhanced Council AI with comprehensive API key detection, robust fallback mechan
 **Status**: ✅ Implemented
 
 **Changes**:
+
 - `get_available_providers()` now checks all providers including:
   - Standard: `openai`, `anthropic`, `gemini`
   - Vercel AI Gateway: `AI_GATEWAY_API_KEY`
@@ -40,6 +41,7 @@ Enhanced Council AI with comprehensive API key detection, robust fallback mechan
   5. Generic
 
 **Files Modified**:
+
 - `src/council_ai/core/config.py`: Enhanced `get_available_providers()` and added `get_best_available_provider()`
 
 ### 3. Comprehensive API Key Detection in Init
@@ -47,6 +49,7 @@ Enhanced Council AI with comprehensive API key detection, robust fallback mechan
 **Status**: ✅ Implemented
 
 **Enhancements**:
+
 - **Step 0**: Automatically detects ALL available API keys before setup
 - Shows which providers have keys available
 - Recommends best provider based on availability
@@ -54,6 +57,7 @@ Enhanced Council AI with comprehensive API key detection, robust fallback mechan
 - Shows fallback providers if user doesn't configure primary
 
 **User Experience**:
+
 ```
 Step 0: Detecting available API keys...
 ✓ Found ANTHROPIC API key
@@ -72,6 +76,7 @@ Step 1: Choose your LLM provider
 ```
 
 **Files Modified**:
+
 - `src/council_ai/cli.py`: Enhanced `init()` command
 
 ### 4. Robust Fallback Mechanism
@@ -87,11 +92,13 @@ Step 1: Choose your LLM provider
 4. **Error Messages**: Clear messages showing available providers if all fail
 
 **Implementation Details**:
+
 - `_get_provider()`: Enhanced with multi-provider fallback
 - `_get_member_provider()`: Enhanced with fallback for persona-specific providers
 - Graceful degradation with informative error messages
 
 **Files Modified**:
+
 - `src/council_ai/core/council.py`: Enhanced `_get_provider()` and `_get_member_provider()`
 
 ### 5. Enhanced Diagnostics
@@ -99,12 +106,14 @@ Step 1: Choose your LLM provider
 **Status**: ✅ Implemented
 
 **Improvements**:
+
 - Detects all providers including vercel and generic
 - Identifies placeholder keys
 - Provides best provider recommendation
 - More comprehensive recommendations
 
 **Files Modified**:
+
 - `src/council_ai/core/diagnostics.py`: Enhanced `diagnose_api_keys()`
 
 ## Testing
@@ -138,21 +147,25 @@ Recommendations:
 ## Key Features
 
 ### 1. Automatic API Key Detection
+
 - Scans environment for all provider keys
 - Identifies placeholder values
 - Shows availability status
 
 ### 2. Intelligent Provider Selection
+
 - Recommends best provider based on availability
 - Priority-based fallback chain
 - Works with any combination of available keys
 
 ### 3. Robust Error Handling
+
 - Clear error messages showing available options
 - Graceful fallback to alternative providers
 - No silent failures
 
 ### 4. Persona-Specific Models
+
 - Each persona can use unique model/provider
 - Automatic fallback if persona's provider unavailable
 - Temperature and parameter overrides preserved
@@ -160,6 +173,7 @@ Recommendations:
 ## Usage Examples
 
 ### Enhanced Init Command
+
 ```bash
 council init
 # Now automatically detects all available API keys
@@ -168,6 +182,7 @@ council init
 ```
 
 ### Fallback Behavior
+
 ```python
 # If anthropic unavailable, automatically tries:
 # 1. OpenAI (if available)
@@ -179,6 +194,7 @@ council = Council(provider="anthropic")  # Will fallback if needed
 ```
 
 ### Persona-Specific Models
+
 ```python
 # Rams uses Claude Opus with temperature 0.3
 # Taleb uses GPT-4 Turbo with temperature 0.9
