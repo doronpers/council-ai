@@ -189,18 +189,38 @@ def check_api_keys() -> Tuple[bool, Optional[str]]:
 def install_council(editable: bool = True) -> bool:
     """Install council-ai package."""
     print_info("Upgrading pip...")
-    
+
     # Upgrade pip first
     upgrade_cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "pip"]
     returncode, _, _ = run_command(upgrade_cmd, check=False, capture_output=True)
-    
+
     if returncode == 0:
         print_success("pip upgraded successfully")
     else:
         print_warning("Could not upgrade pip (continuing anyway)")
-    
-    print_info("Installing council-ai...")
 
+    # First, check for shared-ai-utils sibling directory
+    script_dir = Path(__file__).parent.resolve()
+    shared_utils_dir = script_dir.parent / "shared-ai-utils"
+
+    if shared_utils_dir.exists():
+        print_info(f"Found local dependency: {shared_utils_dir.name}")
+        print_info("Installing shared-ai-utils...")
+        cmd_shared = [sys.executable, "-m", "pip", "install", "-e", str(shared_utils_dir)]
+        rc, _, err = run_command(cmd_shared, check=False, capture_output=True)
+        if rc != 0:
+            print_warning(f"Failed to install shared-ai-utils from local path: {err}")
+            print_info("Proceeding anyway, it might be available via pip...")
+    else:
+        print_error("Missing required dependency: shared-ai-utils")
+        print_info(
+            "Council AI requires shared-ai-utils to be located in the same parent directory."
+        )
+        print_info(f"Expected path: {shared_utils_dir}")
+        print_info("If you are moving to another PC, please ensure both repositories are copied.")
+        return False
+
+    print_info("Installing council-ai...")
     if editable:
         cmd = [sys.executable, "-m", "pip", "install", "-e", ".[web]"]
     else:
@@ -217,21 +237,63 @@ def install_council(editable: bool = True) -> bool:
     return True
 
 
-def check_port_available(port: int) -> bool:
-    """Check if a port is available."""
+def check_port_available(port: int) -> Tuple[bool, Optional[int]]:
+    """
+    Check if a port is available.
+
+    Returns:
+        (is_available, pid_using_port)
+    """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
             s.bind(("127.0.0.1", port))
-            return True
+            return True, None
         except OSError:
+            # Try to find PID using lsof on Mac/Linux
+            pid = None
+            if not IS_WINDOWS:
+                try:
+                    result = subprocess.run(
+                        ["lsof", "-t", f"-i:{port}"],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    if result.stdout.strip():
+                        pid = int(result.stdout.strip().split("\n")[0])
+                except Exception:
+                    pass
+            return False, pid
+
+
+def kill_process_on_port(port: int) -> bool:
+    """Kill any process running on the specified port."""
+    is_avail, pid = check_port_available(port)
+    if is_avail:
+        return True
+
+    if pid:
+        print_info(f"Killing process {pid} on port {port}...")
+        try:
+            import signal
+
+            os.kill(pid, signal.SIGTERM)
+            # Wait a moment for it to die
+            import time
+
+            time.sleep(1)
+            return check_port_available(port)[0]
+        except Exception as e:
+            print_error(f"Failed to kill process {pid}: {e}")
             return False
+    return False
 
 
 def open_browser(url: str) -> bool:
     """Open a URL in the default browser (platform-specific)."""
     try:
         if IS_WINDOWS:
-            os.startfile(url)
+            os.startfile(url)  # type: ignore[attr-defined]
         elif IS_MAC:
             subprocess.run(["open", url], check=False)
         elif IS_LINUX:
@@ -243,20 +305,40 @@ def open_browser(url: str) -> bool:
         return False
 
 
+def get_local_ip() -> str:
+    """Get the local IP address of the machine."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
 def launch_web_app(
     host: str = "127.0.0.1", port: int = 8000, reload: bool = True, open_browser_flag: bool = False
 ) -> int:
     """Launch the Council AI web app."""
-    url = f"http://{host}:{port}"
+    display_host = host
+    if host == "0.0.0.0":
+        display_host = get_local_ip()
+
+    url = f"http://{display_host}:{port}"
 
     # Check if port is available
-    if not check_port_available(port):
+    is_avail, pid = check_port_available(port)
+    if not is_avail:
         print_warning(f"Port {port} is already in use")
+        if pid:
+            print_info(f"Process {pid} is currently using this port.")
         print_info("Trying to use the existing service...")
         if open_browser_flag:
             open_browser(url)
         print_success(f"Web app should be available at {url}")
-        return 0
+        # If we are in retry/persistent mode, we should wait instead of returning 0
+        return 2  # Special code for "already running"
 
     print_info(f"Launching Council AI web app on {url}")
     print_status("💡 Tip: Press Ctrl+C to stop the server", YELLOW)
@@ -264,13 +346,17 @@ def launch_web_app(
         print()
 
     # Welcome message
+    access_msg = f"  {CYAN}{url}{RESET}"
+    if host == "0.0.0.0":
+        access_msg += f"\n  {CYAN}http://{socket.gethostname()}.local:{port}{RESET} (mDNS)"
+
     welcome = f"""
 {BOLD}{MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}
 {BOLD}  🏛️  Council AI Web App{RESET}
 {BOLD}{MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}
 
 {BOLD}Access the web interface at:{RESET}
-  {CYAN}{url}{RESET}
+{access_msg}
 
 {BOLD}Features:{RESET}
   • Consult with multiple AI personas
@@ -425,10 +511,29 @@ def main():
         action="store_true",
         help="Silent mode (suppress non-error output)",
     )
+    parser.add_argument(
+        "--network",
+        action="store_true",
+        help="Enable network access (binds to 0.0.0.0 instead of 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--retry",
+        action="store_true",
+        help="Automatically restart the server if it crashes",
+    )
+    parser.add_argument(
+        "--kill",
+        action="store_true",
+        help="Kill any existing process on the port before starting",
+    )
     args = parser.parse_args()
 
     global QUIET
     QUIET = args.quiet
+
+    host = args.host
+    if args.network and host == "127.0.0.1":
+        host = "0.0.0.0"
 
     if not QUIET:
         print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
@@ -484,10 +589,35 @@ def main():
     if not QUIET:
         print()
 
+    # Handle --kill flag
+    if args.kill:
+        kill_process_on_port(args.port)
+
     # Launch web app
-    return launch_web_app(
-        host=args.host, port=args.port, reload=not args.no_reload, open_browser_flag=args.open
-    )
+    while True:
+        exit_code = launch_web_app(
+            host=host, port=args.port, reload=not args.no_reload, open_browser_flag=args.open
+        )
+
+        # Exit if successful (0) or if we're not retrying
+        if not args.retry:
+            return exit_code
+
+        # If already running (2), don't crash loop, just message and exit 0
+        if exit_code == 2:
+            print_info("Active instance detected. Keeping it alive.")
+            # For persistent mode, we'll just wait indefinitely to keep the script alive
+            # actually, maybe it's better to just return 0 to avoid multiple supervisors.
+            return 0
+
+        # Only retry on actual errors/crashes
+        if exit_code == 0:
+            return 0
+
+        print_warning("Server crashed or exited with error. Restarting in 3 seconds...")
+        import time
+
+        time.sleep(3)
 
 
 if __name__ == "__main__":

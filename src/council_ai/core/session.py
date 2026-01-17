@@ -1,6 +1,4 @@
-"""
-Session Management - Tracks consultation history and results.
-"""
+"""Session Management - Tracks consultation history and results."""
 
 from __future__ import annotations
 
@@ -267,7 +265,7 @@ class ConsultationResult:
 
 @dataclass
 class Session:
-    """A consultation session with history."""
+    """Consultation session management and state."""
 
     council_name: str
     members: List[str]

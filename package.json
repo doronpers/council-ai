@@ -10,7 +10,10 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix && prettier --write .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "launch": "python3 launch-council.py --open",
+    "launch:lan": "python3 launch-council.py --network",
+    "launch:persistent": "python3 launch-council.py --retry"
   },
   "dependencies": {
     "react": "^18.3.1",

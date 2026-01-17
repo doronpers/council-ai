@@ -136,7 +136,7 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       synthesisEl.innerHTML = `
         <div class="synthesis">
           <h3>Synthesis</h3>
-          
+
           <!-- Consensus Meter -->
           <div class="consensus-meter">
             <div class="consensus-title">
@@ -147,7 +147,7 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
               <div class="consensus-bar" id="consensus-bar" style="width: 0%"></div>
             </div>
           </div>
-          
+
           <p class="streaming-synthesis"></p>
         </div>
       `;

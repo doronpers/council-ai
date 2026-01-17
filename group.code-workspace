@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../sono-eval"
+		},
+		{
+			"path": "../feedback-loop"
+		},
+		{
+			"path": "../sono-platform"
+		},
+		{
+			"path": "../tex-assist-coding"
+		},
+		{
+			"path": "../sonotheia-examples"
+		}
+	]
+}

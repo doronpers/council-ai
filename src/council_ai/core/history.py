@@ -1,6 +1,4 @@
-"""
-Consultation History - Persistent storage for consultations.
-"""
+"""Consultation History - Persistent storage for consultations."""
 
 from __future__ import annotations
 
@@ -146,7 +144,8 @@ class ConsultationHistory:
             conn.execute(
                 """
                 CREATE TRIGGER consultations_ai AFTER INSERT ON consultations BEGIN
-                  INSERT INTO consultations_fts(rowid, query, synthesis) VALUES (new.rowid, new.query, new.synthesis);
+                  INSERT INTO consultations_fts(rowid, query, synthesis)
+                  VALUES (new.rowid, new.query, new.synthesis);
                 END
             """
             )
@@ -154,7 +153,8 @@ class ConsultationHistory:
             conn.execute(
                 """
                 CREATE TRIGGER consultations_ad AFTER DELETE ON consultations BEGIN
-                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis) VALUES('delete', old.rowid, old.query, old.synthesis);
+                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis)
+                  VALUES('delete', old.rowid, old.query, old.synthesis);
                 END
             """
             )
@@ -162,8 +162,10 @@ class ConsultationHistory:
             conn.execute(
                 """
                 CREATE TRIGGER consultations_au AFTER UPDATE ON consultations BEGIN
-                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis) VALUES('delete', old.rowid, old.query, old.synthesis);
-                  INSERT INTO consultations_fts(rowid, query, synthesis) VALUES (new.rowid, new.query, new.synthesis);
+                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis)
+                  VALUES('delete', old.rowid, old.query, old.synthesis);
+                  INSERT INTO consultations_fts(rowid, query, synthesis)
+                  VALUES (new.rowid, new.query, new.synthesis);
                 END
             """
             )
@@ -229,7 +231,8 @@ class ConsultationHistory:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO consultations
-                (id, session_id, query, context, mode, timestamp, synthesis, responses, tags, notes, metadata)
+                (id, session_id, query, context, mode, timestamp, synthesis, responses, tags,
+                notes, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (

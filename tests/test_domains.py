@@ -1,6 +1,4 @@
-"""
-Tests for domain configurations.
-"""
+"""Tests for domain management."""
 
 import pytest
 

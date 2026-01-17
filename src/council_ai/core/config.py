@@ -1,6 +1,4 @@
-"""
-Configuration Management
-"""
+"""Configuration management for Council AI."""
 
 from __future__ import annotations
 

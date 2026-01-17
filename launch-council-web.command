@@ -41,10 +41,21 @@ echo ""
 if ! python3 -c "import council_ai" 2>/dev/null; then
     echo -e "${YELLOW}⚠${NC}  Council AI not installed"
     echo -e "${BLUE}ℹ${NC}  Installing in development mode..."
+
+    # Check for shared-ai-utils sibling directory
+    SHARED_UTILS_DIR="../shared-ai-utils"
+    if [ -d "$SHARED_UTILS_DIR" ]; then
+        echo -e "${BLUE}ℹ${NC}  Installing local dependency: shared-ai-utils..."
+        python3 -m pip install -e "$SHARED_UTILS_DIR" --quiet
+    fi
+
     if python3 -m pip install -e ".[web]" --quiet; then
         echo -e "${GREEN}✓${NC}  Installation complete"
     else
         echo -e "${RED}❌${NC}  Installation failed"
+        # Try without --quiet to show error
+        echo -e "${BLUE}ℹ${NC}  Retrying with verbose output to diagnose..."
+        python3 -m pip install -e ".[web]"
         read -p "Press Enter to exit..."
         exit 1
     fi
@@ -64,10 +75,16 @@ echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Launch the web app with auto-open browser
-python3 launch-council.py --open --port 8000
+python3 launch-council.py --open --port 8000 "$@"
+EXIT_CODE=$?
 
-# If the script exits, show a message
+# If success or already running, we don't need to alert the user
+if [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 2 ]; then
+    exit 0
+fi
+
+# If the script exits with an error, show a message and wait
 echo ""
 echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}ℹ${NC}  Council AI web interface has stopped"
+echo -e "${RED}❌${NC}  Council AI web interface has stopped unexpectedly (Exit code: $EXIT_CODE)"
 read -p "Press Enter to close this window..."

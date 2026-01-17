@@ -633,14 +633,14 @@ def _create_fallback_synthesis(
 
     combined = f"""Based on the council's review, Response #{winner.response_id} received the highest score ({winner.overall_score}/10).
 
-Key strengths:
-{strengths_text if strengths_text else "See individual assessments for details."}
+    Key strengths:
+    {strengths_text if strengths_text else "See individual assessments for details."}
 
-{winner_response.content[:500] if winner_response else "See individual assessments for the winning response."}"""
+    {winner_response.content[:500] if winner_response else "See individual assessments for the winning response."}"""
 
     refined = f"""After comprehensive review by the council, Response #{winner.response_id} has been identified as the strongest answer to: "{question}"
 
-The response scored {winner.overall_score}/10 overall, excelling in multiple evaluation criteria. See individual assessments for detailed analysis."""
+    The response scored {winner.overall_score}/10 overall, excelling in multiple evaluation criteria. See individual assessments for detailed analysis."""
 
     return SynthesizedResponse(combined_best=combined, refined_final=refined)
 
@@ -910,36 +910,36 @@ def _build_synthesis_prompt(request: ReviewRequest, assessments: List[Dict]) -> 
 
     prompt = f"""Based on the council's review of multiple LLM responses, create an optimal synthesized response.
 
-## ORIGINAL QUESTION
-{request.question}
+    ## ORIGINAL QUESTION
+    {request.question}
 
-## REVIEWED RESPONSES WITH SCORES
-{responses_text}
+    ## REVIEWED RESPONSES WITH SCORES
+    {responses_text}
 
-## YOUR TASK
-Create two versions of an optimal response:
+    ## YOUR TASK
+    Create two versions of an optimal response:
 
-1. **Combined Best**: Take the strongest elements from each response and combine them into a comprehensive answer.
+    1. **Combined Best**: Take the strongest elements from each response and combine them into a comprehensive answer.
 
-2. **Refined Final**: Starting from the combined version, refine and polish it into a single, authoritative response that:
-   - Incorporates the most accurate information from all sources
-   - Addresses any errors or gaps identified in the reviews
-   - Presents information clearly and logically
-   - Would be considered definitive on this topic
+    2. **Refined Final**: Starting from the combined version, refine and polish it into a single, authoritative response that:
+       - Incorporates the most accurate information from all sources
+       - Addresses any errors or gaps identified in the reviews
+       - Presents information clearly and logically
+       - Would be considered definitive on this topic
 
-Respond in JSON format:
-```json
-{{
-  "combined_best": "The combined response...",
-  "refined_final": "The polished final response..."
-}}
-```"""
+    Respond in JSON format:
+    ```json
+    {{
+      "combined_best": "The combined response...",
+      "refined_final": "The polished final response..."
+    }}
+    ```"""
 
     return prompt
 
 
-def _parse_google_docs_content(content: str) -> tuple[Optional[str], List[Dict[str, str]]]:
-    """
+def _parse_google_docs_content(content: str) -> tuple[Optional[str], List[Dict[str, Any]]]:
+    r"""
     Parse Google Docs content to extract question and responses.
 
     Supports multiple formats:
@@ -1007,7 +1007,7 @@ def _parse_google_docs_content(content: str) -> tuple[Optional[str], List[Dict[s
 
     for pattern in response_patterns:
         matches = re.finditer(pattern, remaining, re.IGNORECASE | re.DOTALL | re.MULTILINE)
-        found_responses = []
+        found_responses: List[Dict[str, Any]] = []
         for match in matches:
             if len(match.groups()) == 2:
                 resp_id = match.group(1)
@@ -1306,7 +1306,7 @@ async def review_responses(request: ReviewRequest) -> ReviewResult:
                 mode=ConsultationMode.SYNTHESIS,
             )
 
-        result = await _retry_with_backoff(
+        result: Any = await _retry_with_backoff(
             _consult_with_retry,
             max_retries=3,
             base_delay=1.0,
@@ -1451,7 +1451,7 @@ async def review_responses(request: ReviewRequest) -> ReviewResult:
                     continue
 
         # Aggregate scores across justices
-        response_scores = {
+        response_scores: Dict[int, Any] = {
             r.id: {"scores": {}, "opinions": [], "strengths": [], "weaknesses": []}
             for r in request.responses
         }
@@ -1572,7 +1572,7 @@ async def review_responses(request: ReviewRequest) -> ReviewResult:
                         mode=ConsultationMode.SYNTHESIS,
                     )
 
-                synthesis_result = await _retry_with_backoff(
+                synthesis_result: Any = await _retry_with_backoff(
                     _synthesize_with_retry,
                     max_retries=3,
                     base_delay=1.0,

@@ -119,10 +119,8 @@ cd council-ai
 # Upgrade pip (recommended)
 pip install --upgrade pip
 
-# Install with specific provider
+# Install with a specific provider (e.g., anthropic)
 pip install -e ".[anthropic]"
-pip install -e ".[openai]"
-pip install -e ".[gemini]"
 
 # Or with all providers
 pip install -e ".[all]"
@@ -216,6 +214,19 @@ council web --reload
 
 # Repository review (code/design/security)
 council review . --focus all --output review.md
+
+# Manage personas
+council persona list
+council persona show rams
+council persona create --interactive
+
+# Manage domains
+council domain list
+council domain show coding
+
+# Manage configuration
+council config show
+council config set api.provider openai
 ```
 
 ### Python API
@@ -224,7 +235,7 @@ council review . --focus all --output review.md
 from council_ai import Council
 
 # Create a council for a domain
-council = Council.for_domain("business", api_key="your-key")
+council = Council.for_domain("business")
 
 # Consult the council
 result = council.consult("Should we enter the European market?")
@@ -299,36 +310,9 @@ council domain list
 
 ### Create Custom Personas
 
-**Via CLI:**
-
-```bash
-council persona create --interactive
-```
-
-**Via Python:**
-
-```python
-from council_ai import Council
-from council_ai.core.persona import Persona, PersonaCategory
-
-# Create a custom persona
-custom = Persona(
-    id="my_advisor",
-    name="My Custom Advisor",
-    title="Domain Expert",
-    emoji="🔮",
-    category=PersonaCategory.CUSTOM,
-    core_question="What would a domain expert ask?",
-    razor="The key principle for decisions.",
-    focus_areas=["Area 1", "Area 2", "Area 3"],
-)
-
-# Add to council
-council = Council(api_key="your-key")
-council.add_member(custom)
-```
-
 **Via YAML:**
+
+Create a YAML file in `~/.config/council-ai/personas/` or a custom directory specified in your config file.
 
 ```yaml
 # ~/.config/council-ai/personas/my_advisor.yaml
@@ -353,6 +337,26 @@ focus_areas:
   - Area 1
   - Area 2
   - Area 3
+```
+
+**Via CLI:**
+
+```bash
+council persona create --from-file my_advisor.yaml
+```
+
+**Via Python:**
+
+```python
+from council_ai import Council
+from council_ai.core.persona import Persona
+
+# Create a custom persona from a YAML file
+persona = Persona.from_yaml_file("my_advisor.yaml")
+
+# Add to council
+council = Council()
+council.add_member(persona)
 ```
 
 ### Modify Persona Weights
@@ -666,26 +670,24 @@ per council instance when needed.
 
 The web app is the primary user-testing surface. It features a modern, Dieter Rams-inspired UI built with **React 18** and **TypeScript**. The frontend architecture was migrated from vanilla JavaScript to a fully modular component-based system with 25+ React components, Context API for state management, and optimized build output.
 
-### Quick Launch
+### 1-Click Launchers (macOS)
 
-**1-Click Desktop Launchers:**
+For the easiest experience on Mac, we provide several specialized 1-click launchers in the project root. **Double-click** any of these to start:
 
-- **macOS**: Double-click `launch-council-web.command`
-- **Windows**: Double-click `launch-council.bat`
-- **Linux/Unix**: Run `./launcher.sh`
+- 🚀 **`launch-council-web.command`**: Standard 1-click launch. Handles setup and opens in your browser.
+- 🌐 **`launch-council-lan.command`**: **Network Access Mode**. Use this if you want to access the UI from another PC, phone, or tablet on your network. It displays a local IP (e.g., `http://192.168.1.15:8000`) for remote access.
+- 🔄 **`launch-council-persistent.command`**: **"Always Up" Mode**. Optimizes for personal use by automatically restarting the server if it crashes or encounters a network error.
 
-All launchers will:
-- Check for Python 3.11+ and dependencies
-- Install/build if needed
-- Launch the web server
-- Open your browser automatically
-
-**Command Line:**
-The easiest way to run the web app is using the cross-platform launcher:
-
+**Command Line equivalents:**
 ```bash
-# Cross-platform launcher (handles npm install & build automatically)
-python3 launch-council.py --open
+# Standard
+./launch-council.py --open
+
+# Network Access (LAN)
+./launch-council.py --network
+
+# Persistent (Auto-restart)
+./launch-council.py --retry
 ```
 
 ### Manual Launch

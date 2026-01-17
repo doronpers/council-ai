@@ -8,9 +8,9 @@ from unittest.mock import MagicMock
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-import pytest
+import pytest  # noqa: E402
 
-from council_ai.providers import LLMProvider, LLMResponse
+from council_ai.providers import LLMProvider, LLMResponse  # noqa: E402
 
 
 @pytest.fixture

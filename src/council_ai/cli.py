@@ -6,6 +6,7 @@ A comprehensive CLI for interacting with the Council AI system.
 
 import os
 import sys
+from functools import wraps
 from pathlib import Path
 from typing import Optional
 
@@ -17,14 +18,51 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from . import Council, get_domain, get_persona, list_domains, list_personas
+from . import Council, list_domains
+from .cli_config import config
+from .cli_domain import domain
+from .cli_persona import persona
 from .core.config import ConfigManager, get_api_key
 from .core.history import ConsultationHistory
-from .core.persona import Persona, PersonaCategory, PersonaManager
 from .core.session import ConsultationResult
 from .providers import list_providers
 
 console = Console()
+DEFAULT_PROVIDER = "anthropic"
+
+
+def require_api_key(func):
+    @wraps(func)
+    def wrapper(ctx, *args, **kwargs):
+        config_manager = ctx.obj["config_manager"]
+        provider = kwargs.get("provider")
+        api_key = kwargs.get("api_key")
+
+        requested_provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
+
+        is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
+        if is_placeholder:
+            api_key = None
+
+        api_key = api_key or get_api_key(requested_provider)
+        if not api_key:
+            console.print("[red]Error:[/red] No API key provided.")
+            console.print(
+                "Set via --api-key, COUNCIL_API_KEY env var, or 'council config set api.api_key'"
+            )
+            sys.exit(1)
+        if "your-" in api_key.lower() or "here" in api_key.lower():
+            console.print("[red]Error:[/red] API key appears to be a placeholder value.")
+            console.print(
+                "Please update your .env file with your actual API key (not the example value)."
+            )
+            console.print("Run 'council providers --diagnose' for help.")
+            sys.exit(1)
+
+        kwargs["api_key"] = api_key
+        return func(ctx, *args, **kwargs)
+
+    return wrapper
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -37,7 +75,7 @@ console = Console()
 @click.option("--config", "-c", type=click.Path(), help="Path to config file")
 @click.pass_context
 def main(ctx, config):
-    """
+    r"""
     🏛️ Council AI - Intelligent Advisory Council System
 
     Get advice from a council of AI-powered personas with diverse
@@ -62,7 +100,7 @@ def main(ctx, config):
 
     \b
     Configuration & Presets:
-      council config set api.provider anthropic
+      council config set api.provider {DEFAULT_PROVIDER}
       council config preset-save my-team --domain coding
       council consult --preset my-team "Review this code"
     """
@@ -129,7 +167,7 @@ def init(ctx):
     console.print(f"Supported providers: {', '.join(all_providers)}")
 
     # Build choices with availability indicators
-    default_provider = config_manager.get("api.provider", "anthropic")
+    default_provider = config_manager.get("api.provider", DEFAULT_PROVIDER)
     provider_availability = {}
 
     for provider_name in all_providers:
@@ -137,7 +175,7 @@ def init(ctx):
         provider_availability[provider_name] = has_key
         if has_key:
             # Use first available as default if no config
-            if not config_manager.get("api.provider") and default_provider == "anthropic":
+            if not config_manager.get("api.provider") and default_provider == DEFAULT_PROVIDER:
                 default_provider = provider_name
 
     # If we have a best provider, use it as default
@@ -188,7 +226,7 @@ def init(ctx):
             console.print("  https://ai.google.dev/")
 
         console.print(
-            f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your environment"
+            f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your env"
         )
         if provider == "openai":
             console.print(
@@ -204,7 +242,8 @@ def init(ctx):
             # Show fallback information
             if found_keys:
                 console.print(
-                    f"\n[cyan]ℹ[/cyan] You have {len(found_keys)} other provider(s) available: {', '.join(found_keys)}"
+                    f"\n[cyan]ℹ[/cyan] You have {len(found_keys)} other provider(s) available: "
+                    f"{', '.join(found_keys)}"
                 )
                 console.print(
                     "[dim]Council AI will automatically use these as fallbacks if needed[/dim]"
@@ -319,6 +358,7 @@ def quickstart():
 @click.option("--session", "-s", "session_id", help="Resume an existing session ID")
 @click.option("--no-recall", is_flag=True, help="Disable automatic context recall")
 @click.pass_context
+@require_api_key
 def consult(
     ctx,
     query,
@@ -334,7 +374,7 @@ def consult(
     session_id,
     no_recall,
 ):
-    """
+    r"""
     Consult the council on a query.
 
     \b
@@ -368,31 +408,8 @@ def consult(
     if not mode:
         mode = config_manager.get("default_mode", "synthesis")
 
-    # Get API key
-    requested_provider = provider or config_manager.get("api.provider", "anthropic")
-
-    # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
-    is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
-    if is_placeholder:
-        api_key = None  # Ignore placeholder, force get_api_key() to run
-
-    api_key = api_key or get_api_key(requested_provider)
-    if not api_key:
-        console.print("[red]Error:[/red] No API key provided.")
-        console.print(
-            "Set via --api-key, COUNCIL_API_KEY env var, or 'council config set api.api_key'"
-        )
-        sys.exit(1)
-    if "your-" in api_key.lower() or "here" in api_key.lower():
-        console.print("[red]Error:[/red] API key appears to be a placeholder value.")
-        console.print(
-            "Please update your .env file with your actual API key (not the example value)."
-        )
-        console.print("Run 'council providers --diagnose' for help.")
-        sys.exit(1)
-
     # Create council
-    provider = provider or config_manager.get("api.provider", "anthropic")
+    provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
     model = config_manager.get("api.model")
     base_url = config_manager.get("api.base_url")
     from .core.council import ConsultationMode
@@ -429,7 +446,7 @@ def consult(
                 session_id=session_id,
                 auto_recall=not no_recall,
             )
-        except Exception as e:
+        except ValueError as e:
             console.print(f"[red]Error:[/red] {e}")
             sys.exit(1)
     else:
@@ -463,7 +480,7 @@ def consult(
 
             try:
                 result = council.consult(query, context=context, mode=mode_enum)
-            except Exception as e:
+            except ValueError as e:
                 console.print(f"[red]Error:[/red] {e}")
                 sys.exit(1)
 
@@ -494,6 +511,7 @@ def consult(
 @click.option("--api-key", "-k", envvar="COUNCIL_API_KEY", help="API key")
 @click.option("--session", "-s", "session_id", help="Resume an existing session ID")
 @click.pass_context
+@require_api_key
 def interactive(ctx, domain, provider, api_key, session_id):
     """
     Start an interactive council session.
@@ -502,24 +520,7 @@ def interactive(ctx, domain, provider, api_key, session_id):
     """
     config_manager = ctx.obj["config_manager"]
 
-    # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
-    is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
-    if is_placeholder:
-        api_key = None  # Ignore placeholder, force get_api_key() to run
-
-    api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
-    if not api_key:
-        console.print("[red]Error:[/red] No API key provided.")
-        sys.exit(1)
-    if "your-" in api_key.lower() or "here" in api_key.lower():
-        console.print("[red]Error:[/red] API key appears to be a placeholder value.")
-        console.print(
-            "Please update your .env file with your actual API key (not the example value)."
-        )
-        console.print("Run 'council providers --diagnose' for help.")
-        sys.exit(1)
-
-    provider = provider or config_manager.get("api.provider", "anthropic")
+    provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
     model = config_manager.get("api.model")
     base_url = config_manager.get("api.base_url")
     council = Council.for_domain(
@@ -633,7 +634,7 @@ def interactive(ctx, domain, provider, api_key, session_id):
         except (KeyboardInterrupt, EOFError):
             console.print("\n[green]✓[/green] Session ended. Goodbye!")
             break
-        except Exception as e:
+        except ValueError as e:
             console.print(f"[red]Error:[/red] {e}")
 
 
@@ -654,381 +655,9 @@ def _show_members(council):
     console.print(table)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Persona Commands
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@main.group()
-def persona():
-    """Manage council personas."""
-    pass
-
-
-@persona.command("list")
-@click.option(
-    "--category",
-    "-c",
-    type=click.Choice(["advisory", "adversarial", "custom"]),
-    help="Filter by category",
-)
-def persona_list(category):
-    """List available personas."""
-    cat = PersonaCategory(category) if category else None
-    personas = list_personas(cat)
-
-    table = Table(title="Available Personas")
-    table.add_column("ID", style="cyan")
-    table.add_column("Name")
-    table.add_column("Title")
-    table.add_column("Category")
-    table.add_column("Focus Areas")
-
-    for p in personas:
-        table.add_row(
-            p.id,
-            f"{p.emoji} {p.name}",
-            p.title,
-            p.category.value,
-            ", ".join(p.focus_areas[:3]) + ("..." if len(p.focus_areas) > 3 else ""),
-        )
-
-    console.print(table)
-
-
-@persona.command("show")
-@click.argument("persona_id")
-def persona_show(persona_id):
-    """Show details of a persona."""
-    try:
-        p = get_persona(persona_id)
-    except ValueError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        sys.exit(1)
-
-    console.print(
-        Panel(
-            f"[bold]{p.emoji} {p.name}[/bold]\n"
-            f"[dim]{p.title}[/dim]\n\n"
-            f'[bold]Core Question:[/bold]\n"{p.core_question}"\n\n'
-            f'[bold]Razor:[/bold]\n"{p.razor}"\n\n'
-            f"[bold]Focus Areas:[/bold]\n{', '.join(p.focus_areas)}\n\n"
-            f"[bold]Traits:[/bold]\n" + "\n".join(f"• {t.name}: {t.description}" for t in p.traits),
-            title=f"Persona: {p.id}",
-            border_style="blue",
-        )
-    )
-
-
-@persona.command("create")
-@click.option("--interactive", "-i", is_flag=True, help="Interactive creation wizard")
-@click.option("--from-file", type=click.Path(exists=True), help="Create from YAML file")
-def persona_create(interactive, from_file):
-    """Create a new persona."""
-    if from_file:
-        p = Persona.from_yaml_file(from_file)
-        manager = PersonaManager()
-        manager.add(p)
-        manager.save_persona(p.id)
-        console.print(f"[green]✓[/green] Created persona '{p.id}' from {from_file}")
-        return
-
-    if not interactive:
-        console.print("Use --interactive or --from-file to create a persona")
-        return
-
-    # Interactive creation
-    console.print(Panel("[bold]Create New Persona[/bold]", border_style="green"))
-
-    id = Prompt.ask("ID (lowercase, no spaces)")
-    name = Prompt.ask("Name")
-    title = Prompt.ask("Title")
-    emoji = Prompt.ask("Emoji", default="👤")
-    core_question = Prompt.ask("Core Question (the fundamental question this persona asks)")
-    razor = Prompt.ask("Razor (their decision-making principle)")
-
-    category = Prompt.ask(
-        "Category", choices=["advisory", "adversarial", "custom"], default="custom"
-    )
-
-    focus_areas = Prompt.ask("Focus Areas (comma-separated)").split(",")
-    focus_areas = [f.strip() for f in focus_areas if f.strip()]
-
-    p = Persona(
-        id=id,
-        name=name,
-        title=title,
-        emoji=emoji,
-        core_question=core_question,
-        razor=razor,
-        category=PersonaCategory(category),
-        focus_areas=focus_areas,
-    )
-
-    # Add traits
-    if Confirm.ask("Add traits?"):
-        while True:
-            trait_name = Prompt.ask("Trait name (empty to finish)")
-            if not trait_name:
-                break
-            trait_desc = Prompt.ask("Trait description")
-            p.add_trait(trait_name, trait_desc)
-
-    # Save
-    manager = PersonaManager()
-    manager.add(p)
-    path = manager.save_persona(p.id)
-
-    console.print(f"[green]✓[/green] Created persona '{p.id}'")
-    console.print(f"[dim]Saved to: {path}[/dim]")
-
-
-@persona.command("edit")
-@click.argument("persona_id")
-@click.option("--weight", type=float, help="Set weight (0.0-2.0)")
-@click.option("--add-trait", nargs=2, multiple=True, help="Add trait: name description")
-@click.option("--remove-trait", multiple=True, help="Remove trait by name")
-def persona_edit(persona_id, weight, add_trait, remove_trait):
-    """Edit an existing persona."""
-    manager = PersonaManager()
-    p = manager.get_or_raise(persona_id)
-
-    if weight is not None:
-        p.weight = weight
-        console.print(f"[green]✓[/green] Set weight to {weight}")
-
-    for name, desc in add_trait:
-        p.add_trait(name, desc)
-        console.print(f"[green]✓[/green] Added trait '{name}'")
-
-    for name in remove_trait:
-        p.remove_trait(name)
-        console.print(f"[green]✓[/green] Removed trait '{name}'")
-
-    manager.save_persona(persona_id)
-    console.print("[dim]Saved changes[/dim]")
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Domain Commands
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@main.group()
-def domain():
-    """Manage council domains."""
-    pass
-
-
-@domain.command("list")
-def domain_list():
-    """List available domains."""
-    domains = list_domains()
-
-    table = Table(title="Available Domains")
-    table.add_column("ID", style="cyan")
-    table.add_column("Name")
-    table.add_column("Category")
-    table.add_column("Default Personas")
-
-    for d in domains:
-        table.add_row(
-            d.id,
-            d.name,
-            d.category.value,
-            ", ".join(d.default_personas[:4]) + ("..." if len(d.default_personas) > 4 else ""),
-        )
-
-    console.print(table)
-
-
-@domain.command("show")
-@click.argument("domain_id")
-def domain_show(domain_id):
-    """Show details of a domain."""
-    try:
-        d = get_domain(domain_id)
-    except ValueError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        sys.exit(1)
-
-    console.print(
-        Panel(
-            f"[bold]{d.name}[/bold]\n"
-            f"[dim]{d.description}[/dim]\n\n"
-            f"[bold]Category:[/bold] {d.category.value}\n\n"
-            f"[bold]Default Personas:[/bold]\n{', '.join(d.default_personas)}\n\n"
-            f"[bold]Optional Personas:[/bold]\n{', '.join(d.optional_personas) or 'None'}\n\n"
-            f"[bold]Recommended Mode:[/bold] {d.recommended_mode}\n\n"
-            f"[bold]Example Queries:[/bold]\n" + "\n".join(f"• {q}" for q in d.example_queries),
-            title=f"Domain: {d.id}",
-            border_style="blue",
-        )
-    )
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Config Commands
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@main.group()
-def config():
-    """Manage configuration."""
-    pass
-
-
-@config.command("show")
-@click.pass_context
-def config_show(ctx):
-    """Show current configuration."""
-    config_manager = ctx.obj["config_manager"]
-    cfg = config_manager.config
-
-    console.print(
-        Panel(
-            f"[bold]API Settings[/bold]\n"
-            f"  Provider: {cfg.api.provider}\n"
-            f"  API Key: {'[set]' if cfg.api.api_key else '[not set]'}\n"
-            f"  Model: {cfg.api.model or '[default]'}\n"
-            f"  Base URL: {cfg.api.base_url or '[default]'}\n\n"
-            f"[bold]Defaults[/bold]\n"
-            f"  Mode: {cfg.default_mode}\n"
-            f"  Domain: {cfg.default_domain}\n"
-            f"  Temperature: {cfg.temperature}\n"
-            f"  Max Tokens: {cfg.max_tokens_per_response}\n"
-            f"  Synthesis Provider: {cfg.synthesis_provider or '[default]'}\n"
-            f"  Synthesis Model: {cfg.synthesis_model or '[default]'}\n"
-            f"  Synthesis Max Tokens: {cfg.synthesis_max_tokens or '[default]'}\n\n"
-            f"[bold]Paths[/bold]\n"
-            f"  Config: {config_manager.path}\n"
-            f"  Custom Personas: {cfg.custom_personas_path or '[default]'}\n"
-            f"  Custom Domains: {cfg.custom_domains_path or '[default]'}",
-            title="Configuration",
-            border_style="blue",
-        )
-    )
-
-
-@config.command("set")
-@click.argument("key")
-@click.argument("value")
-@click.pass_context
-def config_set(ctx, key, value):
-    """Set a configuration value."""
-    config_manager = ctx.obj["config_manager"]
-
-    # Type conversion
-    if value.lower() in ("true", "false"):
-        value = value.lower() == "true"
-    elif value.isdigit():
-        value = int(value)
-    elif value.replace(".", "").isdigit():
-        value = float(value)
-
-    try:
-        config_manager.set(key, value)
-        config_manager.save()
-        console.print(f"[green]✓[/green] Set {key} = {value}")
-    except KeyError:
-        console.print(f"[red]Error:[/red] Invalid key: {key}")
-
-
-@config.command("get")
-@click.argument("key")
-@click.pass_context
-def config_get(ctx, key):
-    """Get a configuration value."""
-    config_manager = ctx.obj["config_manager"]
-    value = config_manager.get(key)
-
-    if value is None:
-        console.print(f"[yellow]{key} is not set[/yellow]")
-    else:
-        console.print(f"{key} = {value}")
-
-
-@config.command("preset-save")
-@click.argument("preset_name")
-@click.option("--domain", "-d", help="Domain to save in preset")
-@click.option("--members", "-m", help="Comma-separated member IDs")
-@click.option("--mode", help="Consultation mode")
-@click.pass_context
-def config_preset_save(ctx, preset_name, domain, members, mode):
-    """Save current or specified settings as a preset."""
-    config_manager = ctx.obj["config_manager"]
-
-    preset = {}
-
-    if domain:
-        preset["domain"] = domain
-    else:
-        preset["domain"] = config_manager.get("default_domain")
-
-    if members:
-        preset["members"] = [m.strip() for m in members.split(",")]
-
-    if mode:
-        preset["mode"] = mode
-    else:
-        preset["mode"] = config_manager.get("default_mode")
-
-    # Save to presets
-    if not isinstance(config_manager.config.presets, dict):
-        config_manager.config.presets = {}
-
-    config_manager.config.presets[preset_name] = preset
-    config_manager.save()
-
-    console.print(f"[green]✓[/green] Preset '{preset_name}' saved")
-    console.print(f"[dim]Use with: council consult --preset {preset_name}[/dim]")
-
-
-@config.command("preset-list")
-@click.pass_context
-def config_preset_list(ctx):
-    """List saved presets."""
-    config_manager = ctx.obj["config_manager"]
-    presets = config_manager.config.presets
-
-    if not presets:
-        console.print("[dim]No presets saved.[/dim]")
-        console.print("[dim]Create one with: council config preset-save <name>[/dim]")
-        return
-
-    table = Table(title="Saved Presets")
-    table.add_column("Name", style="cyan")
-    table.add_column("Domain")
-    table.add_column("Mode")
-    table.add_column("Members")
-
-    for name, preset in presets.items():
-        members = (
-            ", ".join(preset.get("members", [])) if preset.get("members") else "[domain default]"
-        )
-        table.add_row(
-            name,
-            preset.get("domain", "general"),
-            preset.get("mode", "synthesis"),
-            members,
-        )
-
-    console.print(table)
-
-
-@config.command("preset-delete")
-@click.argument("preset_name")
-@click.pass_context
-def config_preset_delete(ctx, preset_name):
-    """Delete a saved preset."""
-    config_manager = ctx.obj["config_manager"]
-
-    if preset_name in config_manager.config.presets:
-        del config_manager.config.presets[preset_name]
-        config_manager.save()
-        console.print(f"[green]✓[/green] Preset '{preset_name}' deleted")
-    else:
-        console.print(f"[red]Error:[/red] Preset '{preset_name}' not found")
+main.add_command(persona)
+main.add_command(domain)
+main.add_command(config)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1109,7 +738,7 @@ def show_providers(diagnose):
 
     console.print(table)
     console.print(
-        "\n[dim]Set API key via .env file, environment variable, or 'council config set api.api_key'[/dim]"
+        "\n[dim]Set API key via .env file, env var, or 'council config set api.api_key'[/dim]"
     )
     if not diagnose:
         console.print("[dim]Use --diagnose for detailed API key diagnostics[/dim]")
@@ -1194,6 +823,7 @@ def web(host: str, port: int, reload: bool, no_open: bool):
 @click.option("--api-key", "-k", envvar="COUNCIL_API_KEY", help="API key")
 @click.option("--output", "-o", type=click.Path(), help="Save report to file")
 @click.pass_context
+@require_api_key
 def review(ctx, path, focus, provider, api_key, output):
     """
     Review a repository or directory.
@@ -1201,25 +831,7 @@ def review(ctx, path, focus, provider, api_key, output):
     Performs a comprehensive AI-driven audit of the code at PATH.
     """
     config_manager = ctx.obj["config_manager"]
-    # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
-    is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
-    if is_placeholder:
-        api_key = None  # Ignore placeholder, force get_api_key() to run
-
-    api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
-
-    if not api_key:
-        console.print("[red]Error:[/red] No API key provided.")
-        sys.exit(1)
-    if "your-" in api_key.lower() or "here" in api_key.lower():
-        console.print("[red]Error:[/red] API key appears to be a placeholder value.")
-        console.print(
-            "Please update your .env file with your actual API key (not the example value)."
-        )
-        console.print("Run 'council providers --diagnose' for help.")
-        sys.exit(1)
-
-    provider = provider or config_manager.get("api.provider", "anthropic")
+    provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
     model = config_manager.get("api.model")
 
     from .tools.reviewer import RepositoryReviewer

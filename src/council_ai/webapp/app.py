@@ -572,7 +572,7 @@ async def tts_voices() -> dict:
     """List available TTS voices."""
     _initialize_tts_providers()
 
-    voices = {"primary": [], "fallback": []}
+    voices: dict[str, list[dict[str, Any]]] = {"primary": [], "fallback": []}
 
     if _tts_primary:
         try:

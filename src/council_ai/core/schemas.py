@@ -1,6 +1,4 @@
-"""
-Structured Output Schemas for Consultation Results
-"""
+"""Structured Output Schemas for Consultation Results."""
 
 from __future__ import annotations
 

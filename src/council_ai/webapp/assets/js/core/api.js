@@ -11,7 +11,7 @@ export async function loadInfo() {
   if (cachedInfo) {
     return cachedInfo;
   }
-  
+
   const res = await fetch("/api/info");
   const data = await res.json();
   cachedInfo = data;
@@ -27,11 +27,11 @@ export async function submitConsultation(payload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-  
+
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.detail || "Request failed.");
   }
-  
+
   return await res.json();
 }
