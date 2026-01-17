@@ -819,9 +819,7 @@ def _run_web(host: str, port: int, reload: bool, no_open: bool):
         port += 1
 
     if port != original_port:
-        console.print(
-            f"[yellow]⚠️[/yellow] Port {original_port} is busy, using [bold]{port}[/bold]"
-        )
+        console.print(f"[yellow]⚠️[/yellow] Port {original_port} is busy, using [bold]{port}[/bold]")
 
     # Resolve display host for helpful feedback
     display_host = host

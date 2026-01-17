@@ -14,7 +14,6 @@ import socket
 import subprocess
 import sys
 import time
-import webbrowser
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -246,6 +245,36 @@ def install_council(editable: bool = True) -> bool:
 
     print_success("council-ai installed successfully")
     return True
+
+
+def save_host_config(host: str, port: int, config_file: str = ".council_host"):
+    """Save host address to configuration file."""
+    try:
+        path = Path(config_file)
+        # Use full address if host is not localhost, else just localhost
+        address = host
+        if host == "0.0.0.0":
+            address = get_local_ip()
+
+        content = f"{address}:{port}"
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+        return True
+    except Exception as e:
+        print_warning(f"Could not save host config: {e}")
+        return False
+
+
+def get_stored_host(config_file: str = ".council_host") -> Optional[str]:
+    """Read stored host from configuration file."""
+    try:
+        path = Path(config_file)
+        if path.exists():
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+    except Exception:
+        pass
+    return None
 
 
 def find_open_port(start_port: int, max_attempts: int = 10) -> int:
@@ -547,6 +576,17 @@ def main():
         action="store_true",
         help="Kill any existing process on the port before starting",
     )
+    parser.add_argument(
+        "--role",
+        choices=["host", "satellite", "auto"],
+        default="host",
+        help="Role to run as (host: run server, satellite: connect to host)",
+    )
+    parser.add_argument(
+        "--host-file",
+        default=".council_host",
+        help="File to store/read host address (default: .council_host)",
+    )
     args = parser.parse_args()
 
     global QUIET
@@ -558,6 +598,52 @@ def main():
 
     if not QUIET:
         print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
+
+    # Handle auto role
+    if args.role == "auto":
+        is_avail, _ = check_port_available(args.port)
+        if not is_avail:
+            # Local port is busy, check if it's our own server or just busy
+            print_status("🏛️  Local Council AI instance detected. Acting as satellite.", CYAN)
+            args.role = "satellite"
+        else:
+            # Local port is free. Check if there's a remote host we should connect to.
+            stored_host = get_stored_host(args.host_file)
+            if stored_host and "127.0.0.1" not in stored_host and "localhost" not in stored_host:
+                # Try to see if remote host is reachable
+                host_part = stored_host.split(":")[0]
+                port_part = int(stored_host.split(":")[1]) if ":" in stored_host else args.port
+
+                print_info(f"Checking for remote host at {stored_host}...")
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(1.5)
+                    try:
+                        s.connect((host_part, port_part))
+                        print_status(
+                            f"🌐 Remote Council AI host found at {stored_host}. Acting as satellite.",
+                            CYAN,
+                        )
+                        args.role = "satellite"
+                    except (socket.timeout, ConnectionRefusedError, OSError):
+                        print_info("Remote host not reachable. Launching as local host.")
+                        args.role = "host"
+            else:
+                args.role = "host"
+
+    # Execute satellite logic if role is satellite
+    if args.role == "satellite":
+        stored_host = get_stored_host(args.host_file) or f"127.0.0.1:{args.port}"
+        url = f"http://{stored_host}"
+        if ":" not in stored_host:
+            url = f"http://{stored_host}:{args.port}"
+
+        print_info(f"Connecting to Council AI at {url}...")
+        if open_browser(url):
+            print_success("Browser opened successfully")
+            return 0
+        else:
+            print_error(f"Failed to open browser. Please visit {url} manually.")
+            return 1
 
     # Check Python version
     print_status("Checking prerequisites...", CYAN)
@@ -619,6 +705,12 @@ def main():
         port = find_open_port(args.port)
         if port != args.port:
             print_warning(f"Port {args.port} is in use, using {port} instead")
+
+    # Save host config if we are hosting and it's a network host
+    host_to_save = host
+    if args.network or host != "127.0.0.1":
+        save_host_config(host_to_save, port, args.host_file)
+        print_info(f"Host configuration saved to {args.host_file}")
 
     # Launch web app
     while True:
