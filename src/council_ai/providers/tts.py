@@ -36,7 +36,7 @@ class TTSProvider(ABC):
         pass
 
     @abstractmethod
-    async def stream_speech(
+    def stream_speech(
         self, text: str, voice: Optional[str] = None, model: Optional[str] = None
     ) -> AsyncIterator[bytes]:
         """
@@ -260,7 +260,7 @@ class TTSProviderFactory:
         api_key: Optional[str] = None,
         fallback_provider: Optional[str] = None,
         fallback_api_key: Optional[str] = None,
-    ) -> tuple[TTSProvider, Optional[TTSProvider]]:
+    ) -> tuple[Optional[TTSProvider], Optional[TTSProvider]]:
         """
         Create TTS provider with optional fallback.
 
@@ -281,7 +281,7 @@ class TTSProviderFactory:
             if provider_name.lower() == "elevenlabs":
                 primary = ElevenLabsTTSProvider(api_key)
             elif provider_name.lower() == "openai":
-                primary = OpenAITTSProvider(api_key)
+                primary = OpenAITTSProvider(api_key)  # type: ignore[assignment]
             else:
                 raise ValueError(f"Unknown TTS provider: {provider_name}")
         except Exception as e:
@@ -293,7 +293,7 @@ class TTSProviderFactory:
                 if fallback_provider.lower() == "elevenlabs":
                     fallback = ElevenLabsTTSProvider(fallback_api_key)
                 elif fallback_provider.lower() == "openai":
-                    fallback = OpenAITTSProvider(fallback_api_key)
+                    fallback = OpenAITTSProvider(fallback_api_key)  # type: ignore[assignment]
             except Exception as e:
                 logger.warning(
                     f"Failed to initialize fallback TTS provider {fallback_provider}: {e}"

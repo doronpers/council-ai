@@ -1,6 +1,4 @@
-"""
-Tests for provider abstractions.
-"""
+"""Tests for TTS and other providers."""
 
 import pytest
 
@@ -114,6 +112,7 @@ def test_custom_provider_registration():
     class CustomProvider(LLMProvider):
         async def complete(self, system_prompt, user_prompt, max_tokens=1000, temperature=0.7):
             from shared_ai_utils.llm import LLMResponse
+
             return LLMResponse(text="Custom response", raw_response={})
 
         @property

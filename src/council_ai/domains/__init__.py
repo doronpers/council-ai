@@ -1,6 +1,4 @@
-"""
-Domain Configurations - Pre-configured councils for specific use cases.
-"""
+"""Domain Configurations - Pre-configured councils for specific use cases."""
 
 from __future__ import annotations
 
@@ -28,11 +26,12 @@ class Domain:
     description: str
     category: DomainCategory
     default_personas: List[str]
-    optional_personas: List[str] = None
+    optional_personas: Optional[List[str]] = None
     recommended_mode: str = "synthesis"
-    example_queries: List[str] = None
+    example_queries: Optional[List[str]] = None
 
     def __post_init__(self):
+        """Initialize default lists."""
         if self.optional_personas is None:
             self.optional_personas = []
         if self.example_queries is None:
@@ -190,7 +189,9 @@ DOMAINS: Dict[str, Domain] = {
     "llm_review": Domain(
         id="llm_review",
         name="LLM Response Review",
-        description="Supreme Court-style review of multiple LLM responses with scoring and synthesis",
+        description=(
+            "Supreme Court-style review of multiple LLM responses with scoring and synthesis"
+        ),
         category=DomainCategory.TECHNICAL,
         default_personas=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove"],
         optional_personas=["signal_analyst", "compliance_auditor"],
@@ -204,7 +205,10 @@ DOMAINS: Dict[str, Domain] = {
     "sonotheia": Domain(
         id="sonotheia",
         name="Sonotheia Review",
-        description="Full 9-justice court for Sonotheia deepfake audio defense and voice authenticity topics",
+        description=(
+            "Full 9-justice court for Sonotheia deepfake audio defense "
+            "and voice authenticity topics"
+        ),
         category=DomainCategory.TECHNICAL,
         default_personas=[
             "dempsey",

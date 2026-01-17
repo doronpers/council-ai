@@ -1,6 +1,4 @@
-"""
-Tests for persona loading and management.
-"""
+"""Tests for persona management."""
 
 import pytest
 

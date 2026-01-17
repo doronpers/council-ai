@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 class AnalysisResult(BaseModel):
     """Structured analysis of a consultation."""
 
-    consensus_score: int = Field(..., description="Numerical score 0-100 indicating level of agreement")
+    consensus_score: int = Field(
+        ..., description="Numerical score 0-100 indicating level of agreement"
+    )
     consensus_summary: str = Field(..., description="Brief summary of the consensus")
     key_themes: List[str] = Field(..., description="Main themes discussed")
     tensions: List[str] = Field(..., description="Specific points of disagreement or contention")
@@ -84,26 +86,26 @@ Return ONLY a valid JSON object with the following structure:
   "recommendation": " Proceed with X but mitigate Y."
 }}
 """
-        
+
         try:
             # We use a lower temperature for analysis
             response = await self.provider.complete(
-                 system_prompt="You are a precise analytical engine. Output valid JSON only.",
-                 user_prompt=prompt,
-                 max_tokens=1000,
-                 temperature=0.2
+                system_prompt="You are a precise analytical engine. Output valid JSON only.",
+                user_prompt=prompt,
+                max_tokens=1000,
+                temperature=0.2,
             )
-            
+
             raw_text = response.text.strip()
             # Basic cleanup if code blocks are used
             if "```json" in raw_text:
                 raw_text = raw_text.split("```json")[1].split("```")[0].strip()
             elif "```" in raw_text:
                 raw_text = raw_text.split("```")[1].split("```")[0].strip()
-                
+
             data = json.loads(raw_text)
             return AnalysisResult(**data)
-            
+
         except Exception as e:
             logger.error(f"Analysis failed: {e}")
             # Fallback result
@@ -112,5 +114,5 @@ Return ONLY a valid JSON object with the following structure:
                 consensus_summary="Analysis failed. See individual responses.",
                 key_themes=["Analysis Unavailable"],
                 tensions=[],
-                recommendation="Review individual responses manually."
+                recommendation="Review individual responses manually.",
             )

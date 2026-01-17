@@ -21,12 +21,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from council_ai import Council
-from council_ai.core.config import (
-    ConfigManager,
-    get_api_key,
-    is_placeholder_key,
-    sanitize_api_key,
-)
+from council_ai.core.config import ConfigManager, get_api_key, is_placeholder_key, sanitize_api_key
 from council_ai.core.council import ConsultationMode, CouncilConfig
 from council_ai.core.persona import list_personas
 
@@ -163,6 +158,7 @@ class ReviewResult(BaseModel):
         default_factory=list, description="Warnings about partial failures or rate limits"
     )
 
+
 # Staging Store (Simple in-memory cache for demo purposes)
 # In production, use Redis or database
 _STAGING_CACHE: Dict[str, ReviewRequest] = {}
@@ -170,12 +166,14 @@ _STAGING_CACHE: Dict[str, ReviewRequest] = {}
 
 class StagingRequest(BaseModel):
     """Request to stage a consultation for review."""
+
     question: str
     responses: List[Dict[str, Any]]  # From MemberResponse.to_dict()
 
 
 class StagingResponse(BaseModel):
     """Response from staging."""
+
     staging_id: str
 
 
@@ -183,7 +181,7 @@ class StagingResponse(BaseModel):
 async def stage_review(request: StagingRequest) -> StagingResponse:
     """Stage a consultation for review."""
     staging_id = str(uuid4())
-    
+
     # Convert member responses to ReviewRequest format
     llm_responses = []
     for i, r in enumerate(request.responses, 1):
@@ -191,12 +189,8 @@ async def stage_review(request: StagingRequest) -> StagingResponse:
         persona = r.get("persona_name", "Unknown")
         content = r.get("content", "")
         if content:
-            llm_responses.append(LLMResponse(
-                id=i,
-                content=content,
-                source=persona
-            ))
-            
+            llm_responses.append(LLMResponse(id=i, content=content, source=persona))
+
     # Create ReviewRequest with defaults
     review_req = ReviewRequest(
         question=request.question,
@@ -204,9 +198,9 @@ async def stage_review(request: StagingRequest) -> StagingResponse:
         # Default council config
         justices=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove"],
         chair="dempsey",
-        vice_chair="kahneman"
+        vice_chair="kahneman",
     )
-    
+
     _STAGING_CACHE[staging_id] = review_req
     return StagingResponse(staging_id=staging_id)
 
@@ -639,14 +633,14 @@ def _create_fallback_synthesis(
 
     combined = f"""Based on the council's review, Response #{winner.response_id} received the highest score ({winner.overall_score}/10).
 
-Key strengths:
-{strengths_text if strengths_text else "See individual assessments for details."}
+    Key strengths:
+    {strengths_text if strengths_text else "See individual assessments for details."}
 
-{winner_response.content[:500] if winner_response else "See individual assessments for the winning response."}"""
+    {winner_response.content[:500] if winner_response else "See individual assessments for the winning response."}"""
 
     refined = f"""After comprehensive review by the council, Response #{winner.response_id} has been identified as the strongest answer to: "{question}"
 
-The response scored {winner.overall_score}/10 overall, excelling in multiple evaluation criteria. See individual assessments for detailed analysis."""
+    The response scored {winner.overall_score}/10 overall, excelling in multiple evaluation criteria. See individual assessments for detailed analysis."""
 
     return SynthesizedResponse(combined_best=combined, refined_final=refined)
 
@@ -916,36 +910,36 @@ def _build_synthesis_prompt(request: ReviewRequest, assessments: List[Dict]) -> 
 
     prompt = f"""Based on the council's review of multiple LLM responses, create an optimal synthesized response.
 
-## ORIGINAL QUESTION
-{request.question}
+    ## ORIGINAL QUESTION
+    {request.question}
 
-## REVIEWED RESPONSES WITH SCORES
-{responses_text}
+    ## REVIEWED RESPONSES WITH SCORES
+    {responses_text}
 
-## YOUR TASK
-Create two versions of an optimal response:
+    ## YOUR TASK
+    Create two versions of an optimal response:
 
-1. **Combined Best**: Take the strongest elements from each response and combine them into a comprehensive answer.
+    1. **Combined Best**: Take the strongest elements from each response and combine them into a comprehensive answer.
 
-2. **Refined Final**: Starting from the combined version, refine and polish it into a single, authoritative response that:
-   - Incorporates the most accurate information from all sources
-   - Addresses any errors or gaps identified in the reviews
-   - Presents information clearly and logically
-   - Would be considered definitive on this topic
+    2. **Refined Final**: Starting from the combined version, refine and polish it into a single, authoritative response that:
+       - Incorporates the most accurate information from all sources
+       - Addresses any errors or gaps identified in the reviews
+       - Presents information clearly and logically
+       - Would be considered definitive on this topic
 
-Respond in JSON format:
-```json
-{{
-  "combined_best": "The combined response...",
-  "refined_final": "The polished final response..."
-}}
-```"""
+    Respond in JSON format:
+    ```json
+    {{
+      "combined_best": "The combined response...",
+      "refined_final": "The polished final response..."
+    }}
+    ```"""
 
     return prompt
 
 
-def _parse_google_docs_content(content: str) -> tuple[Optional[str], List[Dict[str, str]]]:
-    """
+def _parse_google_docs_content(content: str) -> tuple[Optional[str], List[Dict[str, Any]]]:
+    r"""
     Parse Google Docs content to extract question and responses.
 
     Supports multiple formats:
@@ -1013,7 +1007,7 @@ def _parse_google_docs_content(content: str) -> tuple[Optional[str], List[Dict[s
 
     for pattern in response_patterns:
         matches = re.finditer(pattern, remaining, re.IGNORECASE | re.DOTALL | re.MULTILINE)
-        found_responses = []
+        found_responses: List[Dict[str, Any]] = []
         for match in matches:
             if len(match.groups()) == 2:
                 resp_id = match.group(1)
@@ -1064,8 +1058,14 @@ async def _fetch_google_docs_content(url: str) -> Optional[str]:
     """
     Fetch content from Google Docs URL.
 
-    Note: This requires Google API credentials. For now, we'll return None
-    and rely on exported content instead.
+    TODO: This feature is incomplete and requires Google API credentials.
+    Currently returns None and relies on manually exported/pasted content.
+
+    To implement:
+    1. Set up Google API credentials at ~/.config/council-ai/google_credentials.json
+    2. Install google-api-python-client: pip install google-api-python-client
+    3. Implement OAuth2 flow for authentication
+    4. Use Google Docs API to fetch document content
 
     Args:
         url: Google Docs URL
@@ -1306,7 +1306,7 @@ async def review_responses(request: ReviewRequest) -> ReviewResult:
                 mode=ConsultationMode.SYNTHESIS,
             )
 
-        result = await _retry_with_backoff(
+        result: Any = await _retry_with_backoff(
             _consult_with_retry,
             max_retries=3,
             base_delay=1.0,
@@ -1451,7 +1451,7 @@ async def review_responses(request: ReviewRequest) -> ReviewResult:
                     continue
 
         # Aggregate scores across justices
-        response_scores = {
+        response_scores: Dict[int, Any] = {
             r.id: {"scores": {}, "opinions": [], "strengths": [], "weaknesses": []}
             for r in request.responses
         }
@@ -1572,7 +1572,7 @@ async def review_responses(request: ReviewRequest) -> ReviewResult:
                         mode=ConsultationMode.SYNTHESIS,
                     )
 
-                synthesis_result = await _retry_with_backoff(
+                synthesis_result: Any = await _retry_with_backoff(
                     _synthesize_with_retry,
                     max_retries=3,
                     base_delay=1.0,

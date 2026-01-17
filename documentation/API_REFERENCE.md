@@ -417,7 +417,7 @@ from council_ai import Council
 
 async def main():
     council = Council.for_domain("business", api_key="your-key")
-    
+
     async for event in council.consult_stream("Market analysis needed"):
         if event["event"] == "response":
             persona = event["data"]["persona"]
@@ -1516,26 +1516,26 @@ from council_ai import Council, ConsultationMode
 
 async def main():
     council = Council.for_domain("coding", api_key="your-key")
-    
+
     print("Starting consultation...")
-    
+
     async for event in council.consult_stream(
         query="Review this API design: POST /users with {email, password}",
         mode=ConsultationMode.SEQUENTIAL
     ):
         if event["event"] == "progress":
             print(f"Progress: {event['data']['message']}")
-        
+
         elif event["event"] == "response":
             persona = event["data"]["persona"]
             content = event["data"]["content"]
             print(f"\n{persona['emoji']} {persona['name']}:")
             print(content)
-        
+
         elif event["event"] == "synthesis":
             print("\n--- Synthesis ---")
             print(event["data"]["synthesis"])
-        
+
         elif event["event"] == "complete":
             print("\nConsultation complete!")
 
@@ -1649,18 +1649,18 @@ council = Council.for_domain("business", api_key="your-key")
 
 try:
     result = council.consult("Should we pivot?")
-    
+
     # Check for member failures
     for response in result.responses:
         if response.error:
             print(f"Error from {response.persona.name}: {response.error}")
-    
+
     # Use synthesis if available
     if result.synthesis:
         print(result.synthesis)
     else:
         print("No synthesis available")
-        
+
 except Exception as e:
     print(f"Consultation failed: {e}")
 ```
@@ -1673,7 +1673,7 @@ from council_ai import Council
 
 async def main():
     council = Council.for_domain("business", api_key="your-key")
-    
+
     try:
         result = await council.consult_async("Query")
         print(result.synthesis)

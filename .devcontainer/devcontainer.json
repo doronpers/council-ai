@@ -1,18 +1,17 @@
 {
     "name": "Council AI",
     "image": "mcr.microsoft.com/devcontainers/python:3.11",
-    
+
     "features": {
         "ghcr.io/devcontainers/features/node:1": {
             "version": "lts"
-        },
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+        }
     },
-    
+
     "remoteUser": "vscode",
-    
+
     "postCreateCommand": "python -m pip install --upgrade pip && python -m pip install -e .[all,dev] && npm install",
-    
+
     "customizations": {
         "vscode": {
             "extensions": [
@@ -55,12 +54,12 @@
             }
         }
     },
-    
+
     "forwardPorts": [
         8000,
         5173
     ],
-    
+
     "portsAttributes": {
         "8000": {
             "label": "Council AI API",
@@ -71,7 +70,7 @@
             "onAutoForward": "notify"
         }
     },
-    
+
     "remoteEnv": {
         "PYTHONUNBUFFERED": "1"
     }

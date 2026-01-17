@@ -6,21 +6,13 @@ that can be visualized in Apache Superset dashboards.
 """
 
 from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import (
-    JSON,
-    Column,
-    DateTime,
-    Float,
-    Index,
-    Integer,
-    String,
-    Text,
-)
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import JSON, Column, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 class Consultation(Base):
@@ -56,6 +48,7 @@ class Consultation(Base):
     )
 
     def __repr__(self):
+        """Representation of the consultation."""
         return f"<Consultation(id={self.consultation_id}, mode={self.mode}, query={self.query[:50]}...)>"
 
 
@@ -82,6 +75,7 @@ class MemberResponse(Base):
     )
 
     def __repr__(self):
+        """Representation of the member response."""
         return f"<MemberResponse(member={self.member_name}, consultation={self.consultation_id})>"
 
 
@@ -103,9 +97,8 @@ class ConsultationStats(Base):
     avg_response_length = Column(Float)
     avg_synthesis_length = Column(Float)
 
-    __table_args__ = (
-        Index("idx_stats_date_mode", "date", "mode"),
-    )
+    __table_args__ = (Index("idx_stats_date_mode", "date", "mode"),)
 
     def __repr__(self):
+        """Representation of the stats."""
         return f"<ConsultationStats(date={self.date}, mode={self.mode}, count={self.total_consultations})>"

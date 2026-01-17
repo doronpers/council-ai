@@ -28,9 +28,12 @@ source venv/bin/activate
 
 # Install dependencies if needed (basic check)
 if ! python3 -c "import council_ai" &> /dev/null; then
-    echo "Installing council-ai..."
-    pip install -e "../shared-ai-utils"
-    pip install -e "."
+    echo "Installing council-ai and dependencies..."
+    if [ -d "../shared-ai-utils" ]; then
+        echo "Installing local shared-ai-utils..."
+        pip install -e "../shared-ai-utils"
+    fi
+    pip install -e ".[web]"
 fi
 
 # Hand over to the Python launcher

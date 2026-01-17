@@ -40,6 +40,20 @@ from .core.session import ConsultationResult, MemberResponse, Session
 from .domains import Domain, DomainCategory, get_domain, list_domains
 from .providers import get_provider, list_providers
 
+# Context loading utilities (optional import)
+try:
+    from .utils.context import (  # noqa: F401
+        load_code_files,
+        load_context_from_files,
+        load_images,
+        load_markdown_files,
+        load_text_files,
+    )
+
+    _utils_available = True
+except ImportError:
+    _utils_available = False
+
 __all__ = [
     # Main classes
     "Council",
@@ -64,3 +78,15 @@ __all__ = [
     "get_provider",
     "list_providers",
 ]
+
+# Add context utilities to __all__ if available
+if _utils_available:
+    __all__.extend(
+        [
+            "load_markdown_files",
+            "load_code_files",
+            "load_text_files",
+            "load_images",
+            "load_context_from_files",
+        ]
+    )

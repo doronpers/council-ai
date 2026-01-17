@@ -53,15 +53,19 @@ except Exception:
     # Failed to set up colors (e.g., unsupported terminal)
     GREEN = YELLOW = RED = BLUE = CYAN = MAGENTA = RESET = BOLD = ""
 
+QUIET = False
 
-def print_status(message: str, color: str = ""):
+
+def print_status(message: str, color: str = "", force: bool = False):
     """Print a status message with optional color."""
+    if QUIET and not force:
+        return
     print(f"{color}{message}{RESET}")
 
 
 def print_error(message: str):
     """Print an error message."""
-    print_status(f"❌ {message}", RED)
+    print_status(f"❌ {message}", RED, force=True)
 
 
 def print_success(message: str):
@@ -114,10 +118,10 @@ def run_command(
 
 
 def check_python_version() -> bool:
-    """Check if Python 3.9+ is installed."""
+    """Check if Python 3.11+ is installed."""
     version = sys.version_info
-    if version.major < 3 or (version.major == 3 and version.minor < 9):
-        print_error(f"Python 3.9+ required, found {version.major}.{version.minor}")
+    if version.major < 3 or (version.major == 3 and version.minor < 11):
+        print_error(f"Python 3.11+ required, found {version.major}.{version.minor}")
         print_info("Please upgrade Python: https://www.python.org/downloads/")
         return False
     print_success(f"Python {version.major}.{version.minor}.{version.micro} detected")
@@ -157,11 +161,12 @@ def check_council_installed() -> Tuple[bool, bool]:
 
 
 def check_web_dependencies() -> bool:
-    """Check if web dependencies (uvicorn, fastapi) are installed."""
+    """Check if web dependencies (uvicorn, fastapi, aiohttp) are installed."""
     try:
         has_fastapi = importlib.util.find_spec("fastapi") is not None
         has_uvicorn = importlib.util.find_spec("uvicorn") is not None
-        return has_fastapi and has_uvicorn
+        has_aiohttp = importlib.util.find_spec("aiohttp") is not None
+        return has_fastapi and has_uvicorn and has_aiohttp
     except ImportError:
         return False
 
@@ -194,8 +199,39 @@ def check_api_keys() -> Tuple[bool, Optional[str]]:
 
 def install_council(editable: bool = True) -> bool:
     """Install council-ai package."""
-    print_info("Installing council-ai...")
+    print_info("Upgrading pip...")
 
+    # Upgrade pip first
+    upgrade_cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "pip"]
+    returncode, _, _ = run_command(upgrade_cmd, check=False, capture_output=True)
+
+    if returncode == 0:
+        print_success("pip upgraded successfully")
+    else:
+        print_warning("Could not upgrade pip (continuing anyway)")
+
+    # First, check for shared-ai-utils sibling directory
+    script_dir = Path(__file__).parent.resolve()
+    shared_utils_dir = script_dir.parent / "shared-ai-utils"
+
+    if shared_utils_dir.exists():
+        print_info(f"Found local dependency: {shared_utils_dir.name}")
+        print_info("Installing shared-ai-utils...")
+        cmd_shared = [sys.executable, "-m", "pip", "install", "-e", str(shared_utils_dir)]
+        rc, _, err = run_command(cmd_shared, check=False, capture_output=True)
+        if rc != 0:
+            print_warning(f"Failed to install shared-ai-utils from local path: {err}")
+            print_info("Proceeding anyway, it might be available via pip...")
+    else:
+        print_error("Missing required dependency: shared-ai-utils")
+        print_info(
+            "Council AI requires shared-ai-utils to be located in the same parent directory."
+        )
+        print_info(f"Expected path: {shared_utils_dir}")
+        print_info("If you are moving to another PC, please ensure both repositories are copied.")
+        return False
+
+    print_info("Installing council-ai...")
     if editable:
         cmd = [sys.executable, "-m", "pip", "install", "-e", ".[web]"]
     else:
@@ -212,21 +248,75 @@ def install_council(editable: bool = True) -> bool:
     return True
 
 
-def check_port_available(port: int) -> bool:
-    """Check if a port is available."""
+def find_open_port(start_port: int, max_attempts: int = 10) -> int:
+    """Find an available port starting from start_port."""
+    for port in range(start_port, start_port + max_attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    return start_port
+
+
+def check_port_available(port: int) -> Tuple[bool, Optional[int]]:
+    """
+    Check if a port is available.
+
+    Returns:
+        (is_available, pid_using_port)
+    """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
             s.bind(("127.0.0.1", port))
-            return True
+            return True, None
         except OSError:
+            # Try to find PID using lsof on Mac/Linux
+            pid = None
+            if not IS_WINDOWS:
+                try:
+                    result = subprocess.run(
+                        ["lsof", "-t", f"-i:{port}"],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    if result.stdout.strip():
+                        pid = int(result.stdout.strip().split("\n")[0])
+                except Exception:
+                    pass
+            return False, pid
+
+
+def kill_process_on_port(port: int) -> bool:
+    """Kill any process running on the specified port."""
+    is_avail, pid = check_port_available(port)
+    if is_avail:
+        return True
+
+    if pid:
+        print_info(f"Killing process {pid} on port {port}...")
+        try:
+            import signal
+
+            os.kill(pid, signal.SIGTERM)
+            # Wait a moment for it to die
+            import time
+
+            time.sleep(1)
+            return check_port_available(port)[0]
+        except Exception as e:
+            print_error(f"Failed to kill process {pid}: {e}")
             return False
+    return False
 
 
 def open_browser(url: str) -> bool:
     """Open a URL in the default browser (platform-specific)."""
     try:
         if IS_WINDOWS:
-            os.startfile(url)
+            os.startfile(url)  # type: ignore[attr-defined]
         elif IS_MAC:
             subprocess.run(["open", url], check=False)
         elif IS_LINUX:
@@ -238,33 +328,58 @@ def open_browser(url: str) -> bool:
         return False
 
 
+def get_local_ip() -> str:
+    """Get the local IP address of the machine."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
 def launch_web_app(
     host: str = "127.0.0.1", port: int = 8000, reload: bool = True, open_browser_flag: bool = False
 ) -> int:
     """Launch the Council AI web app."""
-    url = f"http://{host}:{port}"
+    display_host = host
+    if host == "0.0.0.0":
+        display_host = get_local_ip()
+
+    url = f"http://{display_host}:{port}"
 
     # Check if port is available
-    if not check_port_available(port):
+    is_avail, pid = check_port_available(port)
+    if not is_avail:
         print_warning(f"Port {port} is already in use")
+        if pid:
+            print_info(f"Process {pid} is currently using this port.")
         print_info("Trying to use the existing service...")
         if open_browser_flag:
             open_browser(url)
         print_success(f"Web app should be available at {url}")
-        return 0
+        # If we are in retry/persistent mode, we should wait instead of returning 0
+        return 2  # Special code for "already running"
 
     print_info(f"Launching Council AI web app on {url}")
     print_status("💡 Tip: Press Ctrl+C to stop the server", YELLOW)
-    print()
+    if not QUIET:
+        print()
 
     # Welcome message
+    access_msg = f"  {CYAN}{url}{RESET}"
+    if host == "0.0.0.0":
+        access_msg += f"\n  {CYAN}http://{socket.gethostname()}.local:{port}{RESET} (mDNS)"
+
     welcome = f"""
 {BOLD}{MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}
 {BOLD}  🏛️  Council AI Web App{RESET}
 {BOLD}{MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}
 
 {BOLD}Access the web interface at:{RESET}
-  {CYAN}{url}{RESET}
+{access_msg}
 
 {BOLD}Features:{RESET}
   • Consult with multiple AI personas
@@ -276,7 +391,8 @@ def launch_web_app(
 {BOLD}To stop:{RESET} Press {CYAN}Ctrl+C{RESET}
 
 """
-    print(welcome)
+    if not QUIET:
+        print(welcome)
 
     # Open browser if requested
     if open_browser_flag:
@@ -313,6 +429,90 @@ def launch_web_app(
         return 1
 
 
+def check_npm_installed() -> bool:
+    """Check if npm is installed."""
+    try:
+        subprocess.run(
+            ["npm", "--version"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            shell=IS_WINDOWS,
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
+def build_frontend() -> bool:
+    """Install dependencies and build the frontend."""
+    print_info("Building frontend assets (this may take a minute)...")
+
+    try:
+        # Install dependencies
+        print_status("Installing npm dependencies...", CYAN)
+        returncode, _, stderr = run_command(["npm", "install"], check=False, capture_output=True)
+        if returncode != 0:
+            print_error("Failed to install npm dependencies")
+            print_info(f"Error: {stderr}")
+            return False
+
+        # Build
+        print_status("Building React app...", CYAN)
+        returncode, _, stderr = run_command(
+            ["npm", "run", "build"], check=False, capture_output=True
+        )
+        if returncode != 0:
+            print_error("Failed to build frontend")
+            print_info(f"Error: {stderr}")
+            return False
+
+        print_success("Frontend built successfully")
+        return True
+    except Exception as e:
+        print_error(f"Build failed: {e}")
+        return False
+
+
+def check_frontend_ready() -> bool:
+    """
+    Check if frontend assets are built, and offer to build them if not.
+
+    Returns:
+        bool: True if ready to launch, False otherwise.
+    """
+    # Check for built index.html
+    # Path logic: launch-council.py is in root
+    # Build output is in src/council_ai/webapp/static/index.html
+    static_index = Path(__file__).parent / "src" / "council_ai" / "webapp" / "static" / "index.html"
+
+    if static_index.exists():
+        return True
+
+    print_warning("Frontend assets not found (fresh install?)")
+
+    if not check_npm_installed():
+        print_error("npm is not installed. Cannot build frontend.")
+        print_info("Please install Node.js and npm to build the web interface.")
+        print_info("Or download a pre-built release.")
+        return False
+
+    if not QUIET:
+        # If interactive or force, ask user
+        # But for simplified launcher, we might just want to do it or fail
+        # Let's try to build automatically if we can
+        print_info("Frontend needs to be built before first launch.")
+        try:
+            # Simple timeout-based input implementation or just go ahead
+            # For this script, let's just do it
+            if not build_frontend():
+                return False
+        except Exception:
+            return False
+
+    return True
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Launch the Council AI web app")
@@ -327,9 +527,37 @@ def main():
     )
     parser.add_argument("--open", action="store_true", help="Open browser automatically")
     parser.add_argument("--install", action="store_true", help="Install council-ai if not found")
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Silent mode (suppress non-error output)",
+    )
+    parser.add_argument(
+        "--network",
+        action="store_true",
+        help="Enable network access (binds to 0.0.0.0 instead of 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--retry",
+        action="store_true",
+        help="Automatically restart the server if it crashes",
+    )
+    parser.add_argument(
+        "--kill",
+        action="store_true",
+        help="Kill any existing process on the port before starting",
+    )
     args = parser.parse_args()
 
-    print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
+    global QUIET
+    QUIET = args.quiet
+
+    host = args.host
+    if args.network and host == "127.0.0.1":
+        host = "0.0.0.0"
+
+    if not QUIET:
+        print_status(f"{BOLD}🏛️  Council AI Launch Script{RESET}\n")
 
     # Check Python version
     print_status("Checking prerequisites...", CYAN)
@@ -361,6 +589,10 @@ def main():
     else:
         print_success("Web dependencies are available")
 
+    # Check Frontend Build (New Step)
+    if not check_frontend_ready():
+        return 1
+
     # Check API keys (warning only, not blocking)
     has_key, provider = check_api_keys()
     if not has_key:
@@ -375,12 +607,44 @@ def main():
     else:
         print_success(f"API key detected for {provider}")
 
-    print()
+    if not QUIET:
+        print()
+    # Handle --kill flag
+    if args.kill:
+        kill_process_on_port(args.port)
+
+    # Find available port if not specified
+    port = args.port
+    if not args.kill:  # If we didn't kill, find an open one
+        port = find_open_port(args.port)
+        if port != args.port:
+            print_warning(f"Port {args.port} is in use, using {port} instead")
 
     # Launch web app
-    return launch_web_app(
-        host=args.host, port=args.port, reload=not args.no_reload, open_browser_flag=args.open
-    )
+    while True:
+        exit_code = launch_web_app(
+            host=host, port=port, reload=not args.no_reload, open_browser_flag=args.open
+        )
+
+        # Exit if successful (0) or if we're not retrying
+        if not args.retry:
+            return exit_code
+
+        # If already running (2), don't crash loop, just message and exit 0
+        if exit_code == 2:
+            print_info("Active instance detected. Keeping it alive.")
+            # For persistent mode, we'll just wait indefinitely to keep the script alive
+            # actually, maybe it's better to just return 0 to avoid multiple supervisors.
+            return 0
+
+        # Only retry on actual errors/crashes
+        if exit_code == 0:
+            return 0
+
+        print_warning("Server crashed or exited with error. Restarting in 3 seconds...")
+        import time
+
+        time.sleep(3)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,11 @@
-"""
-Tests for the launch-council.py script.
-"""
+"""Tests for the launch-council.py script."""
 
 # Add parent directory to path to import launch_council module
 # Note: launch-council.py uses hyphens, so we import it using importlib
 import importlib.util
-import platform
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -15,15 +13,12 @@ import pytest
 launch_council_path = Path(__file__).parent.parent / "launch-council.py"
 
 # Only import if file exists (for CI/CD environments where it might not be present)
+launch_council: Any = None
 if launch_council_path.exists():
     spec = importlib.util.spec_from_file_location("launch_council", launch_council_path)
     if spec and spec.loader:
         launch_council = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(launch_council)
-    else:
-        launch_council = None
-else:
-    launch_council = None
 
 
 @pytest.mark.skipif(launch_council is None, reason="launch-council.py not found")
@@ -156,7 +151,7 @@ class TestAPIKeyChecks:
         # Clear all API key env vars first
         for key in ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "COUNCIL_API_KEY"]:
             monkeypatch.delenv(key, raising=False)
-            
+
         monkeypatch.setenv("ANTHROPIC_API_KEY", "your-key-here")
         has_key, provider = launch_council.check_api_keys()
         assert has_key is False

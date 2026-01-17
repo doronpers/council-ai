@@ -1,6 +1,4 @@
-"""
-Tests for Council AI core functionality.
-"""
+"""Tests for the core module."""
 
 from datetime import datetime
 

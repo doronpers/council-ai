@@ -22,11 +22,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Office/Business :: Scheduling",
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "pyyaml>=6.0",
     "pydantic>=2.0",
@@ -34,10 +36,7 @@ dependencies = [
     "click>=8.0",
     "httpx>=0.25.0",
     "python-dotenv>=1.0.0",
-    "anthropic>=0.18.0",
-    "openai>=1.0.0",
-    "google-generativeai>=0.3.0",
-    "aiohttp>=3.9.0",
+    "shared-ai-utils @ git+https://github.com/doronpers/shared-ai-utils.git",
 ]
 
 [project.optional-dependencies]
@@ -96,7 +95,7 @@ council_ai = [
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py311", "py312"]
 
 [tool.ruff]
 line-length = 100

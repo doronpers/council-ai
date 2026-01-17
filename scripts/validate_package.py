@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Package validation script - ensures Council AI is properly installed and working.
-"""
+"""Package validation script - ensures Council AI is properly installed and working."""
 
 import sys
 

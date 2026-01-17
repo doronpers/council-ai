@@ -13,15 +13,20 @@ git clone https://github.com/doronpers/council-ai.git
 cd council-ai
 ```
 
-1. **Install in development mode**
+2. **Upgrade pip (recommended)**
+
+```bash
+pip install --upgrade pip
+```
+
+3. **Install in development mode**
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-1. **Run tests**
+4. **Run tests**
 
-```bash
 ```bash
 pytest
 ```
@@ -101,12 +106,12 @@ Create a class in `src/council_ai/providers/__init__.py`:
 ```python
 class YourProvider(LLMProvider):
     """Your LLM provider."""
-    
+
     def __init__(self, api_key: Optional[str] = None):
         super().__init__(api_key or os.environ.get("YOUR_API_KEY"))
         if not self.api_key:
             raise ValueError("API key required")
-    
+
     async def complete(
         self,
         system_prompt: str,
@@ -130,10 +135,10 @@ def test_your_feature():
     """Test description."""
     # Arrange
     council = Council(api_key="test-key")
-    
+
     # Act
     result = council.some_method()
-    
+
     # Assert
     assert result == expected_value
 ```

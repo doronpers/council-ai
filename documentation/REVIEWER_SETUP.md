@@ -13,27 +13,27 @@ A Supreme Court-style review system for evaluating multiple LLM responses with s
    # Clone the repository
    git clone https://github.com/doronpers/council-ai.git
    cd council-ai
-   
+
    # Install with dependencies
    pip install -e ".[all]"
    ```
 
 2. **Configure API Keys**
-   
+
    Council AI requires at least one LLM provider API key. See the main [README.md](../README.md) for detailed configuration options.
-   
+
    **Quick setup:**
    ```bash
    # Copy example environment file
    cp .env.example .env
-   
+
    # Edit .env and add your API key(s)
    # Choose one or more providers:
    ANTHROPIC_API_KEY=your-key-here
    OPENAI_API_KEY=your-key-here
    GEMINI_API_KEY=your-key-here
    ```
-   
+
    See [.env.example](../.env.example) for all configuration options including Vercel AI Gateway and TTS providers.
 
 ### Launch the Reviewer
