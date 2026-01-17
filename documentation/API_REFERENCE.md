@@ -469,7 +469,7 @@ config = CouncilConfig(
 | `include_confidence` | `bool` | `True` | Whether to include confidence levels. |
 | `synthesis_prompt` | `Optional[str]` | `None` | Custom synthesis prompt template. |
 | `synthesis_provider` | `Optional[str]` | `None` | Provider override for synthesis (when set, uses a separate provider instance). |
-| `synthesis_model` | `Optional[str]` | `None` | Model override for synthesis (paired with synthesis provider overrides). |
+| `synthesis_model` | `Optional[str]` | `None` | Model override for synthesis. Can be used with or without `synthesis_provider`. |
 | `synthesis_max_tokens` | `Optional[int]` | `None` | Max tokens override for synthesis. |
 | `context_window` | `int` | `10` | Number of previous exchanges to include. |
 | `use_structured_output` | `bool` | `False` | Enable structured synthesis output (experimental). |
