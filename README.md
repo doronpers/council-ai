@@ -428,7 +428,7 @@ Council AI can search the web for current information during consultations. Usef
 
 **Supported Providers:**
 - **Tavily** (Recommended) - Fast, AI-powered search
-- **Serper.dev** - Google search API  
+- **Serper.dev** - Google search API
 - **Google Custom Search** - Official Google API
 
 **Setup:**
@@ -670,13 +670,13 @@ per council instance when needed.
 
 The web app is the primary user-testing surface. It features a modern, Dieter Rams-inspired UI built with **React 18** and **TypeScript**. The frontend architecture was migrated from vanilla JavaScript to a fully modular component-based system with 25+ React components, Context API for state management, and optimized build output.
 
-### 1-Click Launchers (macOS)
+### 1-Click Launchers
 
-For the easiest experience on Mac, we provide several specialized 1-click launchers in the project root. **Double-click** any of these to start:
+For the easiest experience, we provide specialized 1-click launchers in the project root. **Double-click** any of these to start:
 
-- 🚀 **`launch-council-web.command`**: Standard 1-click launch. Handles setup and opens in your browser.
-- 🌐 **`launch-council-lan.command`**: **Network Access Mode**. Use this if you want to access the UI from another PC, phone, or tablet on your network. It displays a local IP (e.g., `http://192.168.1.15:8000`) for remote access.
-- 🔄 **`launch-council-persistent.command`**: **"Always Up" Mode**. Optimizes for personal use by automatically restarting the server if it crashes or encounters a network error.
+- 🚀 **`launch-council-web.command` (Mac)** / **`launch-council.bat` (Windows)**: Standard 1-click launch. Handles setup and opens in your browser.
+- 🌐 **`launch-council-lan.command` (Mac)** / **`launch-council-lan.bat` (Windows)**: **Network Access Mode**. Use this if you want to access the UI from another PC, phone, or tablet on your network. It displays a local IP (e.g., `http://192.168.1.15:8000`) for remote access.
+- 🔄 **`launch-council-persistent.command` (Mac)** / **`launch-council-persistent.bat` (Windows)**: **"Always Up" Mode**. Optimizes for personal use by automatically restarting the server if it crashes or encounters a network error.
 
 **Command Line equivalents:**
 ```bash
