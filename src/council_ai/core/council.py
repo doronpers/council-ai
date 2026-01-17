@@ -1105,51 +1105,49 @@ REASONING: [your reasoning]
         if not members:
             return
 
-        # Use asyncio.Queue to merge streams as they arrive
-        queue: asyncio.Queue[Optional[Dict[str, Any]]] = asyncio.Queue()
-        active_streams = len(members)
-        completed_streams = 0
+        queue: asyncio.Queue[object] = asyncio.Queue()
+        done_sentinel = object()
 
-        async def consume_member_stream(member: Persona, member_index: int):
+        async def consume_member_stream(member: Persona) -> None:
             """Consume a single member's stream and put updates in the queue."""
-            nonlocal completed_streams
             try:
                 async for update in self._get_member_response_stream(
                     provider, member, query, context
                 ):
+                    if isinstance(update, dict) and "persona_id" not in update:
+                        update = {**update, "persona_id": member.id}
                     await queue.put(update)
             except Exception as e:
-                logger.error(f"Error in stream for {member.name}: {e}")
-                # Yield error update for this member
+                logger.error("Error in stream for %s: %s", member.name, e)
+                response = MemberResponse(
+                    persona=member,
+                    content=f"[Error getting response: {e}]",
+                    timestamp=datetime.now(),
+                    error=str(e),
+                )
                 await queue.put(
                     {
-                        "type": "error",
+                        "type": "response_complete",
                         "persona_id": member.id,
-                        "error": str(e),
+                        "response": response,
                     }
                 )
             finally:
-                completed_streams += 1
-                # Signal completion when all streams are done
-                if completed_streams >= active_streams:
-                    await queue.put(None)  # Sentinel to signal all streams done
+                await queue.put(done_sentinel)
 
-        # Start all stream consumers concurrently
-        tasks = [
-            asyncio.create_task(consume_member_stream(member, i))
-            for i, member in enumerate(members)
-        ]
+        tasks = [asyncio.create_task(consume_member_stream(member)) for member in members]
 
-        # Yield updates as they arrive from any stream
+        completed_streams = 0
         try:
-            while completed_streams < active_streams:
+            while completed_streams < len(tasks):
                 update = await queue.get()
-                if update is None:
-                    # All streams completed
-                    break
-                yield update
+                if update is done_sentinel:
+                    completed_streams += 1
+                    continue
+                if isinstance(update, dict) and "persona_id" not in update:
+                    update = {**update, "persona_id": "unknown"}
+                yield update  # type: ignore[misc]
         finally:
-            # Clean up: cancel any remaining tasks
             for task in tasks:
                 if not task.done():
                     task.cancel()
@@ -1188,7 +1186,8 @@ REASONING: [your reasoning]
         rounds: int = 2,
     ) -> AsyncIterator[Dict[str, Any]]:
         """Debate mode with streaming (simplified - streams first round)."""
-        # For streaming, we'll stream the first round of responses
+        # For streaming, we stream the first round of responses concurrently.
+        # Event ordering is non-deterministic because updates arrive as members respond.
         async for update in self._consult_individual_stream(provider, members, query, context):
             yield update
 
@@ -1213,7 +1212,7 @@ VOTE: [your vote]
 CONFIDENCE: [your confidence]
 REASONING: [your reasoning]
 """
-        # Stream individual votes
+        # Stream individual votes concurrently; update order is non-deterministic.
         async for update in self._consult_individual_stream(provider, members, vote_query, context):
             yield update
 
