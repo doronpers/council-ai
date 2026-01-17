@@ -823,17 +823,30 @@ def _run_web(host: str, port: int, reload: bool, no_open: bool):
             f"[yellow]⚠️[/yellow] Port {original_port} is busy, using [bold]{port}[/bold]"
         )
 
-    url = f"http://{host}:{port}"
+    # Resolve display host for helpful feedback
+    display_host = host
+    if host == "0.0.0.0":
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            display_host = s.getsockname()[0]
+            s.close()
+        except Exception:
+            display_host = "localhost"
+
+    url = f"http://{display_host}:{port}"
 
     # Auto-open browser after a short delay
     if not no_open:
 
         def open_browser():
             time.sleep(1.5)  # Wait for server to start
-            webbrowser.open(url)
+            webbrowser.open(url if host != "0.0.0.0" else f"http://localhost:{port}")
 
         threading.Thread(target=open_browser, daemon=True).start()
         console.print(f"[green]✓[/green] Server starting at [cyan]{url}[/cyan]")
+        if host == "0.0.0.0":
+            console.print(f"[dim]Local access: http://localhost:{port}[/dim]")
         if not no_open:
             console.print("[dim]Opening browser automatically...[/dim]")
 
