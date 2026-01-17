@@ -447,10 +447,7 @@ def consult(
 
             try:
                 result = council.consult(query, context=context, mode=mode_enum)
-            except ValueError as e:
-                console.print(f"[red]Error:[/red] {e}")
-                sys.exit(1)
-            except Exception as e:
+            except (ValueError, Exception) as e:
                 console.print(f"[red]Error:[/red] {e}")
                 sys.exit(1)
 
