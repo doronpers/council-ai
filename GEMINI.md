@@ -35,6 +35,6 @@ pytest            # Test
 ### Core Principles
 
 1. **Hippocratic**: "First, do no harm" — preserve functionality, avoid breaking changes
-2. **Document Reasoning**: Log significant decisions to `../.agent_reasoning_logs/logs/`
+2. **Document Reasoning**: Log significant decisions to `feedback-loop/agent_reasoning_logs/logs/`
 
 See `AGENT_KNOWLEDGE_BASE.md` for complete guidelines.

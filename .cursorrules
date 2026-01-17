@@ -34,7 +34,7 @@ council --help       # CLI
 ## Core Principles
 
 1. **Hippocratic**: "First, do no harm" — preserve functionality, avoid breaking changes
-2. **Document Reasoning**: Log significant decisions to `../.agent_reasoning_logs/logs/`
+2. **Document Reasoning**: Log significant decisions to `feedback-loop/agent_reasoning_logs/logs/`
 
 ## Project Structure
 

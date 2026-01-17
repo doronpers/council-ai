@@ -243,9 +243,9 @@ def command_name(ctx, arg, flag):
 
 ## 8. Reasoning Logs
 
-After completing significant tasks, document your reasoning in the central logs folder.
+After completing significant tasks, document your reasoning in the feedback-loop repository.
 
-**Location**: `../.agent_reasoning_logs/logs/` (parent directory of this repo)
+**Location**: `feedback-loop/agent_reasoning_logs/logs/`
 
 **When to Log**:
 
@@ -255,10 +255,10 @@ After completing significant tasks, document your reasoning in the central logs 
 - Refactoring work
 - Any task with valuable lessons learned
 
-**Template**: Use `../.agent_reasoning_logs/templates/reasoning_entry.md`
+**Template**: Use `feedback-loop/agent_reasoning_logs/templates/reasoning_entry.md`
 
 **File Naming**: `YYYY-MM-DD_council-ai_<brief-task>.md`
 
 **Example**: `2026-01-16_council-ai_documentation-consolidation.md`
 
-This creates institutional knowledge that helps future agents and developers understand past decisions.
+This creates institutional knowledge that helps future agents and developers understand past decisions, and feeds into the feedback-loop pattern library.
