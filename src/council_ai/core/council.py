@@ -355,6 +355,8 @@ class Council:
                     f"Synthesis provider '{provider_name}' unavailable; "
                     f"using default provider '{self._provider_name}' instead: {e}"
                 )
+                # Cache the fallback decision to avoid repeated failed instantiation attempts.
+                self._provider_cache[cache_key] = default_provider
                 return default_provider
         return self._provider_cache[cache_key]
 
