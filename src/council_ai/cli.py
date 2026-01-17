@@ -776,8 +776,23 @@ def test_key(provider: str, api_key: Optional[str]):
 @click.option("--reload", is_flag=True, help="Enable auto-reload (dev only)")
 @click.option("--no-open", is_flag=True, help="Don't auto-open browser")
 def web(host: str, port: int, reload: bool, no_open: bool):
-    """Run the Council AI web app."""
+    """Run the Council AI web server."""
+    _run_web(host, port, reload, no_open)
+
+
+@main.command("ui")
+@click.option("--host", default="127.0.0.1", help="Host to bind the web server")
+@click.option("--port", default=8000, type=int, help="Port to bind the web server")
+@click.option("--no-open", is_flag=True, help="Don't auto-open browser")
+def ui(host: str, port: int, no_open: bool):
+    """Launch the Council AI web interface."""
+    _run_web(host, port, False, no_open)
+
+
+def _run_web(host: str, port: int, reload: bool, no_open: bool):
+    """Internal helper to run the web server with port discovery."""
     try:
+        import socket
         import threading
         import time
         import webbrowser
@@ -788,6 +803,22 @@ def web(host: str, port: int, reload: bool, no_open: bool):
             '[red]Error:[/red] uvicorn is not installed. Install with: pip install -e ".[web]"'
         )
         sys.exit(1)
+
+    # Find available port if default is busy
+    def is_port_in_use(p):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex((host, p)) == 0
+
+    original_port = port
+    while is_port_in_use(port):
+        if port >= original_port + 10:
+            break
+        port += 1
+
+    if port != original_port:
+        console.print(
+            f"[yellow]⚠️[/yellow] Port {original_port} is busy, using [bold]{port}[/bold]"
+        )
 
     url = f"http://{host}:{port}"
 
@@ -800,7 +831,8 @@ def web(host: str, port: int, reload: bool, no_open: bool):
 
         threading.Thread(target=open_browser, daemon=True).start()
         console.print(f"[green]✓[/green] Server starting at [cyan]{url}[/cyan]")
-        console.print("[dim]Opening browser automatically...[/dim]")
+        if not no_open:
+            console.print("[dim]Opening browser automatically...[/dim]")
 
     uvicorn.run("council_ai.webapp:app", host=host, port=port, reload=reload)
 

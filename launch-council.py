@@ -237,6 +237,18 @@ def install_council(editable: bool = True) -> bool:
     return True
 
 
+def find_open_port(start_port: int, max_attempts: int = 10) -> int:
+    """Find an available port starting from start_port."""
+    for port in range(start_port, start_port + max_attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    return start_port
+
+
 def check_port_available(port: int) -> Tuple[bool, Optional[int]]:
     """
     Check if a port is available.
@@ -588,15 +600,21 @@ def main():
 
     if not QUIET:
         print()
-
     # Handle --kill flag
     if args.kill:
         kill_process_on_port(args.port)
 
+    # Find available port if not specified
+    port = args.port
+    if not args.kill:  # If we didn't kill, find an open one
+        port = find_open_port(args.port)
+        if port != args.port:
+            print_warning(f"Port {args.port} is in use, using {port} instead")
+
     # Launch web app
     while True:
         exit_code = launch_web_app(
-            host=host, port=args.port, reload=not args.no_reload, open_browser_flag=args.open
+            host=host, port=port, reload=not args.no_reload, open_browser_flag=args.open
         )
 
         # Exit if successful (0) or if we're not retrying
