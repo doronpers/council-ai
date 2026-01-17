@@ -678,6 +678,16 @@ For the easiest experience, we provide specialized 1-click launchers in the proj
 - 🌐 **`launch-council-lan.command` (Mac)** / **`launch-council-lan.bat` (Windows)**: **Network Access Mode**. Use this if you want to access the UI from another PC, phone, or tablet on your network. It displays a local IP (e.g., `http://192.168.1.15:8000`) for remote access.
 - 🔄 **`launch-council-persistent.command` (Mac)** / **`launch-council-persistent.bat` (Windows)**: **"Always Up" Mode**. Optimizes for personal use by automatically restarting the server if it crashes or encounters a network error.
 
+### 💻 Satellite Access (From Other Devices)
+
+If you are hosting Council AI on one machine (e.g., your Mac) and want to access it from another (e.g., a PC), use these "Connect" shortcuts to jump straight to the UI:
+
+- **Windows PC**: Double-click **`connect-to-council.bat`**. (The first time you run it, it will ask for the Mac's IP/Hostname).
+- **Other Devices**: Simply open the browser to `http://[HOST_IP]:8000`.
+
+> [!TIP]
+> To find your host's IP, run **`launch-council-lan.command`** on the host machine. It will display the correct network URL in the terminal.
+
 **Command Line equivalents:**
 ```bash
 # Standard
