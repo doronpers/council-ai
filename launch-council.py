@@ -151,11 +151,12 @@ def check_council_installed() -> Tuple[bool, bool]:
 
 
 def check_web_dependencies() -> bool:
-    """Check if web dependencies (uvicorn, fastapi) are installed."""
+    """Check if web dependencies (uvicorn, fastapi, aiohttp) are installed."""
     try:
         has_fastapi = importlib.util.find_spec("fastapi") is not None
         has_uvicorn = importlib.util.find_spec("uvicorn") is not None
-        return has_fastapi and has_uvicorn
+        has_aiohttp = importlib.util.find_spec("aiohttp") is not None
+        return has_fastapi and has_uvicorn and has_aiohttp
     except ImportError:
         return False
 

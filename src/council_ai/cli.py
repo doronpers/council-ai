@@ -797,10 +797,13 @@ def _run_web(host: str, port: int, reload: bool, no_open: bool):
         import time
         import webbrowser
 
+        import aiohttp  # noqa: F401
+        import fastapi  # noqa: F401
         import uvicorn
-    except ImportError:
+    except ImportError as e:
         console.print(
-            '[red]Error:[/red] uvicorn is not installed. Install with: pip install -e ".[web]"'
+            f"[red]Error:[/red] Missing dependency: [bold]{e.name}[/bold]. "
+            'Install with: [cyan]pip install -e ".[web]"[/cyan]'
         )
         sys.exit(1)
 
