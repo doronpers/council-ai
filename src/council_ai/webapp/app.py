@@ -14,7 +14,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from council_ai import Council
-from council_ai.core.config import ConfigManager, get_api_key, get_tts_api_key, sanitize_api_key
+from council_ai.core.config import (
+    ConfigManager,
+    get_api_key,
+    get_tts_api_key,
+    is_placeholder_key,
+    sanitize_api_key,
+)
 from council_ai.core.council import ConsultationMode
 from council_ai.core.history import ConsultationHistory
 from council_ai.core.persona import PersonaCategory, list_personas
@@ -102,6 +108,12 @@ def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
     provider = payload.provider or config.api.provider
     model = payload.model or config.api.model
     base_url = payload.base_url or config.api.base_url
+
+    if payload.api_key and is_placeholder_key(payload.api_key):
+        raise HTTPException(
+            status_code=400,
+            detail="API key appears to be a placeholder. Please provide a valid API key.",
+        )
 
     api_key = sanitize_api_key(payload.api_key) if payload.api_key else get_api_key(provider)
 

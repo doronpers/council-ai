@@ -23,7 +23,7 @@ def is_placeholder_key(value: Optional[str]) -> bool:
 
     placeholder_exact = {"your-key", "your_api_key", "your api key", "here"}
     placeholder_prefixes = ("your-", "your_", "your ")
-    placeholder_substrings = ("paste-here", "enter-here")
+    placeholder_substrings = ("paste-here", "enter-here", "your key", "your api key")
 
     if normalized in placeholder_exact:
         return True
@@ -32,6 +32,15 @@ def is_placeholder_key(value: Optional[str]) -> bool:
     if "your-" in normalized:
         return True
     if any(token in normalized for token in placeholder_substrings):
+        return True
+    if " here" in normalized:
+        return True
+    if normalized.endswith("here") and (
+        normalized.startswith("your")
+        or " " in normalized
+        or "-" in normalized
+        or "_" in normalized
+    ):
         return True
 
     return False
