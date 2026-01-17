@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Optional, Tuple
 
-from .config import get_api_key, is_placeholder_key, sanitize_api_key
+from .config import get_api_key, is_placeholder_key, load_config, sanitize_api_key
 
 
 def diagnose_api_keys() -> Dict[str, Any]:
@@ -26,20 +26,43 @@ def diagnose_api_keys() -> Dict[str, Any]:
     # Check all providers including vercel and generic
     providers_to_check = ["openai", "anthropic", "gemini", "vercel", "generic"]
 
+    try:
+        config = load_config()
+        config_api_key = config.api.api_key
+    except Exception:
+        config_api_key = None
+
     for provider in providers_to_check:
+        placeholder_sources: list[str] = []
         if provider == "vercel":
-            key = sanitize_api_key(os.environ.get("AI_GATEWAY_API_KEY"))
+            raw_gateway_key = os.environ.get("AI_GATEWAY_API_KEY")
+            if raw_gateway_key and is_placeholder_key(raw_gateway_key):
+                placeholder_sources.append("AI_GATEWAY_API_KEY")
+            key = sanitize_api_key(raw_gateway_key)
             env_var = "AI_GATEWAY_API_KEY"
         elif provider == "generic":
-            key = sanitize_api_key(os.environ.get("COUNCIL_API_KEY"))
+            raw_generic_key = os.environ.get("COUNCIL_API_KEY")
+            if raw_generic_key and is_placeholder_key(raw_generic_key):
+                placeholder_sources.append("COUNCIL_API_KEY")
+            key = sanitize_api_key(raw_generic_key)
             env_var = "COUNCIL_API_KEY"
         else:
+            raw_provider_key = os.environ.get(f"{provider.upper()}_API_KEY")
+            if raw_provider_key and is_placeholder_key(raw_provider_key):
+                placeholder_sources.append(f"{provider.upper()}_API_KEY")
+            if provider in {"openai", "vercel"}:
+                raw_gateway_key = os.environ.get("AI_GATEWAY_API_KEY")
+                if raw_gateway_key and is_placeholder_key(raw_gateway_key):
+                    placeholder_sources.append("AI_GATEWAY_API_KEY")
+            raw_generic_key = os.environ.get("COUNCIL_API_KEY")
+            if raw_generic_key and is_placeholder_key(raw_generic_key):
+                placeholder_sources.append("COUNCIL_API_KEY")
+            if config_api_key and is_placeholder_key(config_api_key):
+                placeholder_sources.append("config.api.api_key")
             key = get_api_key(provider)
             env_var = f"{provider.upper()}_API_KEY"
 
-        # Check if it's a placeholder
-        is_placeholder = is_placeholder_key(key) if key else False
-        has_valid_key = bool(key) and not is_placeholder
+        has_valid_key = bool(key)
 
         diagnostics["available_keys"][provider] = has_valid_key
 
@@ -51,12 +74,13 @@ def diagnose_api_keys() -> Dict[str, Any]:
                 "env_var": env_var,
             }
         else:
-            if is_placeholder:
+            if placeholder_sources:
                 diagnostics["missing_keys"].append(provider)
                 diagnostics["provider_status"][provider] = {
                     "has_key": False,
                     "env_var": env_var,
                     "note": "Placeholder API key detected - please replace with real key",
+                    "placeholder_sources": placeholder_sources,
                 }
             else:
                 diagnostics["missing_keys"].append(provider)
