@@ -165,14 +165,18 @@ class TestPortChecking:
         """Test check_port_available."""
         # Test with a high port number that's likely available
         result = launch_council.check_port_available(65535)
-        assert isinstance(result, bool)
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        assert isinstance(result[0], bool)
 
     def test_check_port_unavailable(self):
         """Test check_port_available with a port that might be in use."""
         # This test might fail if port 1 is actually in use, but it's unlikely
         # Just verify the function works
         result = launch_council.check_port_available(1)
-        assert isinstance(result, bool)
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        assert isinstance(result[0], bool)
 
 
 @pytest.mark.skipif(launch_council is None, reason="launch-council.py not found")

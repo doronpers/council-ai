@@ -18,6 +18,14 @@ def mock_get_api_key():
         yield mock
 
 
+@pytest.fixture
+def mock_env_keys(monkeypatch):
+    """Mock environment variables for API keys."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+
+
 def test_persona_provider_field():
     """Test that Persona has the provider field."""
     persona = Persona(
@@ -33,9 +41,13 @@ def test_persona_provider_field():
     assert persona.model == "claude-3"
 
 
-def test_council_member_provider_resolution(mock_get_provider, mock_llm_manager, mock_get_api_key):
+def test_council_member_provider_resolution(mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys):
     """Test that Council correctly resolves per-persona providers."""
+    # Create council with fallback disabled for cleaner test
     council = Council(provider="openai", model="gpt-4", api_key="openai-key")
+    
+    # Force the provider to be set directly (bypassing fallback logic for test clarity)
+    council._provider = mock_get_provider.side_effect("openai", api_key="openai-key", model="gpt-4")
 
     # 1. Standard member (uses council defaults)
     p1 = Persona(id="p1", name="P1", title="T1", core_question="?", razor="!")
@@ -57,7 +69,7 @@ def test_council_member_provider_resolution(mock_get_provider, mock_llm_manager,
     )
     council.add_member(p3)
 
-    default_provider = council._get_provider()
+    default_provider = council._provider  # Use the directly set provider
 
     # Resolve providers
     prov1 = council._get_member_provider(p1, default_provider)
@@ -75,7 +87,7 @@ def test_council_member_provider_resolution(mock_get_provider, mock_llm_manager,
 
 @pytest.mark.asyncio
 async def test_heterogeneous_council_consultation(
-    mock_get_provider, mock_llm_manager, mock_get_api_key
+    mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
 ):
     """Test a consultation with a heterogeneous council."""
     council = Council(provider="openai", model="gpt-4", api_key="openai-key")

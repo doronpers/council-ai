@@ -22,7 +22,7 @@ from . import Council, list_domains
 from .cli_config import config
 from .cli_domain import domain
 from .cli_persona import persona
-from .core.config import ConfigManager, get_api_key
+from .core.config import ConfigManager, get_api_key, is_placeholder_key
 from .core.history import ConsultationHistory
 from .core.session import ConsultationResult
 from .providers import list_providers
@@ -40,8 +40,7 @@ def require_api_key(func):
 
         requested_provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
 
-        is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
-        if is_placeholder:
+        if is_placeholder_key(api_key):
             api_key = None
 
         api_key = api_key or get_api_key(requested_provider)
@@ -51,7 +50,7 @@ def require_api_key(func):
                 "Set via --api-key, COUNCIL_API_KEY env var, or 'council config set api.api_key'"
             )
             sys.exit(1)
-        if "your-" in api_key.lower() or "here" in api_key.lower():
+        if is_placeholder_key(api_key):
             console.print("[red]Error:[/red] API key appears to be a placeholder value.")
             console.print(
                 "Please update your .env file with your actual API key (not the example value)."
@@ -209,7 +208,7 @@ def init(ctx):
             existing_key = vercel_key
             console.print("[cyan]ℹ[/cyan] Using AI_GATEWAY_API_KEY (Vercel AI Gateway)")
 
-    if existing_key and "your-" not in existing_key.lower() and "here" not in existing_key.lower():
+    if existing_key and not is_placeholder_key(existing_key):
         console.print(f"[green]✓[/green] Found existing {provider.upper()} API key")
         if not Confirm.ask("Do you want to update it?", default=False):
             existing_key = None  # Skip update
@@ -419,21 +418,7 @@ def consult(
     # Only show progress spinner if not JSON output (for clean JSON output)
     if output_json:
         # Assemble council
-        if members:
-            council = Council(api_key=api_key, provider=provider, model=model, base_url=base_url)
-            for member_id in members:
-                try:
-                    council.add_member(member_id)
-                except ValueError as e:
-                    console.print(f"[yellow]Warning:[/yellow] {e}")
-        else:
-            council = Council.for_domain(
-                domain,
-                api_key=api_key,
-                provider=provider,
-                model=model,
-                base_url=base_url,
-            )
+        council = _assemble_council(domain, members, api_key, provider, model, base_url)
 
         try:
             from .core.history import ConsultationHistory
@@ -457,30 +442,12 @@ def consult(
             console=console,
         ) as progress:
             progress.add_task("Assembling council...", total=None)
-
-            if members:
-                council = Council(
-                    api_key=api_key, provider=provider, model=model, base_url=base_url
-                )
-                for member_id in members:
-                    try:
-                        council.add_member(member_id)
-                    except ValueError as e:
-                        console.print(f"[yellow]Warning:[/yellow] {e}")
-            else:
-                council = Council.for_domain(
-                    domain,
-                    api_key=api_key,
-                    provider=provider,
-                    model=model,
-                    base_url=base_url,
-                )
-
+            council = _assemble_council(domain, members, api_key, provider, model, base_url)
             progress.update(progress.task_ids[0], description="Consulting council...")
 
             try:
                 result = council.consult(query, context=context, mode=mode_enum)
-            except ValueError as e:
+            except (ValueError, Exception) as e:
                 console.print(f"[red]Error:[/red] {e}")
                 sys.exit(1)
 
@@ -636,6 +603,38 @@ def interactive(ctx, domain, provider, api_key, session_id):
             break
         except ValueError as e:
             console.print(f"[red]Error:[/red] {e}")
+
+
+def _assemble_council(domain, members, api_key, provider, model, base_url):
+    """Assemble a council from domain or specific members.
+
+    Args:
+        domain: Domain preset to use
+        members: List of specific member IDs, or None to use domain
+        api_key: API key for the LLM provider
+        provider: LLM provider name
+        model: Model name/ID
+        base_url: Base URL for custom endpoints
+
+    Returns:
+        Council: Assembled council instance
+    """
+    if members:
+        council = Council(api_key=api_key, provider=provider, model=model, base_url=base_url)
+        for member_id in members:
+            try:
+                council.add_member(member_id)
+            except ValueError as e:
+                console.print(f"[yellow]Warning:[/yellow] {e}")
+    else:
+        council = Council.for_domain(
+            domain,
+            api_key=api_key,
+            provider=provider,
+            model=model,
+            base_url=base_url,
+        )
+    return council
 
 
 def _show_members(council):
