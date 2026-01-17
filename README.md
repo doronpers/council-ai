@@ -546,9 +546,9 @@ default_mode: synthesis
 default_domain: general
 temperature: 0.7
 max_tokens_per_response: 1000
-synthesis_provider: null
-synthesis_model: null
-synthesis_max_tokens: null
+synthesis_provider: null  # Optional: set to use a separate provider for synthesis
+synthesis_model: null  # Optional: set to use a different model for synthesis
+synthesis_max_tokens: null  # Optional: override max tokens for synthesis
 
 presets:
   my_team:

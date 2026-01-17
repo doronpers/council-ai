@@ -332,29 +332,37 @@ class Council:
 
     def _get_synthesis_provider(self, default_provider: LLMProvider) -> LLMProvider:
         """Get or create a provider for synthesis-specific overrides."""
+        if not self._has_synthesis_overrides():
+            return default_provider
+
         provider_name = self.config.synthesis_provider or self._provider_name
         model_name = self.config.synthesis_model or self._model
-
-        if (
-            provider_name == self._provider_name
-            and model_name == self._model
-            and not self.config.synthesis_provider
-            and not self.config.synthesis_model
-        ):
-            return default_provider
 
         cache_key = (provider_name, model_name, self._base_url)
         if cache_key not in self._provider_cache:
             api_key = get_api_key(provider_name)
             if api_key is None and provider_name == self._provider_name:
                 api_key = self._api_key
-            self._provider_cache[cache_key] = get_provider(
-                provider_name,
-                api_key=api_key,
-                model=model_name,
-                base_url=self._base_url,
-            )
+            try:
+                self._provider_cache[cache_key] = get_provider(
+                    provider_name,
+                    api_key=api_key,
+                    model=model_name,
+                    base_url=self._base_url,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Synthesis provider '%s' unavailable; using default provider '%s' instead: %s",
+                    provider_name,
+                    self._provider_name,
+                    e,
+                )
+                return default_provider
         return self._provider_cache[cache_key]
+
+    def _has_synthesis_overrides(self) -> bool:
+        """Return True when synthesis-specific provider/model overrides are set."""
+        return bool(self.config.synthesis_provider or self.config.synthesis_model)
 
     def _resolve_member_generation_params(self, member: Persona) -> Dict[str, Any]:
         """Resolve per-member generation parameters."""
@@ -1268,11 +1276,7 @@ Please provide a comprehensive synthesis that:
                 if self.config.synthesis_max_tokens is not None
                 else self.config.max_tokens_per_response * 2
             )
-            if (
-                provider is self._provider
-                and not self.config.synthesis_provider
-                and not self.config.synthesis_model
-            ):
+            if provider is self._provider and not self._has_synthesis_overrides():
                 manager = self._get_llm_manager()
                 response = await manager.generate(
                     system_prompt=system_prompt,
