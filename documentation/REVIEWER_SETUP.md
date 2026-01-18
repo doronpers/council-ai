@@ -9,45 +9,51 @@ A Supreme Court-style review system for evaluating multiple LLM responses with s
 ### Prerequisites
 
 1. **Install Council AI**
+
    ```bash
    # Clone the repository
    git clone https://github.com/doronpers/council-ai.git
    cd council-ai
-   
+
    # Install with dependencies
    pip install -e ".[all]"
    ```
 
 2. **Configure API Keys**
-   
+
    Council AI requires at least one LLM provider API key. See the main [README.md](../README.md) for detailed configuration options.
-   
+
    **Quick setup:**
+
    ```bash
    # Copy example environment file
    cp .env.example .env
-   
+
    # Edit .env and add your API key(s)
    # Choose one or more providers:
    ANTHROPIC_API_KEY=your-key-here
    OPENAI_API_KEY=your-key-here
    GEMINI_API_KEY=your-key-here
    ```
-   
+
    See [.env.example](../.env.example) for all configuration options including Vercel AI Gateway and TTS providers.
 
 ### Launch the Reviewer
 
 **Option 1: Using the dedicated launcher script (Recommended)**
+
 ```bash
 python launch-reviewer.py
 ```
+
 Opens automatically at `http://localhost:8765/reviewer`
 
 **Option 2: Using Council CLI**
+
 ```bash
 council web
 ```
+
 Then navigate to `http://localhost:8000/reviewer` in your browser.
 
 ### Launch Options
@@ -73,6 +79,7 @@ python launch-reviewer.py --host 0.0.0.0 --port 8765
 The reviewer uses a Supreme Court-style council of "justices" to evaluate multiple LLM responses. Each justice brings a unique perspective to assess the quality, accuracy, and value of responses.
 
 **Default 7-Justice Council:**
+
 - 🎖️ **Martin Dempsey (Chair)** - Mission clarity and decisive leadership
 - 🧠 **Daniel Kahneman (Vice-Chair)** - Cognitive biases, System 1/2 thinking
 - 🎨 **Dieter Rams** - Clarity and simplicity in design
@@ -84,12 +91,14 @@ The reviewer uses a Supreme Court-style council of "justices" to evaluate multip
 **Sonotheia Mode (9 Justices):**
 
 Enable this mode for specialized topics related to:
+
 - Deepfake audio detection
 - Voice authenticity analysis
 - Regulated financial institutions
 - Signal processing and forensics
 
 Adds two specialist justices:
+
 - 🔬 **Dr. Elena Vance** - Signal analysis and audio forensics
 - 📋 **Marcus Chen** - Regulatory compliance and auditing
 
@@ -106,6 +115,7 @@ Each justice evaluates responses across multiple dimensions:
 ### Review Output
 
 The reviewer provides:
+
 - **Individual Justice Assessments** - Detailed opinions and scores from each justice
 - **Group Decision** - Majority opinion identifying the best response
 - **Dissenting Opinions** - Alternative views (if any)
@@ -119,28 +129,33 @@ The reviewer provides:
 ### Common Issues
 
 **"API key required" Error**
+
 - Ensure `.env` file exists in the project root with valid API keys
 - Alternatively, enter an API key directly in the web UI's Advanced Settings panel
 - Verify your API key is active and has sufficient credits/quota
 
 **Connection Refused**
+
 - Check if another service is using the default port (8765)
 - Try a different port: `python launch-reviewer.py --port 9000`
 - Verify firewall settings aren't blocking the connection
 
 **Slow Responses**
+
 - The reviewer consults multiple AI "justices" sequentially, which takes time
 - Each review makes 7-9 separate LLM API calls
 - Response time depends on your LLM provider's API speed
 - Consider using faster models or fewer justices for quicker reviews
 
 **Module Not Found Errors**
+
 ```bash
 # Reinstall council-ai with dependencies
 pip install -e ".[all]"
 ```
 
 **Missing Dependencies**
+
 ```bash
 # Install with web dependencies
 pip install -e ".[web]"
@@ -163,6 +178,7 @@ POST /api/reviewer/review/stream  # Stream review progress (Server-Sent Events)
 ### Example Usage
 
 **Python:**
+
 ```python
 import requests
 
@@ -185,18 +201,19 @@ print(f"Reasoning: {result['group_decision']['majority_opinion']}")
 ```
 
 **JavaScript:**
+
 ```javascript
 const response = await fetch('http://localhost:8765/api/reviewer/review', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    question: "What is the capital of France?",
+    question: 'What is the capital of France?',
     responses: [
-      { id: 1, content: "Paris is the capital of France.", source: "GPT-4" },
-      { id: 2, content: "The capital is Paris.", source: "Claude" }
+      { id: 1, content: 'Paris is the capital of France.', source: 'GPT-4' },
+      { id: 2, content: 'The capital is Paris.', source: 'Claude' },
     ],
-    justices: ["dempsey", "kahneman", "rams"]
-  })
+    justices: ['dempsey', 'kahneman', 'rams'],
+  }),
 });
 
 const result = await response.json();
@@ -204,6 +221,7 @@ console.log(`Winner: Response #${result.group_decision.winner}`);
 ```
 
 **cURL:**
+
 ```bash
 curl -X POST http://localhost:8765/api/reviewer/review \
   -H "Content-Type: application/json" \
@@ -250,6 +268,7 @@ for line in response.iter_lines():
 ## Support
 
 For issues, questions, or feature requests:
+
 - **Issues**: [GitHub Issues](https://github.com/doronpers/council-ai/issues)
 - **Documentation**: Review the main [README.md](../README.md) for comprehensive guides
 - **Examples**: Check the [examples/](../examples/) directory for more use cases

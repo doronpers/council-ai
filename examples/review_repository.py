@@ -54,10 +54,10 @@ def main():
     print("👥 Assembling Council...")
     council = Council(api_key=api_key, provider=provider)
     try:
-        council.add_member("rams")      # Design
+        council.add_member("rams")  # Design
         council.add_member("kahneman")  # Cognitive Load
-        council.add_member("holman")    # Security
-        council.add_member("taleb")     # Risk
+        council.add_member("holman")  # Security
+        council.add_member("taleb")  # Risk
     except ValueError as e:
         print(f"Warning: {e}")
 

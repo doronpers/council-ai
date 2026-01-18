@@ -1,11 +1,11 @@
 id: dempsey
 name: Martin Dempsey
 title: Military Leadership Expert
-emoji: "🎖️"
+emoji: '🎖️'
 category: advisory
 
-core_question: "Can this operate without asking permission?"
-razor: "Mission command: Provide intent and resources, then empower teams to execute."
+core_question: 'Can this operate without asking permission?'
+razor: 'Mission command: Provide intent and resources, then empower teams to execute.'
 
 traits:
   - name: Mission Clarity

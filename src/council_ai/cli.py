@@ -6,6 +6,7 @@ A comprehensive CLI for interacting with the Council AI system.
 
 import os
 import sys
+from functools import wraps
 from pathlib import Path
 from typing import Optional
 
@@ -28,14 +29,50 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from . import Council, get_domain, get_persona, list_domains, list_personas
-from .core.config import ConfigManager, get_api_key
+from . import Council, list_domains
+from .cli_config import config
+from .cli_domain import domain
+from .cli_persona import persona
+from .core.config import ConfigManager, get_api_key, is_placeholder_key
 from .core.history import ConsultationHistory
-from .core.persona import Persona, PersonaCategory, PersonaManager
 from .core.session import ConsultationResult
 from .providers import list_providers
 
 console = Console()
+DEFAULT_PROVIDER = "anthropic"
+
+
+def require_api_key(func):
+    @wraps(func)
+    def wrapper(ctx, *args, **kwargs):
+        config_manager = ctx.obj["config_manager"]
+        provider = kwargs.get("provider")
+        api_key = kwargs.get("api_key")
+
+        requested_provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
+
+        if is_placeholder_key(api_key):
+            api_key = None
+
+        api_key = api_key or get_api_key(requested_provider)
+        if not api_key:
+            console.print("[red]Error:[/red] No API key provided.")
+            console.print(
+                "Set via --api-key, COUNCIL_API_KEY env var, or 'council config set api.api_key'"
+            )
+            sys.exit(1)
+        if is_placeholder_key(api_key):
+            console.print("[red]Error:[/red] API key appears to be a placeholder value.")
+            console.print(
+                "Please update your .env file with your actual API key (not the example value)."
+            )
+            console.print("Run 'council providers --diagnose' for help.")
+            sys.exit(1)
+
+        kwargs["api_key"] = api_key
+        return func(ctx, *args, **kwargs)
+
+    return wrapper
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -48,7 +85,7 @@ console = Console()
 @click.option("--config", "-c", type=click.Path(), help="Path to config file")
 @click.pass_context
 def main(ctx, config):
-    """
+    r"""
     🏛️ Council AI - Intelligent Advisory Council System
 
     Get advice from a council of AI-powered personas with diverse
@@ -73,7 +110,7 @@ def main(ctx, config):
 
     \b
     Configuration & Presets:
-      council config set api.provider anthropic
+      council config set api.provider {DEFAULT_PROVIDER}
       council config preset-save my-team --domain coding
       council consult --preset my-team "Review this code"
     """
@@ -94,7 +131,11 @@ def init(ctx):
     Initialize Council AI with a setup wizard.
 
     Guides you through first-time setup including API keys and preferences.
+    Automatically detects all available API keys and suggests the best provider.
     """
+    from .core.config import get_available_providers, get_best_available_provider
+    from .core.diagnostics import diagnose_api_keys
+
     config_manager = ctx.obj["config_manager"]
 
     console.print(
@@ -107,15 +148,63 @@ def init(ctx):
         )
     )
 
+    # Step 0: Detect all available API keys
+    console.print("\n[bold]Step 0: Detecting available API keys...[/bold]")
+    diagnose_api_keys()  # Run diagnostics (results used by get_available_providers)
+    available_providers = get_available_providers()
+
+    # Show what we found
+    found_keys = []
+    for provider_name, api_key in available_providers:
+        if api_key:
+            found_keys.append(provider_name)
+            console.print(f"[green]✓[/green] Found {provider_name.upper()} API key")
+
+    if not found_keys:
+        console.print("[yellow]⚠[/yellow] No API keys detected in environment variables")
+        console.print("[dim]We'll help you configure one in the next step[/dim]")
+    else:
+        console.print(
+            f"\n[bold]Found {len(found_keys)} available provider(s):[/bold] {', '.join(found_keys)}"
+        )
+        best = get_best_available_provider()
+        if best:
+            console.print(f"[cyan]💡 Recommended:[/cyan] {best[0]} (best supported provider)")
+
     # Step 1: Choose provider
     console.print("\n[bold]Step 1: Choose your LLM provider[/bold]")
-    providers = list_providers()
-    console.print(f"Available providers: {', '.join(providers)}")
+    all_providers = list_providers()
+    console.print(f"Supported providers: {', '.join(all_providers)}")
+
+    # Build choices with availability indicators
+    default_provider = config_manager.get("api.provider", DEFAULT_PROVIDER)
+    provider_availability = {}
+
+    for provider_name in all_providers:
+        has_key = any(p == provider_name and k for p, k in available_providers)
+        provider_availability[provider_name] = has_key
+        if has_key:
+            # Use first available as default if no config
+            if not config_manager.get("api.provider") and default_provider == DEFAULT_PROVIDER:
+                default_provider = provider_name
+
+    # If we have a best provider, use it as default
+    best = get_best_available_provider()
+    if best and best[0] in all_providers:
+        default_provider = best[0]
+
+    console.print("\nAvailable options:")
+    for provider_name in all_providers:
+        has_key = provider_availability[provider_name]
+        if has_key:
+            console.print(f"  • {provider_name} [green](API key available)[/green]")
+        else:
+            console.print(f"  • {provider_name} [dim](no API key)[/dim]")
 
     provider = Prompt.ask(
-        "Which provider would you like to use?",
-        choices=providers,
-        default=config_manager.get("api.provider", "openai"),
+        "\nWhich provider would you like to use?",
+        choices=all_providers,
+        default=default_provider,
     )
     config_manager.set("api.provider", provider)
 
@@ -123,12 +212,21 @@ def init(ctx):
     console.print("\n[bold]Step 2: Configure API key[/bold]")
     existing_key = get_api_key(provider)
 
-    if existing_key and "your-" not in existing_key.lower():
+    # Also check for vercel/generic if using openai
+    if provider == "openai":
+        vercel_key = get_api_key("vercel")
+        if vercel_key:
+            existing_key = vercel_key
+            console.print("[cyan]ℹ[/cyan] Using AI_GATEWAY_API_KEY (Vercel AI Gateway)")
+
+    if existing_key and not is_placeholder_key(existing_key):
         console.print(f"[green]✓[/green] Found existing {provider.upper()} API key")
         if not Confirm.ask("Do you want to update it?", default=False):
             existing_key = None  # Skip update
+    else:
+        existing_key = None
 
-    if not existing_key or ("your-" in existing_key.lower()):
+    if not existing_key:
         console.print("\n[dim]You can get an API key from:[/dim]")
         if provider == "anthropic":
             console.print("  https://console.anthropic.com/")
@@ -138,14 +236,28 @@ def init(ctx):
             console.print("  https://ai.google.dev/")
 
         console.print(
-            f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your environment"
+            f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your env"
         )
+        if provider == "openai":
+            console.print(
+                "[dim]Or use AI_GATEWAY_API_KEY for Vercel AI Gateway (OpenAI-compatible)[/dim]"
+            )
 
         if Confirm.ask("Do you have an API key to configure now?", default=True):
             api_key = Prompt.ask(f"{provider.capitalize()} API key", password=True)
             if api_key:
                 config_manager.set("api.api_key", api_key)
                 console.print("[green]✓[/green] API key saved to config")
+        else:
+            # Show fallback information
+            if found_keys:
+                console.print(
+                    f"\n[cyan]ℹ[/cyan] You have {len(found_keys)} other provider(s) available: "
+                    f"{', '.join(found_keys)}"
+                )
+                console.print(
+                    "[dim]Council AI will automatically use these as fallbacks if needed[/dim]"
+                )
 
     # Step 3: Default domain
     console.print("\n[bold]Step 3: Choose default domain[/bold]")
@@ -161,19 +273,72 @@ def init(ctx):
     )
     config_manager.set("default_domain", default_domain)
 
-    # Step 4: Save
+    # Step 4: Personal Integration (optional)
+    console.print("\n[bold]Step 4: Personal Integration (Optional)[/bold]")
+    try:
+        from .core.personal_integration import detect_personal_repo, is_personal_configured
+
+        repo_path = detect_personal_repo()
+        if repo_path:
+            console.print(f"[green]✓[/green] Found council-ai-personal at: {repo_path}")
+            if not is_personal_configured():
+                if Confirm.ask("Would you like to integrate it now?", default=True):
+                    from .core.personal_integration import integrate_personal
+
+                    console.print("Integrating...")
+                    if integrate_personal(repo_path):
+                        console.print("[green]✓[/green] Personal integration completed!")
+                    else:
+                        console.print("[yellow]⚠[/yellow] Integration failed, but continuing...")
+                else:
+                    console.print(
+                        "[dim]You can integrate later with: council personal integrate[/dim]"
+                    )
+            else:
+                console.print("[green]✓[/green] Personal integration already configured")
+        else:
+            console.print(
+                "[dim]No council-ai-personal repository detected. "
+                "You can set it up later if needed.[/dim]"
+            )
+    except Exception as e:
+        console.print(f"[dim]Could not check personal integration: {e}[/dim]")
+
+    # Step 5: Save
     config_manager.save()
+
+    # Build summary with fallback info
+    summary_lines = [
+        "[green]✓ Setup complete![/green]\n",
+        f"Provider: {provider}",
+        f"Default domain: {default_domain}",
+        f"Config saved to: {config_manager.path}",
+    ]
+
+    # Add fallback information
+    if len(found_keys) > 1 or (len(found_keys) == 1 and provider not in found_keys):
+        fallback_providers = [p for p in found_keys if p != provider]
+        if fallback_providers:
+            summary_lines.append(
+                f"\n[cyan]Fallback providers:[/cyan] {', '.join(fallback_providers)}"
+            )
+            summary_lines.append(
+                "[dim]Council AI will automatically use these if the primary provider fails[/dim]"
+            )
+
+    summary_lines.extend(
+        [
+            "\n[bold]Next steps:[/bold]",
+            "  • Run 'council consult \"your question\"' to get started",
+            "  • Run 'council interactive' for a session",
+            "  • Run 'council --help' to see all commands",
+            "  • Run 'council providers --diagnose' to check API key status",
+        ]
+    )
 
     console.print(
         Panel(
-            f"[green]✓ Setup complete![/green]\n\n"
-            f"Provider: {provider}\n"
-            f"Default domain: {default_domain}\n"
-            f"Config saved to: {config_manager.path}\n\n"
-            f"[bold]Next steps:[/bold]\n"
-            f"  • Run 'council consult \"your question\"' to get started\n"
-            f"  • Run 'council interactive' for a session\n"
-            f"  • Run 'council --help' to see all commands",
+            "\n".join(summary_lines),
             title="Setup Complete",
             border_style="green",
         )
@@ -233,7 +398,10 @@ def quickstart():
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
 @click.option("--session", "-s", "session_id", help="Resume an existing session ID")
 @click.option("--no-recall", is_flag=True, help="Disable automatic context recall")
+@click.option("--quick", is_flag=True, help="Quick mode: 2-3 personas, 500 tokens, no synthesis")
+@click.option("--domains", help="Comma-separated list of domains for cross-domain consultation")
 @click.pass_context
+@require_api_key
 def consult(
     ctx,
     query,
@@ -248,8 +416,10 @@ def consult(
     output_json,
     session_id,
     no_recall,
+    quick,
+    domains,
 ):
-    """
+    r"""
     Consult the council on a query.
 
     \b
@@ -277,61 +447,81 @@ def consult(
         if not mode:
             mode = preset_config.get("mode", "synthesis")
 
+    # Handle cross-domain consultation
+    if domains:
+        # Parse comma-separated domains
+        domain_list = [d.strip() for d in domains.split(",")]
+        from ..domains import get_domain
+
+        # Collect personas from all domains (deduplicate)
+        all_personas = []
+        seen_personas = set()
+        for dom_id in domain_list:
+            try:
+                dom = get_domain(dom_id)
+                for persona_id in dom.default_personas:
+                    if persona_id not in seen_personas:
+                        all_personas.append(persona_id)
+                        seen_personas.add(persona_id)
+            except ValueError:
+                console.print(f"[yellow]Warning:[/yellow] Domain '{dom_id}' not found, skipping")
+
+        # Use collected personas as members
+        if not members:
+            members = tuple(all_personas)
+        domain = None  # Clear domain since we're using explicit members
+
     # Apply defaults if still not set
     if not domain:
         domain = config_manager.get("default_domain", "general")
     if not mode:
         mode = config_manager.get("default_mode", "synthesis")
 
-    # Get API key
-    requested_provider = provider or config_manager.get("api.provider", "anthropic")
+    # Handle quick mode
+    if quick:
+        # Quick mode: limit personas, reduce tokens, skip synthesis
+        if not members and domain:
+            # Limit to first 2-3 personas from domain
+            from ..domains import get_domain
 
-    # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
-    is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
-    if is_placeholder:
-        api_key = None  # Ignore placeholder, force get_api_key() to run
+            try:
+                dom = get_domain(domain)
+                members = tuple(dom.default_personas[:3])  # First 3 personas
+            except ValueError:
+                pass
+        elif members:
+            # Limit to first 2-3 specified members
+            members = tuple(list(members)[:3])
 
-    api_key = api_key or get_api_key(requested_provider)
-    if not api_key:
-        console.print("[red]Error:[/red] No API key provided.")
-        console.print(
-            "Set via --api-key, COUNCIL_API_KEY env var, or 'council config set api.api_key'"
-        )
-        sys.exit(1)
-    if "your-" in api_key.lower() or "here" in api_key.lower():
-        console.print("[red]Error:[/red] API key appears to be a placeholder value.")
-        console.print(
-            "Please update your .env file with your actual API key (not the example value)."
-        )
-        console.print("Run 'council providers --diagnose' for help.")
-        sys.exit(1)
+        # Skip synthesis in quick mode
+        if mode == "synthesis":
+            mode = "individual"
+
+        # Set max tokens to 500 (will be applied via config override)
 
     # Create council
-    provider = provider or config_manager.get("api.provider", "anthropic")
+    provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
     model = config_manager.get("api.model")
     base_url = config_manager.get("api.base_url")
     from .core.council import ConsultationMode
 
     mode_enum = ConsultationMode(mode)
 
+    # Apply quick mode config overrides
+    if quick:
+        from .core.council import CouncilConfig
+
+        # Create a config override for quick mode
+        quick_config = CouncilConfig(max_tokens_per_response=500)
+    else:
+        quick_config = None
+
     # Only show progress spinner if not JSON output (for clean JSON output)
     if output_json:
         # Assemble council
-        if members:
-            council = Council(api_key=api_key, provider=provider, model=model, base_url=base_url)
-            for member_id in members:
-                try:
-                    council.add_member(member_id)
-                except ValueError as e:
-                    console.print(f"[yellow]Warning:[/yellow] {e}")
-        else:
-            council = Council.for_domain(
-                domain,
-                api_key=api_key,
-                provider=provider,
-                model=model,
-                base_url=base_url,
-            )
+        council = _assemble_council(domain, members, api_key, provider, model, base_url)
+        if quick_config:
+            council.config = quick_config
 
         try:
             from .core.history import ConsultationHistory
@@ -344,7 +534,7 @@ def consult(
                 session_id=session_id,
                 auto_recall=not no_recall,
             )
-        except Exception as e:
+        except ValueError as e:
             console.print(f"[red]Error:[/red] {e}")
             sys.exit(1)
     else:
@@ -356,24 +546,9 @@ def consult(
         ) as progress:
             progress.add_task("Assembling council...", total=None)
 
-            if members:
-                council = Council(
-                    api_key=api_key, provider=provider, model=model, base_url=base_url
-                )
-                for member_id in members:
-                    try:
-                        council.add_member(member_id)
-                    except ValueError as e:
-                        console.print(f"[yellow]Warning:[/yellow] {e}")
-            else:
-                council = Council.for_domain(
-                    domain,
-                    api_key=api_key,
-                    provider=provider,
-                    model=model,
-                    base_url=base_url,
-                )
-
+            council = _assemble_council(domain, members, api_key, provider, model, base_url)
+            if quick_config:
+                council.config = quick_config
             progress.update(progress.task_ids[0], description="Consulting council...")
 
             try:
@@ -397,6 +572,85 @@ def consult(
         console.print()
         console.print(Markdown(output_text))
 
+    # Display cost if enabled
+    if result and result.id:
+        from .core.cost_tracker import get_cost_tracker
+
+        cost_tracker = get_cost_tracker()
+        total_cost = cost_tracker.get_total_cost()
+
+        if total_cost > 0:
+            show_cost = config_manager.get("display.show_cost", False)
+            if show_cost:
+                persona_count = len(result.responses)
+                mode_str = result.mode
+                console.print(
+                    f"\n[dim]Cost: ${total_cost:.2f} ({persona_count} personas, {mode_str})[/dim]"
+                )
+
+
+@main.command("q")
+@click.argument("query")
+@click.option("--preset", help="Use a saved preset configuration")
+@click.option("--domain", "-d", help="Domain preset to use")
+@click.option("--members", "-m", multiple=True, help="Specific personas to consult")
+@click.option("--provider", "-p", help="LLM provider (anthropic, openai)")
+@click.option("--api-key", "-k", envvar="COUNCIL_API_KEY", help="API key for provider")
+@click.option("--context", "-ctx", help="Additional context for the query")
+@click.option(
+    "--mode",
+    type=click.Choice(["individual", "sequential", "synthesis", "debate", "vote"]),
+    help="Consultation mode",
+)
+@click.option("--output", "-o", type=click.Path(), help="Save output to file")
+@click.option("--json", "output_json", is_flag=True, help="Output as JSON")
+@click.option("--session", "-s", "session_id", help="Resume an existing session ID")
+@click.option("--no-recall", is_flag=True, help="Disable automatic context recall")
+@click.option("--quick", is_flag=True, help="Quick mode: 2-3 personas, 500 tokens, no synthesis")
+@click.pass_context
+@require_api_key
+def q(
+    ctx,
+    query,
+    preset,
+    domain,
+    members,
+    provider,
+    api_key,
+    context,
+    mode,
+    output,
+    output_json,
+    session_id,
+    no_recall,
+    quick,
+):
+    """
+    Quick consultation shorthand (alias for 'council consult').
+
+    Examples:
+      council q "Should we refactor this module?"
+      council q --quick "What's the risk here?"
+      council q -d sonotheia "Review this SAR narrative"
+    """
+    # Delegate to consult function
+    ctx.invoke(
+        consult,
+        query=query,
+        preset=preset,
+        domain=domain,
+        members=members,
+        provider=provider,
+        api_key=api_key,
+        context=context,
+        mode=mode,
+        output=output,
+        output_json=output_json,
+        session_id=session_id,
+        no_recall=no_recall,
+        quick=quick,
+    )
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Interactive Mode
@@ -409,6 +663,7 @@ def consult(
 @click.option("--api-key", "-k", envvar="COUNCIL_API_KEY", help="API key")
 @click.option("--session", "-s", "session_id", help="Resume an existing session ID")
 @click.pass_context
+@require_api_key
 def interactive(ctx, domain, provider, api_key, session_id):
     """
     Start an interactive council session.
@@ -417,24 +672,7 @@ def interactive(ctx, domain, provider, api_key, session_id):
     """
     config_manager = ctx.obj["config_manager"]
 
-    # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
-    is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
-    if is_placeholder:
-        api_key = None  # Ignore placeholder, force get_api_key() to run
-
-    api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
-    if not api_key:
-        console.print("[red]Error:[/red] No API key provided.")
-        sys.exit(1)
-    if "your-" in api_key.lower() or "here" in api_key.lower():
-        console.print("[red]Error:[/red] API key appears to be a placeholder value.")
-        console.print(
-            "Please update your .env file with your actual API key (not the example value)."
-        )
-        console.print("Run 'council providers --diagnose' for help.")
-        sys.exit(1)
-
-    provider = provider or config_manager.get("api.provider", "anthropic")
+    provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
     model = config_manager.get("api.model")
     base_url = config_manager.get("api.base_url")
     council = Council.for_domain(
@@ -548,8 +786,40 @@ def interactive(ctx, domain, provider, api_key, session_id):
         except (KeyboardInterrupt, EOFError):
             console.print("\n[green]✓[/green] Session ended. Goodbye!")
             break
-        except Exception as e:
+        except ValueError as e:
             console.print(f"[red]Error:[/red] {e}")
+
+
+def _assemble_council(domain, members, api_key, provider, model, base_url):
+    """Assemble a council from domain or specific members.
+
+    Args:
+        domain: Domain preset to use
+        members: List of specific member IDs, or None to use domain
+        api_key: API key for the LLM provider
+        provider: LLM provider name
+        model: Model name/ID
+        base_url: Base URL for custom endpoints
+
+    Returns:
+        Council: Assembled council instance
+    """
+    if members:
+        council = Council(api_key=api_key, provider=provider, model=model, base_url=base_url)
+        for member_id in members:
+            try:
+                council.add_member(member_id)
+            except ValueError as e:
+                console.print(f"[yellow]Warning:[/yellow] {e}")
+    else:
+        council = Council.for_domain(
+            domain,
+            api_key=api_key,
+            provider=provider,
+            model=model,
+            base_url=base_url,
+        )
+    return council
 
 
 def _show_members(council):
@@ -569,381 +839,17 @@ def _show_members(council):
     console.print(table)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Persona Commands
-# ═══════════════════════════════════════════════════════════════════════════════
+main.add_command(persona)
+main.add_command(domain)
+main.add_command(config)
 
+# Add personal integration commands
+try:
+    from .cli_personal import personal
 
-@main.group()
-def persona():
-    """Manage council personas."""
+    main.add_command(personal)
+except ImportError:
     pass
-
-
-@persona.command("list")
-@click.option(
-    "--category",
-    "-c",
-    type=click.Choice(["advisory", "adversarial", "custom"]),
-    help="Filter by category",
-)
-def persona_list(category):
-    """List available personas."""
-    cat = PersonaCategory(category) if category else None
-    personas = list_personas(cat)
-
-    table = Table(title="Available Personas")
-    table.add_column("ID", style="cyan")
-    table.add_column("Name")
-    table.add_column("Title")
-    table.add_column("Category")
-    table.add_column("Focus Areas")
-
-    for p in personas:
-        table.add_row(
-            p.id,
-            f"{p.emoji} {p.name}",
-            p.title,
-            p.category.value,
-            ", ".join(p.focus_areas[:3]) + ("..." if len(p.focus_areas) > 3 else ""),
-        )
-
-    console.print(table)
-
-
-@persona.command("show")
-@click.argument("persona_id")
-def persona_show(persona_id):
-    """Show details of a persona."""
-    try:
-        p = get_persona(persona_id)
-    except ValueError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        sys.exit(1)
-
-    console.print(
-        Panel(
-            f"[bold]{p.emoji} {p.name}[/bold]\n"
-            f"[dim]{p.title}[/dim]\n\n"
-            f'[bold]Core Question:[/bold]\n"{p.core_question}"\n\n'
-            f'[bold]Razor:[/bold]\n"{p.razor}"\n\n'
-            f"[bold]Focus Areas:[/bold]\n{', '.join(p.focus_areas)}\n\n"
-            f"[bold]Traits:[/bold]\n" + "\n".join(f"• {t.name}: {t.description}" for t in p.traits),
-            title=f"Persona: {p.id}",
-            border_style="blue",
-        )
-    )
-
-
-@persona.command("create")
-@click.option("--interactive", "-i", is_flag=True, help="Interactive creation wizard")
-@click.option("--from-file", type=click.Path(exists=True), help="Create from YAML file")
-def persona_create(interactive, from_file):
-    """Create a new persona."""
-    if from_file:
-        p = Persona.from_yaml_file(from_file)
-        manager = PersonaManager()
-        manager.add(p)
-        manager.save_persona(p.id)
-        console.print(f"[green]✓[/green] Created persona '{p.id}' from {from_file}")
-        return
-
-    if not interactive:
-        console.print("Use --interactive or --from-file to create a persona")
-        return
-
-    # Interactive creation
-    console.print(Panel("[bold]Create New Persona[/bold]", border_style="green"))
-
-    id = Prompt.ask("ID (lowercase, no spaces)")
-    name = Prompt.ask("Name")
-    title = Prompt.ask("Title")
-    emoji = Prompt.ask("Emoji", default="👤")
-    core_question = Prompt.ask("Core Question (the fundamental question this persona asks)")
-    razor = Prompt.ask("Razor (their decision-making principle)")
-
-    category = Prompt.ask(
-        "Category", choices=["advisory", "adversarial", "custom"], default="custom"
-    )
-
-    focus_areas = Prompt.ask("Focus Areas (comma-separated)").split(",")
-    focus_areas = [f.strip() for f in focus_areas if f.strip()]
-
-    p = Persona(
-        id=id,
-        name=name,
-        title=title,
-        emoji=emoji,
-        core_question=core_question,
-        razor=razor,
-        category=PersonaCategory(category),
-        focus_areas=focus_areas,
-    )
-
-    # Add traits
-    if Confirm.ask("Add traits?"):
-        while True:
-            trait_name = Prompt.ask("Trait name (empty to finish)")
-            if not trait_name:
-                break
-            trait_desc = Prompt.ask("Trait description")
-            p.add_trait(trait_name, trait_desc)
-
-    # Save
-    manager = PersonaManager()
-    manager.add(p)
-    path = manager.save_persona(p.id)
-
-    console.print(f"[green]✓[/green] Created persona '{p.id}'")
-    console.print(f"[dim]Saved to: {path}[/dim]")
-
-
-@persona.command("edit")
-@click.argument("persona_id")
-@click.option("--weight", type=float, help="Set weight (0.0-2.0)")
-@click.option("--add-trait", nargs=2, multiple=True, help="Add trait: name description")
-@click.option("--remove-trait", multiple=True, help="Remove trait by name")
-def persona_edit(persona_id, weight, add_trait, remove_trait):
-    """Edit an existing persona."""
-    manager = PersonaManager()
-    p = manager.get_or_raise(persona_id)
-
-    if weight is not None:
-        p.weight = weight
-        console.print(f"[green]✓[/green] Set weight to {weight}")
-
-    for name, desc in add_trait:
-        p.add_trait(name, desc)
-        console.print(f"[green]✓[/green] Added trait '{name}'")
-
-    for name in remove_trait:
-        p.remove_trait(name)
-        console.print(f"[green]✓[/green] Removed trait '{name}'")
-
-    manager.save_persona(persona_id)
-    console.print("[dim]Saved changes[/dim]")
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Domain Commands
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@main.group()
-def domain():
-    """Manage council domains."""
-    pass
-
-
-@domain.command("list")
-def domain_list():
-    """List available domains."""
-    domains = list_domains()
-
-    table = Table(title="Available Domains")
-    table.add_column("ID", style="cyan")
-    table.add_column("Name")
-    table.add_column("Category")
-    table.add_column("Default Personas")
-
-    for d in domains:
-        table.add_row(
-            d.id,
-            d.name,
-            d.category.value,
-            ", ".join(d.default_personas[:4]) + ("..." if len(d.default_personas) > 4 else ""),
-        )
-
-    console.print(table)
-
-
-@domain.command("show")
-@click.argument("domain_id")
-def domain_show(domain_id):
-    """Show details of a domain."""
-    try:
-        d = get_domain(domain_id)
-    except ValueError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        sys.exit(1)
-
-    console.print(
-        Panel(
-            f"[bold]{d.name}[/bold]\n"
-            f"[dim]{d.description}[/dim]\n\n"
-            f"[bold]Category:[/bold] {d.category.value}\n\n"
-            f"[bold]Default Personas:[/bold]\n{', '.join(d.default_personas)}\n\n"
-            f"[bold]Optional Personas:[/bold]\n{', '.join(d.optional_personas) or 'None'}\n\n"
-            f"[bold]Recommended Mode:[/bold] {d.recommended_mode}\n\n"
-            f"[bold]Example Queries:[/bold]\n" + "\n".join(f"• {q}" for q in d.example_queries),
-            title=f"Domain: {d.id}",
-            border_style="blue",
-        )
-    )
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Config Commands
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-@main.group()
-def config():
-    """Manage configuration."""
-    pass
-
-
-@config.command("show")
-@click.pass_context
-def config_show(ctx):
-    """Show current configuration."""
-    config_manager = ctx.obj["config_manager"]
-    cfg = config_manager.config
-
-    console.print(
-        Panel(
-            f"[bold]API Settings[/bold]\n"
-            f"  Provider: {cfg.api.provider}\n"
-            f"  API Key: {'[set]' if cfg.api.api_key else '[not set]'}\n"
-            f"  Model: {cfg.api.model or '[default]'}\n"
-            f"  Base URL: {cfg.api.base_url or '[default]'}\n\n"
-            f"[bold]Defaults[/bold]\n"
-            f"  Mode: {cfg.default_mode}\n"
-            f"  Domain: {cfg.default_domain}\n"
-            f"  Temperature: {cfg.temperature}\n"
-            f"  Max Tokens: {cfg.max_tokens_per_response}\n"
-            f"  Synthesis Provider: {cfg.synthesis_provider or '[default]'}\n"
-            f"  Synthesis Model: {cfg.synthesis_model or '[default]'}\n"
-            f"  Synthesis Max Tokens: {cfg.synthesis_max_tokens or '[default]'}\n\n"
-            f"[bold]Paths[/bold]\n"
-            f"  Config: {config_manager.path}\n"
-            f"  Custom Personas: {cfg.custom_personas_path or '[default]'}\n"
-            f"  Custom Domains: {cfg.custom_domains_path or '[default]'}",
-            title="Configuration",
-            border_style="blue",
-        )
-    )
-
-
-@config.command("set")
-@click.argument("key")
-@click.argument("value")
-@click.pass_context
-def config_set(ctx, key, value):
-    """Set a configuration value."""
-    config_manager = ctx.obj["config_manager"]
-
-    # Type conversion
-    if value.lower() in ("true", "false"):
-        value = value.lower() == "true"
-    elif value.isdigit():
-        value = int(value)
-    elif value.replace(".", "").isdigit():
-        value = float(value)
-
-    try:
-        config_manager.set(key, value)
-        config_manager.save()
-        console.print(f"[green]✓[/green] Set {key} = {value}")
-    except KeyError:
-        console.print(f"[red]Error:[/red] Invalid key: {key}")
-
-
-@config.command("get")
-@click.argument("key")
-@click.pass_context
-def config_get(ctx, key):
-    """Get a configuration value."""
-    config_manager = ctx.obj["config_manager"]
-    value = config_manager.get(key)
-
-    if value is None:
-        console.print(f"[yellow]{key} is not set[/yellow]")
-    else:
-        console.print(f"{key} = {value}")
-
-
-@config.command("preset-save")
-@click.argument("preset_name")
-@click.option("--domain", "-d", help="Domain to save in preset")
-@click.option("--members", "-m", help="Comma-separated member IDs")
-@click.option("--mode", help="Consultation mode")
-@click.pass_context
-def config_preset_save(ctx, preset_name, domain, members, mode):
-    """Save current or specified settings as a preset."""
-    config_manager = ctx.obj["config_manager"]
-
-    preset = {}
-
-    if domain:
-        preset["domain"] = domain
-    else:
-        preset["domain"] = config_manager.get("default_domain")
-
-    if members:
-        preset["members"] = [m.strip() for m in members.split(",")]
-
-    if mode:
-        preset["mode"] = mode
-    else:
-        preset["mode"] = config_manager.get("default_mode")
-
-    # Save to presets
-    if not isinstance(config_manager.config.presets, dict):
-        config_manager.config.presets = {}
-
-    config_manager.config.presets[preset_name] = preset
-    config_manager.save()
-
-    console.print(f"[green]✓[/green] Preset '{preset_name}' saved")
-    console.print(f"[dim]Use with: council consult --preset {preset_name}[/dim]")
-
-
-@config.command("preset-list")
-@click.pass_context
-def config_preset_list(ctx):
-    """List saved presets."""
-    config_manager = ctx.obj["config_manager"]
-    presets = config_manager.config.presets
-
-    if not presets:
-        console.print("[dim]No presets saved.[/dim]")
-        console.print("[dim]Create one with: council config preset-save <name>[/dim]")
-        return
-
-    table = Table(title="Saved Presets")
-    table.add_column("Name", style="cyan")
-    table.add_column("Domain")
-    table.add_column("Mode")
-    table.add_column("Members")
-
-    for name, preset in presets.items():
-        members = (
-            ", ".join(preset.get("members", [])) if preset.get("members") else "[domain default]"
-        )
-        table.add_row(
-            name,
-            preset.get("domain", "general"),
-            preset.get("mode", "synthesis"),
-            members,
-        )
-
-    console.print(table)
-
-
-@config.command("preset-delete")
-@click.argument("preset_name")
-@click.pass_context
-def config_preset_delete(ctx, preset_name):
-    """Delete a saved preset."""
-    config_manager = ctx.obj["config_manager"]
-
-    if preset_name in config_manager.config.presets:
-        del config_manager.config.presets[preset_name]
-        config_manager.save()
-        console.print(f"[green]✓[/green] Preset '{preset_name}' deleted")
-    else:
-        console.print(f"[red]Error:[/red] Preset '{preset_name}' not found")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1024,7 +930,7 @@ def show_providers(diagnose):
 
     console.print(table)
     console.print(
-        "\n[dim]Set API key via .env file, environment variable, or 'council config set api.api_key'[/dim]"
+        "\n[dim]Set API key via .env file, env var, or 'council config set api.api_key'[/dim]"
     )
     if not diagnose:
         console.print("[dim]Use --diagnose for detailed API key diagnostics[/dim]")
@@ -1062,31 +968,79 @@ def test_key(provider: str, api_key: Optional[str]):
 @click.option("--reload", is_flag=True, help="Enable auto-reload (dev only)")
 @click.option("--no-open", is_flag=True, help="Don't auto-open browser")
 def web(host: str, port: int, reload: bool, no_open: bool):
-    """Run the Council AI web app."""
+    """Run the Council AI web server."""
+    _run_web(host, port, reload, no_open)
+
+
+@main.command("ui")
+@click.option("--host", default="127.0.0.1", help="Host to bind the web server")
+@click.option("--port", default=8000, type=int, help="Port to bind the web server")
+@click.option("--no-open", is_flag=True, help="Don't auto-open browser")
+def ui(host: str, port: int, no_open: bool):
+    """Launch the Council AI web interface."""
+    _run_web(host, port, False, no_open)
+
+
+def _run_web(host: str, port: int, reload: bool, no_open: bool):
+    """Internal helper to run the web server with port discovery."""
     try:
+        import socket
         import threading
         import time
         import webbrowser
 
+        import aiohttp  # noqa: F401
+        import fastapi  # noqa: F401
         import uvicorn
-    except ImportError:
+    except ImportError as e:
         console.print(
-            '[red]Error:[/red] uvicorn is not installed. Install with: pip install -e ".[web]"'
+            f"[red]Error:[/red] Missing dependency: [bold]{e.name}[/bold]. "
+            'Install with: [cyan]pip install -e ".[web]"[/cyan]'
         )
         sys.exit(1)
 
-    url = f"http://{host}:{port}"
+    # Find available port if default is busy
+    def is_port_in_use(p):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex((host, p)) == 0
+
+    original_port = port
+    while is_port_in_use(port):
+        if port >= original_port + 10:
+            break
+        port += 1
+
+    if port != original_port:
+        console.print(
+            f"[yellow]⚠️[/yellow] Port {original_port} is busy, using [bold]{port}[/bold]"
+        )
+
+    # Resolve display host for helpful feedback
+    display_host = host
+    if host == "0.0.0.0":
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            display_host = s.getsockname()[0]
+            s.close()
+        except Exception:
+            display_host = "localhost"
+
+    url = f"http://{display_host}:{port}"
 
     # Auto-open browser after a short delay
     if not no_open:
 
         def open_browser():
             time.sleep(1.5)  # Wait for server to start
-            webbrowser.open(url)
+            webbrowser.open(url if host != "0.0.0.0" else f"http://localhost:{port}")
 
         threading.Thread(target=open_browser, daemon=True).start()
         console.print(f"[green]✓[/green] Server starting at [cyan]{url}[/cyan]")
-        console.print("[dim]Opening browser automatically...[/dim]")
+        if host == "0.0.0.0":
+            console.print(f"[dim]Local access: http://localhost:{port}[/dim]")
+        if not no_open:
+            console.print("[dim]Opening browser automatically...[/dim]")
 
     uvicorn.run("council_ai.webapp:app", host=host, port=port, reload=reload)
 
@@ -1109,6 +1063,7 @@ def web(host: str, port: int, reload: bool, no_open: bool):
 @click.option("--api-key", "-k", envvar="COUNCIL_API_KEY", help="API key")
 @click.option("--output", "-o", type=click.Path(), help="Save report to file")
 @click.pass_context
+@require_api_key
 def review(ctx, path, focus, provider, api_key, output):
     """
     Review a repository or directory.
@@ -1116,25 +1071,7 @@ def review(ctx, path, focus, provider, api_key, output):
     Performs a comprehensive AI-driven audit of the code at PATH.
     """
     config_manager = ctx.obj["config_manager"]
-    # Check if api_key from CLI/env is a placeholder - if so, ignore it and try get_api_key()
-    is_placeholder = api_key and ("your-" in api_key.lower() or "here" in api_key.lower())
-    if is_placeholder:
-        api_key = None  # Ignore placeholder, force get_api_key() to run
-
-    api_key = api_key or get_api_key(provider or config_manager.get("api.provider", "anthropic"))
-
-    if not api_key:
-        console.print("[red]Error:[/red] No API key provided.")
-        sys.exit(1)
-    if "your-" in api_key.lower() or "here" in api_key.lower():
-        console.print("[red]Error:[/red] API key appears to be a placeholder value.")
-        console.print(
-            "Please update your .env file with your actual API key (not the example value)."
-        )
-        console.print("Run 'council providers --diagnose' for help.")
-        sys.exit(1)
-
-    provider = provider or config_manager.get("api.provider", "anthropic")
+    provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
     model = config_manager.get("api.model")
 
     from .tools.reviewer import RepositoryReviewer
@@ -1524,6 +1461,49 @@ def history_delete(consultation_id, yes):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+@main.group("cost")
+def cost_group():
+    """View cost tracking information."""
+    pass
+
+
+@cost_group.command("summary")
+@click.option("--session", "-s", "session_id", help="Session ID to get costs for")
+def cost_summary(session_id):
+    """Show cost summary for current session or specified session."""
+    from .core.history import ConsultationHistory
+
+    history = ConsultationHistory()
+
+    if session_id:
+        costs = history.get_session_costs(session_id)
+        if costs["total_cost_usd"] > 0:
+            console.print("\n[bold]Session Cost Summary[/bold]")
+            console.print(f"Session ID: {session_id}")
+            console.print(f"Total Cost: ${costs['total_cost_usd']:.2f}")
+            console.print(f"Consultations: {costs['consultation_count']}")
+            console.print(
+                f"Total Tokens: {costs['total_input_tokens'] + costs['total_output_tokens']:,}"
+            )
+        else:
+            console.print(f"[dim]No cost data found for session {session_id}[/dim]")
+    else:
+        # Show cost for most recent session
+        sessions = history.list_sessions(limit=1)
+        if sessions:
+            session_id = sessions[0]["id"]
+            costs = history.get_session_costs(session_id)
+            if costs["total_cost_usd"] > 0:
+                console.print("\n[bold]Recent Session Cost[/bold]")
+                console.print(f"Session: {sessions[0]['name']}")
+                console.print(f"Total Cost: ${costs['total_cost_usd']:.2f}")
+                console.print(f"Consultations: {costs['consultation_count']}")
+            else:
+                console.print("[dim]No cost data available for recent session[/dim]")
+        else:
+            console.print("[dim]No sessions found[/dim]")
+
+
 @main.command()
 def doctor():
     """
@@ -1532,12 +1512,16 @@ def doctor():
     Checks API keys, provider connectivity, and system health.
     """
     import asyncio
-    from .core.diagnostics import check_provider_connectivity, check_tts_connectivity, diagnose_api_keys
+
+    from .core.diagnostics import (
+        check_provider_connectivity,
+        check_tts_connectivity,
+        diagnose_api_keys,
+    )
 
     console.print(
         Panel(
-            "[bold]🏥 Council Doctor[/bold]\n"
-            "Checking vital signs...",
+            "[bold]🏥 Council Doctor[/bold]\n" "Checking vital signs...",
             border_style="green",
         )
     )
@@ -1587,10 +1571,7 @@ def doctor():
             status_icon = "✅ Online" if success else "❌ Failed"
             status_style = "green" if success else "red"
             conn_table.add_row(
-                provider, 
-                f"[{status_style}]{status_icon}[/{status_style}]", 
-                f"{latency:.0f}ms", 
-                msg
+                provider, f"[{status_style}]{status_icon}[/{status_style}]", f"{latency:.0f}ms", msg
             )
 
         console.print(conn_table)
@@ -1601,22 +1582,22 @@ def doctor():
     # 3. TTS Check
     with console.status("[bold green]Checking Voice capability..."):
         tts_results = check_tts_connectivity()
-    
+
     if tts_results:
         tts_table = Table(title="Text-to-Speech Status", box=None)
         tts_table.add_column("Provider", style="cyan")
         tts_table.add_column("Status", style="bold")
         tts_table.add_column("Message", style="dim")
-        
+
         for provider, res in tts_results.items():
             icon = "✅ Ready" if res["ok"] else "❌ Error"
             style = "green" if res["ok"] else "red"
             tts_table.add_row(provider, f"[{style}]{icon}[/{style}]", res["msg"])
-            
+
         console.print(tts_table)
     else:
         console.print("[dim]No TTS providers configured.[/dim]")
-    
+
     console.print("\n[bold]Diagnosis:[/bold]")
     if key_diag["recommendations"]:
         for rec in key_diag["recommendations"]:

@@ -83,13 +83,14 @@ class ConsultRequest(BaseModel):
     temperature: Optional[float] = 0.7  # Sampling temperature
     max_tokens: Optional[int] = 1000  # Max tokens per response
     session_id: Optional[str] = None
-    auto_recall: bool = False
+    auto_recall: Optional[bool] = None
 
 
 class ConsultResponse(BaseModel):
     synthesis: Optional[str]
     responses: list[dict]
     mode: str
+    session_id: Optional[str] = None
 
 
 def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
@@ -109,6 +110,12 @@ def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
     model = payload.model or config.api.model
     base_url = payload.base_url or config.api.base_url
 
+    if payload.api_key and is_placeholder_key(payload.api_key):
+        raise HTTPException(
+            status_code=400,
+            detail="API key appears to be a placeholder. Please provide a valid API key.",
+        )
+
     api_key = sanitize_api_key(payload.api_key) if payload.api_key else get_api_key(provider)
 
     if not api_key:
@@ -120,8 +127,8 @@ def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     council_config = CouncilConfig(
-        temperature=payload.temperature,
-        max_tokens_per_response=payload.max_tokens,
+        temperature=payload.temperature if payload.temperature is not None else 0.7,
+        max_tokens_per_response=payload.max_tokens if payload.max_tokens is not None else 1000,
     )
 
     if payload.members:
@@ -174,8 +181,40 @@ async def index() -> HTMLResponse:
         # Serve built HTML from static directory
         return FileResponse(str(BUILT_HTML))
     elif DEV_HTML.exists():
-        # Development mode: serve HTML from source file
-        return FileResponse(str(DEV_HTML))
+        # In development mode with React, we can't just serve the source HTML
+        # because it uses .tsx files and needs Vite.
+        # We should redirect to the Vite dev server if running, or show a helpful message.
+        return HTMLResponse(
+            """
+            <html>
+                <body style="font-family: system-ui, sans-serif; max-width: 600px;
+                    margin: 40px auto; padding: 20px; line-height: 1.6;
+                    background: #f9fafb; color: #111827;">
+                    <div style="background: white; padding: 32px; border-radius: 8px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
+                        <h1 style="margin-top: 0; color: #DC2626;">Frontend Build Required</h1>
+                        <p>The Council AI web interface has been migrated to React and
+                            requires a build step.</p>
+                        <h3 style="margin-top: 24px;">Option 1: Production (Recommended)</h3>
+                        <p>Run the build command to generate static assets:</p>
+                        <pre style="background: #1F2937; color: #E5E7EB;
+                            padding: 12px; border-radius: 6px; overflow-x: auto;">
+                            npm install && npm run build</pre>
+                        <p>Then restart this server.</p>
+
+                        <h3 style="margin-top: 24px;">Option 2: Development</h3>
+                        <p>Run the Vite development server in a separate terminal:</p>
+                        <pre style="background: #1F2937; color: #E5E7EB; padding: 12px;
+                            border-radius: 6px; overflow-x: auto;">npm run dev</pre>
+                        <p>Then access the app at
+                            <a href="http://localhost:5173" style="color: #2563EB;">
+                                http://localhost:5173</a>.</p>
+                    </div>
+                </body>
+            </html>
+            """,
+            status_code=500,
+        )
     else:
         # Fallback: minimal error page if no HTML found
         return HTMLResponse(
@@ -208,7 +247,7 @@ async def manifest() -> JSONResponse:
         {
             "name": "Council AI",
             "short_name": "Council AI",
-            "description": "AI-powered advisory council system with customizable personas",
+            "description": ("AI-powered advisory council system with customizable personas"),
             "start_url": "/",
             "display": "standalone",
             "background_color": "#0c0f14",
@@ -216,7 +255,10 @@ async def manifest() -> JSONResponse:
             "orientation": "portrait-primary",
             "icons": [
                 {
-                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>",
+                    "src": (
+                        "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' "
+                        "viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>"
+                    ),
                     "sizes": "any",
                     "type": "image/svg+xml",
                     "purpose": "any maskable",
@@ -286,7 +328,7 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
             context=payload.context,
             mode=mode,
             session_id=payload.session_id,
-            auto_recall=payload.auto_recall,
+            auto_recall=payload.auto_recall if payload.auto_recall is not None else True,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -295,6 +337,7 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
         synthesis=result.synthesis,
         responses=[r.to_dict() for r in result.responses],
         mode=result.mode,
+        session_id=getattr(result, "session_id", None),
     )
 
 
@@ -310,7 +353,7 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
                 context=payload.context,
                 mode=mode,
                 session_id=payload.session_id,
-                auto_recall=payload.auto_recall,
+                auto_recall=payload.auto_recall if payload.auto_recall is not None else True,
             ):
                 # Convert update to SSE format
                 if "result" in update:
@@ -323,6 +366,7 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
                         "timestamp": result.timestamp.isoformat(),
                         "responses": [r.to_dict() for r in result.responses],
                         "synthesis": result.synthesis,
+                        "session_id": getattr(result, "session_id", None),
                     }
                 elif "response" in update:
                     # Convert MemberResponse to dict
@@ -413,12 +457,6 @@ async def history_delete(consultation_id: str) -> dict:
     if _history.delete(consultation_id):
         return {"status": "deleted", "id": consultation_id}
     raise HTTPException(status_code=404, detail="Consultation not found")
-
-
-@app.get("/api/history/search_legacy")
-async def history_search_legacy(q: str, limit: Optional[int] = None) -> dict:
-    # This was the old search route, keep it for now if needed or just remove it
-    return await history_search(q, limit)
 
 
 # TTS Helper Functions
@@ -549,7 +587,7 @@ async def tts_voices() -> dict:
     """List available TTS voices."""
     _initialize_tts_providers()
 
-    voices = {"primary": [], "fallback": []}
+    voices: dict[str, list[dict[str, Any]]] = {"primary": [], "fallback": []}
 
     if _tts_primary:
         try:
@@ -570,3 +608,67 @@ async def tts_voices() -> dict:
         "provider": config.tts.provider,
         "fallback_provider": config.tts.fallback_provider,
     }
+
+
+# Personal Integration API Endpoints
+@app.get("/api/personal/status")
+def get_personal_status_endpoint():
+    """Get personal integration status."""
+    try:
+        from council_ai.core.personal_integration import get_personal_status
+
+        status = get_personal_status()
+        return status
+    except Exception as e:
+        logger.error(f"Failed to get personal status: {e}")
+        return {
+            "detected": False,
+            "configured": False,
+            "repo_path": None,
+            "config_dir": None,
+        }
+
+
+@app.post("/api/personal/integrate")
+def integrate_personal_endpoint():
+    """Trigger personal integration."""
+    try:
+        from pathlib import Path
+
+        from council_ai.core.personal_integration import detect_personal_repo, integrate_personal
+
+        repo_path = detect_personal_repo()
+        if not repo_path:
+            raise HTTPException(
+                status_code=404, detail="council-ai-personal repository not detected"
+            )
+
+        success = integrate_personal(Path(repo_path))
+        if success:
+            return {"success": True, "message": "Integration completed successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Integration failed")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to integrate personal: {e}")
+        raise HTTPException(status_code=500, detail=f"Integration error: {str(e)}")
+
+
+@app.get("/api/personal/verify")
+def verify_personal_integration_endpoint():
+    """Verify personal integration."""
+    try:
+        from council_ai.core.personal_integration import verify_personal_integration
+
+        verification = verify_personal_integration()
+        return verification
+    except Exception as e:
+        logger.error(f"Failed to verify personal integration: {e}")
+        return {
+            "detected": False,
+            "configured": False,
+            "configs_loaded": False,
+            "personas_available": False,
+            "issues": [f"Verification error: {str(e)}"],
+        }

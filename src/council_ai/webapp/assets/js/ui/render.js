@@ -7,7 +7,7 @@ import { escapeHtml } from '../core/utils.js';
 // Track streaming state
 const streamingState = {
   activeResponses: new Map(), // persona_id -> {card, content}
-  synthesisContent: "",
+  synthesisContent: '',
 };
 
 /**
@@ -17,46 +17,48 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
   const type = update.type;
 
   switch (type) {
-    case "progress":
-      statusEl.innerHTML = `<span class="loading"></span>${escapeHtml(update.message || "Processing...")}`;
-      statusEl.className = "muted";
+    case 'progress': {
+      statusEl.innerHTML = `<span class="loading"></span>${escapeHtml(update.message || 'Processing...')}`;
+      statusEl.className = 'muted';
       // Update progress text if available
-      const progressTextEl = document.getElementById("progress-text");
+      const progressTextEl = document.getElementById('progress-text');
       if (progressTextEl && update.message) {
         progressTextEl.textContent = update.message;
       }
       break;
+    }
 
-    case "response_start":
+    case 'response_start': {
       // Hide skeleton once we start getting responses
-      const skeleton = document.getElementById("loading-skeleton");
-      if (skeleton) skeleton.style.display = "none";
+      const skeleton = document.getElementById('loading-skeleton');
+      if (skeleton) skeleton.style.display = 'none';
 
       // Update member status to responding
       if (update.persona_id && window.updateMemberStatus) {
-        window.updateMemberStatus(update.persona_id, "responding");
+        window.updateMemberStatus(update.persona_id, 'responding');
       }
 
       // Get persona data for enhanced card
-      const personaId = update.persona_id || "";
-      const personaName = escapeHtml(update.persona_name || update.persona_id || "Unknown");
-      const emoji = update.persona_emoji || "👤";
+      const personaId = update.persona_id || '';
+      const personaName = escapeHtml(update.persona_name || update.persona_id || 'Unknown');
+      const emoji = update.persona_emoji || '👤';
 
       // Try to get full persona data from window (set by main.js)
-      const personaData = window.allPersonas?.find(p => p.id === personaId);
+      const personaData = window.allPersonas?.find((p) => p.id === personaId);
       const focusAreas = personaData?.focus_areas || [];
-      const personaTitle = personaData?.title || "";
-      const personaCategory = personaData?.category || "";
+      const personaTitle = personaData?.title || '';
+      const personaCategory = personaData?.category || '';
 
       // Create enhanced response card
-      const card = document.createElement("div");
-      card.className = "response response-card-enhanced";
+      const card = document.createElement('div');
+      card.className = 'response response-card-enhanced';
       card.id = `response-${personaId}`;
       card.dataset.persona = personaId;
 
-      const focusTags = focusAreas.slice(0, 3).map(area =>
-        `<span class="response-focus-tag">${escapeHtml(area)}</span>`
-      ).join('');
+      const focusTags = focusAreas
+        .slice(0, 3)
+        .map((area) => `<span class="response-focus-tag">${escapeHtml(area)}</span>`)
+        .join('');
 
       card.innerHTML = `
         <div class="response-header">
@@ -78,41 +80,43 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         </div>
         <div class="response-details" id="response-details-${personaId}" style="display: none;">
           ${personaCategory ? `<div class="response-category"><strong>Category:</strong> ${escapeHtml(personaCategory)}</div>` : ''}
-          ${focusAreas.length > 3 ? `<div class="response-all-focus"><strong>All Focus Areas:</strong> ${focusAreas.map(a => escapeHtml(a)).join(', ')}</div>` : ''}
+          ${focusAreas.length > 3 ? `<div class="response-all-focus"><strong>All Focus Areas:</strong> ${focusAreas.map((a) => escapeHtml(a)).join(', ')}</div>` : ''}
         </div>
       `;
       responsesEl.appendChild(card);
 
       // Update progress text
-      const progressEl = document.getElementById("progress-text");
+      const progressEl = document.getElementById('progress-text');
       if (progressEl) {
         progressEl.textContent = `${emoji} ${personaName} is responding...`;
       }
 
       // Track this response - find content element in enhanced structure
-      const contentEl = card.querySelector(".streaming-content");
+      const contentEl = card.querySelector('.streaming-content');
       streamingState.activeResponses.set(update.persona_id, {
         card: card,
-        content: "",
+        content: '',
         contentEl: contentEl,
       });
       break;
+    }
 
-    case "response_chunk":
+    case 'response_chunk': {
       const responseState = streamingState.activeResponses.get(update.persona_id);
       if (responseState) {
         responseState.content += update.content;
         // textContent automatically treats content as text (no HTML), so don't escape
         responseState.contentEl.textContent = responseState.content;
         // Auto-scroll to latest response
-        responseState.card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        responseState.card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
       break;
+    }
 
-    case "response_complete":
+    case 'response_complete': {
       // Update member status to completed
       if (update.persona_id && window.updateMemberStatus) {
-        window.updateMemberStatus(update.persona_id, "completed");
+        window.updateMemberStatus(update.persona_id, 'completed');
       }
 
       const completeState = streamingState.activeResponses.get(update.persona_id);
@@ -120,7 +124,7 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         const response = update.response;
         if (response.error) {
           // Smart Error UI
-          completeState.card.classList.add("error-card");
+          completeState.card.classList.add('error-card');
           completeState.contentEl.innerHTML += `
             <div class="status-error" style="margin-top: 8px;">
               <strong>⚠️ Connection Failed</strong>
@@ -131,12 +135,13 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         streamingState.activeResponses.delete(update.persona_id);
       }
       break;
+    }
 
-    case "synthesis_start":
+    case 'synthesis_start':
       synthesisEl.innerHTML = `
         <div class="synthesis">
           <h3>Synthesis</h3>
-          
+
           <!-- Consensus Meter -->
           <div class="consensus-meter">
             <div class="consensus-title">
@@ -147,22 +152,28 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
               <div class="consensus-bar" id="consensus-bar" style="width: 0%"></div>
             </div>
           </div>
-          
+
           <p class="streaming-synthesis"></p>
         </div>
       `;
-      streamingState.synthesisContent = "";
+      streamingState.synthesisContent = '';
       break;
 
-    case "synthesis_chunk":
+    case 'synthesis_chunk': {
       streamingState.synthesisContent += update.content;
-      const synthesisP = synthesisEl.querySelector(".streaming-synthesis");
+      const synthesisP = synthesisEl.querySelector('.streaming-synthesis');
       if (synthesisP) {
         // Highlight key terms (simple regex replacement for visual distinctness)
         let formattedContent = escapeHtml(streamingState.synthesisContent)
           .replace(/(\*\*[^*]+\*\*)/g, '<strong>$1</strong>')
-          .replace(/(consensus|agreement|unanimous)/gi, '<span class="highlight-agreement">$1</span>')
-          .replace(/(disagreement|tension|conflict|dissent)/gi, '<span class="highlight-tension">$1</span>');
+          .replace(
+            /(consensus|agreement|unanimous)/gi,
+            '<span class="highlight-agreement">$1</span>'
+          )
+          .replace(
+            /(disagreement|tension|conflict|dissent)/gi,
+            '<span class="highlight-tension">$1</span>'
+          );
 
         synthesisP.innerHTML = formattedContent;
 
@@ -170,23 +181,25 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
         updateConsensusMeter(streamingState.synthesisContent);
       }
       break;
+    }
 
-    case "synthesis_complete":
+    case 'synthesis_complete':
       // Final pass to ensure meter is accurate
       updateConsensusMeter(streamingState.synthesisContent);
-      streamingState.synthesisContent = "";
+      streamingState.synthesisContent = '';
       break;
 
-    case "analysis":
+    case 'analysis': {
       // Render analysis panel at top of synthesis
       const analysisHtml = renderAnalysis(update.data);
       // Prepend
       synthesisEl.innerHTML = analysisHtml + synthesisEl.innerHTML;
       break;
+    }
 
-    case "complete":
+    case 'complete':
       statusEl.textContent = `Mode: ${update.result.mode}`;
-      statusEl.className = "muted";
+      statusEl.className = 'muted';
       // Final result is already rendered via streaming
       // Scroll to results on mobile
       if (window.innerWidth <= 768) {
@@ -196,10 +209,10 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
       }
       break;
 
-    case "error":
-      statusEl.textContent = `Error: ${update.error || "Unknown error"}`;
-      statusEl.className = "error";
-      synthesisEl.innerHTML = `<div class="error">${escapeHtml(update.error || "Unknown error")}</div>`;
+    case 'error':
+      statusEl.textContent = `Error: ${update.error || 'Unknown error'}`;
+      statusEl.className = 'error';
+      synthesisEl.innerHTML = `<div class="error">${escapeHtml(update.error || 'Unknown error')}</div>`;
       break;
   }
 }
@@ -208,23 +221,23 @@ export function handleStreamUpdate(update, statusEl, synthesisEl, responsesEl) {
  * Heuristic to update consensus meter based on text keywords
  */
 function updateConsensusMeter(text) {
-  const bar = document.getElementById("consensus-bar");
-  const val = document.getElementById("consensus-value");
+  const bar = document.getElementById('consensus-bar');
+  const val = document.getElementById('consensus-value');
   if (!bar || !val) return;
 
   const content = text.toLowerCase();
   let score = 50; // Neutral default
 
   // Positive indicators
-  if (content.includes("unanimous")) score = 100;
-  else if (content.includes("strong consensus") || content.includes("strongly agree")) score = 90;
-  else if (content.includes("general consensus") || content.includes("mostly agree")) score = 75;
-  else if (content.includes("agreement")) score += 10;
+  if (content.includes('unanimous')) score = 100;
+  else if (content.includes('strong consensus') || content.includes('strongly agree')) score = 90;
+  else if (content.includes('general consensus') || content.includes('mostly agree')) score = 75;
+  else if (content.includes('agreement')) score += 10;
 
   // Negative indicators
-  if (content.includes("sharp disagreement") || content.includes("conflict")) score = 20;
-  else if (content.includes("diverging") || content.includes("different perspectives")) score = 40;
-  else if (content.includes("tension")) score -= 10;
+  if (content.includes('sharp disagreement') || content.includes('conflict')) score = 20;
+  else if (content.includes('diverging') || content.includes('different perspectives')) score = 40;
+  else if (content.includes('tension')) score -= 10;
 
   // Clamp
   score = Math.max(0, Math.min(100, score));
@@ -233,9 +246,11 @@ function updateConsensusMeter(text) {
   val.textContent = `${score}%`;
 
   // Color shift
-  if (score > 70) bar.style.background = "var(--accent-green)"; // High agreement
-  else if (score < 40) bar.style.background = "var(--accent-red)"; // High conflict
-  else bar.style.background = "linear-gradient(90deg, var(--accent-gold), #f4d03f)"; // Mixed
+  if (score > 70)
+    bar.style.background = 'var(--accent-green)'; // High agreement
+  else if (score < 40)
+    bar.style.background = 'var(--accent-red)'; // High conflict
+  else bar.style.background = 'linear-gradient(90deg, var(--accent-gold), #f4d03f)'; // Mixed
 }
 
 /**
@@ -246,7 +261,7 @@ function renderStructuredSynthesis(structured) {
 
   if (structured.key_points_of_agreement && structured.key_points_of_agreement.length > 0) {
     html += '<section class="structured-section"><h4>Key Points of Agreement</h4><ul>';
-    structured.key_points_of_agreement.forEach(point => {
+    structured.key_points_of_agreement.forEach((point) => {
       html += `<li>${escapeHtml(point)}</li>`;
     });
     html += '</ul></section>';
@@ -254,7 +269,7 @@ function renderStructuredSynthesis(structured) {
 
   if (structured.key_points_of_tension && structured.key_points_of_tension.length > 0) {
     html += '<section class="structured-section"><h4>Key Points of Tension</h4><ul>';
-    structured.key_points_of_tension.forEach(point => {
+    structured.key_points_of_tension.forEach((point) => {
       html += `<li>${escapeHtml(point)}</li>`;
     });
     html += '</ul></section>';
@@ -266,11 +281,13 @@ function renderStructuredSynthesis(structured) {
 
   if (structured.action_items && structured.action_items.length > 0) {
     html += '<section class="structured-section"><h4>Action Items</h4><ul class="action-items">';
-    structured.action_items.forEach(item => {
+    structured.action_items.forEach((item) => {
       const priority = item.priority || 'medium';
       const priorityClass = priority.toLowerCase();
       const owner = item.owner ? ` <span class="muted">(${escapeHtml(item.owner)})</span>` : '';
-      const due = item.due_date ? ` <span class="muted">- Due: ${escapeHtml(item.due_date)}</span>` : '';
+      const due = item.due_date
+        ? ` <span class="muted">- Due: ${escapeHtml(item.due_date)}</span>`
+        : '';
       html += `<li class="action-item priority-${priorityClass}">${escapeHtml(item.description)}${owner}${due}</li>`;
     });
     html += '</ul></section>';
@@ -278,7 +295,7 @@ function renderStructuredSynthesis(structured) {
 
   if (structured.recommendations && structured.recommendations.length > 0) {
     html += '<section class="structured-section"><h4>Recommendations</h4>';
-    structured.recommendations.forEach(rec => {
+    structured.recommendations.forEach((rec) => {
       const confidence = rec.confidence || 'medium';
       const confClass = confidence.toLowerCase();
       html += `<div class="recommendation confidence-${confClass}">`;
@@ -297,14 +314,14 @@ function renderStructuredSynthesis(structured) {
     html += '<section class="structured-section"><h4>Pros and Cons</h4>';
     if (structured.pros_cons.pros && structured.pros_cons.pros.length > 0) {
       html += '<div class="pros-cons"><div class="pros"><h5>Pros</h5><ul>';
-      structured.pros_cons.pros.forEach(pro => {
+      structured.pros_cons.pros.forEach((pro) => {
         html += `<li>${escapeHtml(pro)}</li>`;
       });
       html += '</ul></div>';
     }
     if (structured.pros_cons.cons && structured.pros_cons.cons.length > 0) {
       html += '<div class="cons"><h5>Cons</h5><ul>';
-      structured.pros_cons.cons.forEach(con => {
+      structured.pros_cons.cons.forEach((con) => {
         html += `<li>${escapeHtml(con)}</li>`;
       });
       html += '</ul></div>';
@@ -323,14 +340,15 @@ function renderStructuredSynthesis(structured) {
  * Render Analysis Result
  */
 function renderAnalysis(analysis) {
-  if (!analysis) return "";
+  if (!analysis) return '';
 
   const score = analysis.consensus_score || 50;
-  let scoreColor = "var(--accent-gold)";
-  if (score >= 75) scoreColor = "var(--accent-green)";
-  if (score <= 40) scoreColor = "var(--accent-red)";
+  let scoreColor = 'var(--accent-gold)';
+  if (score >= 75) scoreColor = 'var(--accent-green)';
+  if (score <= 40) scoreColor = 'var(--accent-red)';
 
-  let html = '<div class="analysis-panel" style="background: var(--surface-2); padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border);">';
+  let html =
+    '<div class="analysis-panel" style="background: var(--surface-2); padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border);">';
   html += '<h3 style="margin-top:0;">🔍 Council Analysis</h3>';
 
   // Consensus Meter
@@ -351,14 +369,14 @@ function renderAnalysis(analysis) {
   if (analysis.key_themes && analysis.key_themes.length) {
     html += `<div style="margin-top: 12px;"><strong>Key Themes:</strong>`;
     html += `<ul style="margin-top: 4px; padding-left: 20px;">`;
-    analysis.key_themes.forEach(t => html += `<li>${escapeHtml(t)}</li>`);
+    analysis.key_themes.forEach((t) => (html += `<li>${escapeHtml(t)}</li>`));
     html += `</ul></div>`;
   }
 
   if (analysis.tensions && analysis.tensions.length) {
     html += `<div style="margin-top: 12px; color: var(--accent-red);"><strong>⚠️ Points of Tension:</strong>`;
     html += `<ul style="margin-top: 4px; padding-left: 20px;">`;
-    analysis.tensions.forEach(t => html += `<li>${escapeHtml(t)}</li>`);
+    analysis.tensions.forEach((t) => (html += `<li>${escapeHtml(t)}</li>`));
     html += `</ul></div>`;
   }
 
@@ -375,7 +393,7 @@ function renderAnalysis(analysis) {
  */
 export function renderResult(result, statusEl, synthesisEl, responsesEl) {
   statusEl.textContent = `Mode: ${result.mode}`;
-  statusEl.className = "muted";
+  statusEl.className = 'muted';
 
   // Render structured synthesis if available, otherwise use free-form
   if (result.structured_synthesis) {
@@ -383,7 +401,7 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
   } else if (result.synthesis) {
     synthesisEl.innerHTML = `<div class="synthesis"><h3>Synthesis</h3><p>${escapeHtml(result.synthesis)}</p></div>`;
   } else {
-    synthesisEl.innerHTML = "";
+    synthesisEl.innerHTML = '';
   }
 
   // Render Analysis (Phase 2)
@@ -406,16 +424,16 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
         // Extract data to stage
         const payload = {
           question: result.query,
-          responses: result.responses.map(r => ({
+          responses: result.responses.map((r) => ({
             persona_name: r.persona_name || r.persona_id,
-            content: r.content
-          }))
+            content: r.content,
+          })),
         };
 
         const resp = await fetch('/api/reviewer/stage', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         });
 
         if (resp.ok) {
@@ -440,29 +458,30 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
     }
   }
 
-  responsesEl.innerHTML = "";
+  responsesEl.innerHTML = '';
 
   if (result.responses && result.responses.length > 0) {
-    result.responses.forEach(r => {
-      const personaId = r.persona_id || "";
-      const personaName = escapeHtml(r.persona_name || r.persona_id || "Unknown");
-      const emoji = r.persona_emoji || "👤";
-      const content = r.content ? escapeHtml(r.content) : "";
-      const error = r.error ? escapeHtml(r.error) : "";
+    result.responses.forEach((r) => {
+      const personaId = r.persona_id || '';
+      const personaName = escapeHtml(r.persona_name || r.persona_id || 'Unknown');
+      const emoji = r.persona_emoji || '👤';
+      const content = r.content ? escapeHtml(r.content) : '';
+      const error = r.error ? escapeHtml(r.error) : '';
 
       // Get persona data for enhanced card
-      const personaData = window.allPersonas?.find(p => p.id === personaId);
+      const personaData = window.allPersonas?.find((p) => p.id === personaId);
       const focusAreas = personaData?.focus_areas || [];
-      const personaTitle = personaData?.title || "";
-      const personaCategory = personaData?.category || "";
+      const personaTitle = personaData?.title || '';
+      const personaCategory = personaData?.category || '';
 
-      const card = document.createElement("div");
-      card.className = "response response-card-enhanced";
+      const card = document.createElement('div');
+      card.className = 'response response-card-enhanced';
       card.dataset.persona = personaId;
 
-      const focusTags = focusAreas.slice(0, 3).map(area =>
-        `<span class="response-focus-tag">${escapeHtml(area)}</span>`
-      ).join('');
+      const focusTags = focusAreas
+        .slice(0, 3)
+        .map((area) => `<span class="response-focus-tag">${escapeHtml(area)}</span>`)
+        .join('');
 
       card.innerHTML = `
         <div class="response-header">
@@ -480,12 +499,12 @@ export function renderResult(result, statusEl, synthesisEl, responsesEl) {
         </div>
         ${focusTags ? `<div class="response-focus-areas">${focusTags}</div>` : ''}
         <div class="response-content-wrapper">
-          ${content ? `<p>${content}</p>` : ""}
-          ${error ? `<div class="error">Error: ${error}</div>` : ""}
+          ${content ? `<p>${content}</p>` : ''}
+          ${error ? `<div class="error">Error: ${error}</div>` : ''}
         </div>
         <div class="response-details" id="response-details-${personaId}" style="display: none;">
           ${personaCategory ? `<div class="response-category"><strong>Category:</strong> ${escapeHtml(personaCategory)}</div>` : ''}
-          ${focusAreas.length > 3 ? `<div class="response-all-focus"><strong>All Focus Areas:</strong> ${focusAreas.map(a => escapeHtml(a)).join(', ')}</div>` : ''}
+          ${focusAreas.length > 3 ? `<div class="response-all-focus"><strong>All Focus Areas:</strong> ${focusAreas.map((a) => escapeHtml(a)).join(', ')}</div>` : ''}
         </div>
       `;
       responsesEl.appendChild(card);

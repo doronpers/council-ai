@@ -1,3 +1,5 @@
+> **⚠️ INTERNAL PLANNING DOCUMENT**: This is an internal assessment document for integration planning. For user-facing documentation, see [README.md](../README.md) or [documentation/README.md](README.md).
+
 # Council AI + Feedback-Loop Integration Assessment
 
 ## Executive Summary
@@ -18,41 +20,41 @@
 
 **Integration:**
 
-```python
+````python
 # In feedback-loop's code_reviewer.py
 from council_ai import Council
 
 class CouncilCodeReviewer(CodeReviewer):
     """Code reviewer using Council AI for multi-perspective analysis."""
-    
+
     def __init__(self):
         super().__init__()
         # Use coding domain with security, design, and architecture perspectives
         self.council = Council.for_domain("coding", api_key=self.config.get_api_key())
-    
+
     def review_code(self, code: str, context: Optional[str] = None) -> Dict[str, Any]:
         """Get multi-perspective code review."""
         query = f"""
         Review this code:
-        
+
         ```
         {code}
         ```
-        
+
         Context: {context or 'None provided'}
-        
+
         Provide:
         1. Security concerns (Holman)
         2. Design simplicity issues (Rams)
         3. Cognitive load concerns (Kahneman)
         4. Potential risks (Taleb)
         """
-        
+
         result = self.council.consult(query)
-        
+
         # Combine with feedback-loop's pattern library
         patterns = self._match_patterns(code)
-        
+
         return {
             "synthesis": result.synthesis,
             "perspectives": [
@@ -62,7 +64,7 @@ class CouncilCodeReviewer(CodeReviewer):
             "patterns": patterns,
             "debrief": self._generate_debrief(result)
         }
-```
+````
 
 **Benefits:**
 
@@ -84,29 +86,29 @@ class PatternCurator:
     def __init__(self):
         # Use general domain for diverse perspectives
         self.council = Council.for_domain("general")
-    
+
     def validate_pattern(self, pattern: Dict) -> Dict:
         """Use council to validate if a pattern is valuable and well-formed."""
         query = f"""
         Evaluate this coding pattern for inclusion in our pattern library:
-        
+
         Pattern: {pattern['name']}
         Description: {pattern['description']}
         Good Example: {pattern['good_example']}
         Bad Example: {pattern['bad_example']}
-        
+
         Should we include this pattern? Is it:
         1. Clear and actionable?
         2. Genuinely valuable?
         3. Well-documented with good examples?
         4. Not duplicating existing patterns?
         """
-        
+
         result = self.council.consult(query, mode="vote")
-        
+
         # Count votes
         approvals = sum(1 for r in result.responses if "APPROVE" in r.content.upper())
-        
+
         return {
             "approved": approvals >= len(result.responses) * 0.66,
             "votes": result.responses,
@@ -127,19 +129,19 @@ from council_ai import Council
 def consult_on_architecture():
     """Use council for major architecture decisions."""
     council = Council.for_domain("coding")
-    
+
     # Example: deciding on new feature
     result = council.consult("""
     feedback-loop currently stores patterns locally in JSON files.
     Should we:
     A) Add SQLite database support
-    B) Add PostgreSQL support  
+    B) Add PostgreSQL support
     C) Keep JSON but add caching layer
     D) Move to cloud-native storage (DynamoDB/Firebase)
-    
+
     Consider: simplicity, reliability, team collaboration, future scale.
     """)
-    
+
     print(result.to_markdown())
 ```
 
@@ -159,15 +161,15 @@ def get_test_strategy(failure_info):
     council.add_member("kahneman")  # Cognitive biases
     council.add_member("taleb")     # Risk/edge cases
     council.add_member("holman")    # Security testing
-    
+
     result = council.consult(f"""
     Our tests are failing in these areas:
     {failure_info}
-    
+
     What testing strategies should we prioritize?
     What edge cases are we likely missing?
     """)
-    
+
     return result
 ```
 
@@ -281,7 +283,7 @@ council-ai-custom/       (PRIVATE - optional)
 
 ## Code Example: Integration
 
-```python
+````python
 # feedback-loop/metrics/council_integration.py
 
 from typing import Optional
@@ -290,7 +292,7 @@ from .config_manager import ConfigManager
 
 class FeedbackLoopCouncil:
     """Integration point between feedback-loop and Council AI."""
-    
+
     def __init__(self):
         self.config = ConfigManager()
         api_key = (
@@ -299,7 +301,7 @@ class FeedbackLoopCouncil:
             self.config.get("gemini_api_key")
         )
         self.council = Council.for_domain("coding", api_key=api_key)
-    
+
     def review_code(self, code: str, patterns: list) -> dict:
         """Review code with council, incorporating feedback-loop patterns."""
         context = f"Known patterns: {', '.join(p['name'] for p in patterns)}"
@@ -312,7 +314,7 @@ class FeedbackLoopCouncil:
             "perspectives": result.responses,
             "timestamp": result.timestamp
         }
-    
+
     def validate_pattern(self, pattern: dict) -> bool:
         """Validate a pattern using council voting."""
         result = self.council.consult(
@@ -321,14 +323,14 @@ class FeedbackLoopCouncil:
         )
         approvals = sum(1 for r in result.responses if "APPROVE" in r.content.upper())
         return approvals >= len(result.responses) * 0.66
-    
+
     def suggest_test_strategy(self, failures: list) -> dict:
         """Get council recommendations for test improvements."""
         result = self.council.consult(
             f"Our tests are failing:\n\n{failures}\n\nWhat should we do?"
         )
         return {"advice": result.synthesis, "details": result.responses}
-```
+````
 
 ---
 

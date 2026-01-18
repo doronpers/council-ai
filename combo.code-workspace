@@ -1,49 +1,49 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../doronpers-dev-toolkit"
-		},
-		{
-			"path": "../drrweb"
-		},
-		{
-			"path": "../feedback-loop"
-		},
-		{
-			"path": "../memu"
-		},
-		{
-			"path": "../planning-with-files"
-		},
-		{
-			"path": "../shared-ai-utils"
-		},
-		{
-			"path": "../sono-eval"
-		},
-		{
-			"path": "../sono-platform"
-		},
-		{
-			"path": "../sonotheia-examples"
-		},
-		{
-			"path": "../spatial-selecta"
-		},
-		{
-			"path": "../superset"
-		},
-		{
-			"path": "../tex-assist-coding"
-		},
-		{
-			"path": "../Website-Sonotheia-v251120"
-		}
-	],
-	"settings": {
-		"git.ignoreLimitWarning": true
-	}
+  "folders": [
+    {
+      "path": ".",
+    },
+    {
+      "path": "../doronpers-dev-toolkit",
+    },
+    {
+      "path": "../drrweb",
+    },
+    {
+      "path": "../feedback-loop",
+    },
+    {
+      "path": "../memu",
+    },
+    {
+      "path": "../planning-with-files",
+    },
+    {
+      "path": "../shared-ai-utils",
+    },
+    {
+      "path": "../sono-eval",
+    },
+    {
+      "path": "../sono-platform",
+    },
+    {
+      "path": "../sonotheia-examples",
+    },
+    {
+      "path": "../spatial-selecta",
+    },
+    {
+      "path": "../superset",
+    },
+    {
+      "path": "../tex-assist-coding",
+    },
+    {
+      "path": "../Website-Sonotheia-v251120",
+    },
+  ],
+  "settings": {
+    "git.ignoreLimitWarning": true,
+  },
 }

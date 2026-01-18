@@ -32,14 +32,14 @@ from sqlalchemy.orm import sessionmaker
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
-from council_ai.core.history import ConsultationHistory
-from council_ai.core.session import ConsultationResult, MemberResponse
+from council_ai.core.history import ConsultationHistory  # noqa: E402
 
 # Add database directory to path for imports
 database_dir = Path(__file__).parent.parent / "database"
 sys.path.insert(0, str(database_dir))
 
-from models import Consultation, ConsultationStats, MemberResponse as DBMemberResponse
+from models import Consultation  # noqa: E402
+from models import MemberResponse as DBMemberResponse  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ class ConsultationExporter:
         Returns:
             List of consultation data dictionaries
         """
-        logger.info(f"Loading consultations from history...")
+        logger.info("Loading consultations from history...")
         consultations = []
 
         # Initialize history
@@ -138,7 +138,9 @@ class ConsultationExporter:
                 mode=consultation_data.get("mode", "synthesis"),
                 timestamp=timestamp,
                 synthesis=consultation_data.get("synthesis"),
-                synthesis_length=len(consultation_data.get("synthesis", "")) if consultation_data.get("synthesis") else 0,
+                synthesis_length=len(consultation_data.get("synthesis", ""))
+                if consultation_data.get("synthesis")
+                else 0,
                 tags=consultation_data.get("tags", []),
                 notes=consultation_data.get("notes"),
                 metadata=consultation_data.get("metadata", {}),
@@ -149,8 +151,12 @@ class ConsultationExporter:
             # Export member responses
             for response_data in responses_data:
                 if isinstance(response_data, dict):
-                    member_name = response_data.get("member_name") or response_data.get("member", "unknown")
-                    persona_name = response_data.get("persona_name") or response_data.get("persona", "")
+                    member_name = response_data.get("member_name") or response_data.get(
+                        "member", "unknown"
+                    )
+                    persona_name = response_data.get("persona_name") or response_data.get(
+                        "persona", ""
+                    )
                     response_text = response_data.get("response") or response_data.get("text", "")
                 else:
                     # Handle MemberResponse object if serialized differently
@@ -172,12 +178,12 @@ class ConsultationExporter:
             return True
 
         except Exception as e:
-            logger.error(f"Error exporting consultation {consultation_data.get('id', 'unknown')}: {e}")
+            logger.error(
+                f"Error exporting consultation {consultation_data.get('id', 'unknown')}: {e}"
+            )
             return False
 
-    def export_all(
-        self, storage_path: Optional[Path] = None, use_sqlite: bool = True
-    ) -> int:
+    def export_all(self, storage_path: Optional[Path] = None, use_sqlite: bool = True) -> int:
         """Export all consultations to database.
 
         Args:

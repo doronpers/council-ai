@@ -6,13 +6,7 @@ This script demonstrates the core features of Council AI without requiring
 an API key - perfect for understanding the system before diving in.
 """
 
-from council_ai import (
-    Council,
-    get_domain,
-    get_persona,
-    list_domains,
-    list_personas,
-)
+from council_ai import Council, get_domain, get_persona, list_domains, list_personas
 
 
 def print_section(title: str):

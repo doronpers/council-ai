@@ -19,13 +19,16 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 from ..providers import (
+    LLMManager,
     LLMProvider,
+    get_llm_manager,
     get_provider,
     normalize_model_params,
     validate_model_params,
 )
 from .config import get_api_key
 from .persona import Persona, PersonaManager, get_persona_manager
+from .reasoning import ReasoningMode, get_reasoning_prompt, get_reasoning_suffix
 from .schemas import SynthesisSchema
 from .session import ConsultationResult, MemberResponse, Session
 
@@ -65,6 +68,10 @@ class CouncilConfig(BaseModel):
     export_enabled_state: bool = False
     # Enable separate consensus analysis pass
     enable_analysis: bool = True
+    # Web search and reasoning capabilities
+    enable_web_search: bool = False  # Enable web search for consultations
+    web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
+    reasoning_mode: Optional[str] = None  # "chain_of_thought", "tree_of_thought", etc.
 
 
 class Council:
@@ -74,10 +81,17 @@ class Council:
     The Council orchestrates conversations with multiple personas,
     synthesizes their perspectives, and provides comprehensive advice.
 
+    Key Features:
+    - Personas can use various LLM providers simultaneously
+    - Each persona can have unique model/provider settings
+    - Automatic fallback to available LLM providers
+    - Heterogeneous councils: different personas use different providers
+
     Example:
         council = Council(api_key="your-key", provider="anthropic")
-        council.add_member("rams")
-        council.add_member("grove")
+        council.add_member("rams")  # Uses Claude Opus (if available)
+        council.add_member("kahneman")  # Uses GPT-4 Turbo (if available)
+        council.add_member("grove")  # Uses council default provider
 
         result = council.consult("Should we redesign our API?")
         print(result.synthesis)
@@ -100,8 +114,9 @@ class Council:
         Initialize a Council.
 
         Args:
-            api_key: API key for the LLM provider (or set via environment)
-            provider: LLM provider name ("anthropic", "openai", etc.)
+            api_key: API key for the default LLM provider (or set via environment)
+            provider: Default LLM provider name ("anthropic", "openai", etc.)
+                     Individual personas can override this with their own providers
             config: Council configuration
             persona_manager: Custom persona manager (uses global if None)
             model: Model name override
@@ -115,6 +130,7 @@ class Council:
         self._persona_manager = persona_manager or get_persona_manager()
         self._members: Dict[str, Persona] = {}
         self._provider: Optional[LLMProvider] = None
+        self._llm_manager: Optional[LLMManager] = None
         self._provider_name = provider
         self._api_key = api_key
         self._model = model
@@ -124,11 +140,14 @@ class Council:
         self._current_session: Optional[Session] = None
         self._history = history
 
+        # Web search tool (initialized lazily)
+        self._web_search_tool: Optional[Any] = None
+
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
-            []
-        )
+        self._pre_consult_hooks: List[
+            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
+        ] = []
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -165,68 +184,123 @@ class Council:
 
         return council
 
+    def _get_llm_manager(self) -> LLMManager:
+        """Get or create the LLMManager."""
+        if self._llm_manager is None:
+            self._llm_manager = get_llm_manager(
+                preferred_provider=self._provider_name,
+                api_key=self._api_key,
+                model=self._model,
+                base_url=self._base_url,
+            )
+        return self._llm_manager
+
     def _get_provider(self, fallback: bool = True) -> LLMProvider:
         """
-        Get or create the LLM provider.
+        Get or create the default LLM provider with robust fallback mechanism.
+
+        This is the default provider used by personas that don't specify their own.
+        Individual personas can override this via their provider/model settings.
 
         Args:
-            fallback: If True, will try fallback providers if primary fails
+            fallback: If True, will try all available LLM providers if primary fails
 
         Returns:
             LLMProvider instance
         """
         if self._provider is None:
-            try:
-                self._provider = get_provider(
-                    self._provider_name,
-                    api_key=self._api_key,
-                    model=self._model,
-                    base_url=self._base_url,
-                )
-            except (ValueError, ImportError) as e:
-                if fallback:
-                    # Try fallback providers in order: anthropic, gemini, openai
-                    fallback_order = ["anthropic", "gemini", "openai"]
-                    fallback_order = [p for p in fallback_order if p != self._provider_name]
+            manager = self._get_llm_manager()
+            self._provider = manager.get_provider(self._provider_name)
 
-                    last_error = e
-                    for fallback_provider in fallback_order:
-                        fallback_key = get_api_key(fallback_provider)
-                        if fallback_key:
-                            try:
-                                self._provider = get_provider(
-                                    fallback_provider,
-                                    api_key=fallback_key,
-                                    model=self._model,
-                                    base_url=self._base_url,
-                                )
-                                logger.warning(
-                                    f"{self._provider_name} provider failed ({e}). "
-                                    f"Falling back to {fallback_provider}."
-                                )
-                                self._provider_name = fallback_provider
-                                break
-                            except Exception as fallback_error:
-                                logger.debug(
-                                    f"Fallback to {fallback_provider} also failed: {fallback_error}"
-                                )
-                                continue
+            if self._provider is None and fallback:
+                # Try LLMManager's preferred provider first
+                preferred_provider = manager.preferred_provider
+                if preferred_provider != self._provider_name:
+                    self._provider = manager.get_provider(preferred_provider)
+                    if self._provider is not None:
+                        logger.warning(
+                            "Provider '%s' unavailable; falling back to '%s'.",
+                            self._provider_name,
+                            preferred_provider,
+                        )
+                        self._provider_name = preferred_provider
 
-                    if self._provider is None:
-                        raise ValueError(
-                            f"Primary provider '{self._provider_name}' failed: {str(last_error)}. "
-                            f"No fallback providers available. Please check your API keys. "
-                            f"Run 'council providers --diagnose' for troubleshooting."
-                        ) from last_error
+                # If still no provider, try all available providers in priority order
+                if self._provider is None:
+                    from .config import get_available_providers
+
+                    available = get_available_providers()
+                    # Priority order: anthropic > openai > gemini > vercel > generic
+                    priority = ["anthropic", "openai", "gemini", "vercel", "generic"]
+
+                    for preferred in priority:
+                        for provider_name, api_key in available:
+                            if (
+                                provider_name == preferred
+                                and api_key
+                                and provider_name != self._provider_name
+                            ):
+                                try:
+                                    from ..providers import get_provider
+
+                                    test_provider = get_provider(
+                                        provider_name,
+                                        api_key=api_key,
+                                        model=self._model,
+                                        base_url=self._base_url,
+                                    )
+                                    if test_provider:
+                                        self._provider = test_provider
+                                        logger.warning(
+                                            "Provider '%s' unavailable; falling back to '%s'.",
+                                            self._provider_name,
+                                            provider_name,
+                                        )
+                                        self._provider_name = provider_name
+                                        self._api_key = api_key
+                                        break
+                                except Exception as e:
+                                    logger.debug(
+                                        f"Failed to initialize fallback provider {provider_name}: {e}"
+                                    )
+                                    continue
+                        if self._provider is not None:
+                            break
+
+            if self._provider is None:
+                from .config import get_available_providers
+
+                available_names = [p for p, k in get_available_providers() if k]
+                if available_names:
+                    available_str = ", ".join(available_names)
+                    raise ValueError(
+                        f"Provider '{self._provider_name}' unavailable. "
+                        f"Available providers: {available_str}. "
+                        "Please check your API keys or run 'council providers --diagnose'."
+                    )
                 else:
-                    raise
+                    raise ValueError(
+                        f"Provider '{self._provider_name}' unavailable and no fallback providers found. "
+                        "Please set at least one API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, etc.) "
+                        "or run 'council providers --diagnose' for help."
+                    )
         return self._provider
 
     def _get_member_provider(self, member: Persona, default_provider: LLMProvider) -> LLMProvider:
-        """Get or create a provider for a specific member's model/provider override."""
+        """
+        Get or create an LLM provider for a specific member's model/provider override.
+
+        Council AI supports personas using various LLM providers simultaneously.
+        Each persona can have unique model/provider settings. If the persona's
+        specified provider is unavailable, falls back to the default provider.
+
+        This enables heterogeneous councils where different personas use different
+        LLM providers (e.g., rams uses Claude, kahneman uses GPT-4) simultaneously.
+        """
         provider_name = member.provider or self._provider_name
         model_name = member.model or self._model
 
+        # If persona uses same provider/model as default, reuse it
         if provider_name == self._provider_name and model_name == self._model:
             return default_provider
 
@@ -237,39 +311,58 @@ class Council:
                 if provider_name != self._provider_name
                 else self._api_key
             )
-            self._provider_cache[cache_key] = get_provider(
-                provider_name,
-                api_key=api_key,
-                model=model_name,
-                base_url=self._base_url,
-            )
+
+            # Try to create provider for persona's specific model/provider
+            try:
+                self._provider_cache[cache_key] = get_provider(
+                    provider_name,
+                    api_key=api_key,
+                    model=model_name,
+                    base_url=self._base_url,
+                )
+            except Exception:
+                # If persona's provider is unavailable, fall back to default
+                logger.warning(
+                    f"Persona '{member.id}' requested provider '{provider_name}' unavailable; "
+                    f"using default provider '{self._provider_name}' instead."
+                )
+                return default_provider
+
         return self._provider_cache[cache_key]
 
     def _get_synthesis_provider(self, default_provider: LLMProvider) -> LLMProvider:
         """Get or create a provider for synthesis-specific overrides."""
+        if not self._has_synthesis_overrides():
+            return default_provider
+
         provider_name = self.config.synthesis_provider or self._provider_name
         model_name = self.config.synthesis_model or self._model
-
-        if (
-            provider_name == self._provider_name
-            and model_name == self._model
-            and not self.config.synthesis_provider
-            and not self.config.synthesis_model
-        ):
-            return default_provider
 
         cache_key = (provider_name, model_name, self._base_url)
         if cache_key not in self._provider_cache:
             api_key = get_api_key(provider_name)
             if api_key is None and provider_name == self._provider_name:
                 api_key = self._api_key
-            self._provider_cache[cache_key] = get_provider(
-                provider_name,
-                api_key=api_key,
-                model=model_name,
-                base_url=self._base_url,
-            )
+            try:
+                self._provider_cache[cache_key] = get_provider(
+                    provider_name,
+                    api_key=api_key,
+                    model=model_name,
+                    base_url=self._base_url,
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Synthesis provider '{provider_name}' unavailable; "
+                    f"using default provider '{self._provider_name}' instead: {e}"
+                )
+                # Cache the fallback decision to avoid repeated failed instantiation attempts.
+                self._provider_cache[cache_key] = default_provider
+                return default_provider
         return self._provider_cache[cache_key]
+
+    def _has_synthesis_overrides(self) -> bool:
+        """Return True when synthesis-specific provider/model overrides are set."""
+        return bool(self.config.synthesis_provider or self.config.synthesis_model)
 
     def _resolve_member_generation_params(self, member: Persona) -> Dict[str, Any]:
         """Resolve per-member generation parameters."""
@@ -280,6 +373,39 @@ class Council:
         }
         validate_model_params(params)
         return params
+
+    def _get_web_search_tool(self):
+        """Get or create web search tool."""
+        if self._web_search_tool is None and self.config.enable_web_search:
+            try:
+                from ..tools.web_search import WebSearchTool
+
+                self._web_search_tool = WebSearchTool()
+            except (ValueError, ImportError) as e:
+                logger.warning(f"Web search not available: {e}")
+                self._web_search_tool = None
+        return self._web_search_tool
+
+    async def _enhance_context_with_web_search(
+        self, query: str, context: Optional[str], member: Persona
+    ) -> Optional[str]:
+        """Enhance context with web search if enabled."""
+        # Check if web search is enabled (council-level or persona-level)
+        if not self.config.enable_web_search and not member.enable_web_search:
+            return None
+
+        web_search = self._get_web_search_tool()
+        if not web_search:
+            return None
+
+        try:
+            # Perform web search
+            search_response = await web_search.search(query, max_results=3)
+            search_context = web_search.format_search_results(search_response)
+            return f"{context or ''}\n\n{search_context}".strip()
+        except Exception as e:
+            logger.warning(f"Web search failed: {e}")
+            return None
 
     # ═══════════════════════════════════════════════════════════════════════════
     # Member Management
@@ -444,11 +570,23 @@ class Council:
         # Start/Resume session first to potentially get recall context
         session = self._start_session(query, context, session_id=session_id)
 
-        # Auto-recall context from history if not explicitly provided
+        # Auto-recall context from history and MemU if not explicitly provided
         if auto_recall and self._history and not context:
-            recall_context = self._history.get_recent_context(session.session_id)
-            if recall_context:
-                context = f"PREVIOUS CONVERSATION CONTEXT:\n{recall_context}"
+            context_parts = []
+
+            # Get recent conversation context
+            recent_context = self._history.get_recent_context(session.session_id)
+            if recent_context:
+                context_parts.append(f"PREVIOUS CONVERSATION CONTEXT:\n{recent_context}")
+
+            # Get MemU memory context
+            memu_context = self._history.get_memu_context(query, session.session_id)
+            if memu_context:
+                context_parts.append(f"MEMORY CONTEXT:\n{memu_context}")
+
+            # Combine contexts if we have any
+            if context_parts:
+                context = "\n\n".join(context_parts)
 
         # Get active members
         active_members = self._get_active_members(members)
@@ -503,18 +641,22 @@ class Council:
                 )
 
         # Run Analysis Phase (Phase 2 Enhancement)
-        analysis = None
-        if self.config.enable_analysis and len(responses) > 1 and mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL):
+        if (
+            self.config.enable_analysis
+            and len(responses) > 1
+            and mode
+            in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL)
+        ):
             try:
                 from .analysis import AnalysisEngine
-                
+
                 # Use synthesis provider (usually strongest model) for analysis
                 analysis_provider = self._get_synthesis_provider(provider)
                 engine = AnalysisEngine(analysis_provider)
-                
+
                 # Convert MemberResponse objects to dicts for the engine
                 resp_dicts = [r.to_dict() for r in responses]
-                analysis = await engine.analyze(query, context, resp_dicts)
+                await engine.analyze(query, context, resp_dicts)
                 logger.debug("Consultation analysis matched.")
             except Exception as e:
                 logger.warning(f"Analysis phase failed: {e}")
@@ -534,14 +676,32 @@ class Council:
         session.add_consultation(result)
 
         # Run post-consult hooks
-        for hook in self._post_consult_hooks:
-            result = hook(result)
+        for post_hook in self._post_consult_hooks:
+            result = post_hook(result)
 
         # Auto-save to history if enabled
         if self._history:
             try:
-                self._history.save(result)
+                consultation_id = self._history.save(result)
                 self._history.save_session(session)
+
+                # Save cost records
+                if consultation_id:
+                    from .cost_tracker import get_cost_tracker
+
+                    cost_tracker = get_cost_tracker()
+                    for cost_record in cost_tracker.get_records():
+                        self._history.save_cost(
+                            consultation_id=consultation_id,
+                            provider=cost_record.provider,
+                            model=cost_record.model,
+                            input_tokens=cost_record.input_tokens,
+                            output_tokens=cost_record.output_tokens,
+                            cost_usd=cost_record.cost_usd,
+                            session_id=session.session_id if session else None,
+                        )
+                    # Clear tracker for next consultation
+                    cost_tracker.clear()
             except Exception as e:
                 # Don't fail consultation if history save fails
                 logger.warning(f"Failed to save consultation to history: {e}")
@@ -567,11 +727,23 @@ class Council:
         # Start/Resume session first
         session = self._start_session(query, context, session_id=session_id)
 
-        # Auto-recall context
+        # Auto-recall context from history and MemU if not explicitly provided
         if auto_recall and self._history and not context:
-            recall_context = self._history.get_recent_context(session.session_id)
-            if recall_context:
-                context = f"PREVIOUS CONVERSATION CONTEXT:\n{recall_context}"
+            context_parts = []
+
+            # Get recent conversation context
+            recent_context = self._history.get_recent_context(session.session_id)
+            if recent_context:
+                context_parts.append(f"PREVIOUS CONVERSATION CONTEXT:\n{recent_context}")
+
+            # Get MemU memory context
+            memu_context = self._history.get_memu_context(query, session.session_id)
+            if memu_context:
+                context_parts.append(f"MEMORY CONTEXT:\n{memu_context}")
+
+            # Combine contexts if we have any
+            if context_parts:
+                context = "\n\n".join(context_parts)
 
         # Get active members
         active_members = self._get_active_members(members)
@@ -644,23 +816,28 @@ class Council:
 
         # Run Analysis Phase (Phase 2 Enhancement) - Streaming
         analysis = None
-        if self.config.enable_analysis and len(responses) > 1 and mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL):
+        if (
+            self.config.enable_analysis
+            and len(responses) > 1
+            and mode
+            in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL)
+        ):
             try:
                 from .analysis import AnalysisEngine
-                
+
                 # Use synthesis provider
                 analysis_provider = self._get_synthesis_provider(provider)
                 engine = AnalysisEngine(analysis_provider)
-                
+
                 # Convert MemberResponse objects to dicts
                 resp_dicts = [r.to_dict() for r in responses]
-                
+
                 # Yield progress
                 yield {"type": "progress", "message": "Analyzing consensus..."}
-                
+
                 # Run analysis
                 analysis = await engine.analyze(query, context, resp_dicts)
-                
+
                 # Yield analysis result event for UI
                 if analysis:
                     yield {"type": "analysis", "data": analysis.model_dump()}
@@ -686,14 +863,32 @@ class Council:
         result.session_id = session.session_id
 
         # Run post-consult hooks
-        for hook in self._post_consult_hooks:
-            result = hook(result)
+        for post_hook in self._post_consult_hooks:
+            result = post_hook(result)
 
         # Auto-save to history if enabled
         if self._history:
             try:
-                self._history.save(result)
+                consultation_id = self._history.save(result)
                 self._history.save_session(session)
+
+                # Save cost records
+                if consultation_id:
+                    from .cost_tracker import get_cost_tracker
+
+                    cost_tracker = get_cost_tracker()
+                    for cost_record in cost_tracker.get_records():
+                        self._history.save_cost(
+                            consultation_id=consultation_id,
+                            provider=cost_record.provider,
+                            model=cost_record.model,
+                            input_tokens=cost_record.input_tokens,
+                            output_tokens=cost_record.output_tokens,
+                            cost_usd=cost_record.cost_usd,
+                            session_id=session.session_id if session else None,
+                        )
+                    # Clear tracker for next consultation
+                    cost_tracker.clear()
             except Exception as e:
                 # Don't fail consultation if history save fails
                 logger.warning(f"Failed to save consultation to history: {e}")
@@ -794,20 +989,97 @@ REASONING: [your reasoning]
         query: str,
         context: Optional[str],
     ) -> MemberResponse:
-        """Get a single member's response."""
+        """
+        Get a single member's response using their preferred LLM provider.
+
+        Each persona can use a different LLM provider if configured.
+        This enables heterogeneous councils with personas using various providers.
+        """
+        # Enhance context with web search if enabled
+        enhanced_context = await self._enhance_context_with_web_search(query, context, member)
+        if enhanced_context:
+            context = enhanced_context
+
+        # Apply reasoning mode
+        reasoning_mode_str = member.reasoning_mode or self.config.reasoning_mode
+        reasoning_mode = None
+        if reasoning_mode_str:
+            try:
+                # Normalize to lowercase with underscores to match enum values
+                normalized = str(reasoning_mode_str).lower().replace("-", "_")
+                reasoning_mode = ReasoningMode(normalized)
+            except ValueError:
+                logger.warning(
+                    f"Invalid reasoning mode: {reasoning_mode_str}. "
+                    f"Valid modes: {[m.value for m in ReasoningMode]}"
+                )
+
         system_prompt = member.get_system_prompt()
+        if reasoning_mode:
+            system_prompt = get_reasoning_prompt(reasoning_mode, system_prompt)
+
         user_prompt = member.format_response_prompt(query, context)
+        if reasoning_mode:
+            suffix = get_reasoning_suffix(reasoning_mode)
+            if suffix:
+                user_prompt = f"{user_prompt}{suffix}"
 
         try:
             member_provider = self._get_member_provider(member, provider)
             params = self._resolve_member_generation_params(member)
-            response = await member_provider.complete(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                max_tokens=params["max_tokens"],
-                temperature=params["temperature"],
-            )
+            if member_provider is provider:
+                manager = self._get_llm_manager()
+                response = await asyncio.wait_for(
+                    manager.generate(
+                        system_prompt=system_prompt,
+                        user_prompt=user_prompt,
+                        provider=self._provider_name,
+                        fallback=True,
+                        max_tokens=params["max_tokens"],
+                        temperature=params["temperature"],
+                    ),
+                    timeout=120.0,
+                )
+            else:
+                response = await asyncio.wait_for(
+                    member_provider.complete(
+                        system_prompt=system_prompt,
+                        user_prompt=user_prompt,
+                        max_tokens=params["max_tokens"],
+                        temperature=params["temperature"],
+                    ),
+                    timeout=120.0,
+                )
             content = response.text
+
+            # Track cost if history is available
+            if (
+                self._history
+                and hasattr(response, "input_tokens")
+                and hasattr(response, "output_tokens")
+            ):
+                try:
+                    from .cost_tracker import get_cost_tracker
+
+                    cost_tracker = get_cost_tracker()
+
+                    # Get provider and model info
+                    provider_name = self._provider_name
+                    model_name = member.model or self._model or "unknown"
+
+                    # Calculate and record cost
+                    cost_tracker.record_cost(
+                        provider=provider_name,
+                        model=model_name,
+                        input_tokens=getattr(response, "input_tokens", 0),
+                        output_tokens=getattr(response, "output_tokens", 0),
+                    )
+
+                    # Store cost in history if we have a consultation ID
+                    # (We'll need to pass this through or store it temporarily)
+                    # For now, we'll store it when the consultation is saved
+                except Exception as e:
+                    logger.warning(f"Failed to track cost: {e}")
 
             # Run response hooks
             for hook in self._response_hooks:
@@ -920,13 +1192,66 @@ REASONING: [your reasoning]
         query: str,
         context: Optional[str],
     ) -> AsyncIterator[Dict[str, Any]]:
-        """Get individual responses from all members (streaming, sequential for simplicity)."""
-        # Stream each member's response sequentially
-        # TODO: Optimize to stream multiple members concurrently in future
-        for member in members:
-            yield {"type": "progress", "message": f"Consulting {member.name}..."}
-            async for update in self._get_member_response_stream(provider, member, query, context):
-                yield update
+        """
+        Get individual responses from all members concurrently (streaming).
+
+        All personas are consulted in parallel, with their stream updates
+        merged and yielded as they arrive. This provides faster overall
+        response time while still streaming real-time updates.
+        """
+        if not members:
+            return
+
+        queue: asyncio.Queue[object] = asyncio.Queue()
+        done_sentinel = object()
+
+        async def consume_member_stream(member: Persona) -> None:
+            """Consume a single member's stream and put updates in the queue."""
+            try:
+                async for update in self._get_member_response_stream(
+                    provider, member, query, context
+                ):
+                    if isinstance(update, dict) and "persona_id" not in update:
+                        update = {**update, "persona_id": member.id}
+                    await queue.put(update)
+            except Exception as e:
+                logger.error("Error in stream for %s: %s", member.name, e)
+                response = MemberResponse(
+                    persona=member,
+                    content=f"[Error getting response: {e}]",
+                    timestamp=datetime.now(),
+                    error=str(e),
+                )
+                await queue.put(
+                    {
+                        "type": "response_complete",
+                        "persona_id": member.id,
+                        "response": response,
+                    }
+                )
+            finally:
+                await queue.put(done_sentinel)
+
+        tasks = [asyncio.create_task(consume_member_stream(member)) for member in members]
+
+        completed_streams = 0
+        try:
+            while completed_streams < len(tasks):
+                update = await queue.get()
+                if update is done_sentinel:
+                    completed_streams += 1
+                    continue
+                if isinstance(update, dict) and "persona_id" not in update:
+                    update = {**update, "persona_id": "unknown"}
+                yield update  # type: ignore[misc]
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
 
     async def _consult_sequential_stream(
         self,
@@ -958,7 +1283,8 @@ REASONING: [your reasoning]
         rounds: int = 2,
     ) -> AsyncIterator[Dict[str, Any]]:
         """Debate mode with streaming (simplified - streams first round)."""
-        # For streaming, we'll stream the first round of responses
+        # For streaming, we stream the first round of responses concurrently.
+        # Event ordering is non-deterministic because updates arrive as members respond.
         async for update in self._consult_individual_stream(provider, members, query, context):
             yield update
 
@@ -983,7 +1309,7 @@ VOTE: [your vote]
 CONFIDENCE: [your confidence]
 REASONING: [your reasoning]
 """
-        # Stream individual votes
+        # Stream individual votes concurrently; update order is non-deterministic.
         async for update in self._consult_individual_stream(provider, members, vote_query, context):
             yield update
 
@@ -1011,7 +1337,8 @@ REASONING: [your reasoning]
         synthesis_prompt = self.config.synthesis_prompt or (
             "You are synthesizing perspectives from an advisory council. "
             "Review the following responses and provide a balanced, comprehensive synthesis "
-            "that highlights key points of agreement, important differences, and actionable insights."
+            "that highlights key points of agreement, important differences, "
+            "and actionable insights."
         )
 
         system_prompt = (
@@ -1037,13 +1364,63 @@ Please provide a comprehensive synthesis that:
                 if self.config.synthesis_max_tokens is not None
                 else self.config.max_tokens_per_response * 2
             )
-            response = await provider.complete(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                max_tokens=max_tokens,  # Synthesis can be longer
-                temperature=self.config.temperature,
-            )
-            return response.text
+            if provider is self._provider and not self._has_synthesis_overrides():
+                manager = self._get_llm_manager()
+                response = await manager.generate(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    provider=self._provider_name,
+                    fallback=True,
+                    max_tokens=max_tokens,
+                    temperature=self.config.temperature,
+                )
+            else:
+                response = await provider.complete(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    max_tokens=max_tokens,  # Synthesis can be longer
+                    temperature=self.config.temperature,
+                )
+            synthesis_text = response.text
+
+            # Track synthesis cost
+            if (
+                self._history
+                and hasattr(response, "input_tokens")
+                and hasattr(response, "output_tokens")
+            ):
+                try:
+                    from .cost_tracker import get_cost_tracker
+
+                    cost_tracker = get_cost_tracker()
+
+                    # Get synthesis provider name
+                    if hasattr(provider, "__class__"):
+                        # Try to get provider name from class
+                        provider_class_name = provider.__class__.__name__.lower()
+                        if "anthropic" in provider_class_name:
+                            synthesis_provider_name = "anthropic"
+                        elif "openai" in provider_class_name:
+                            synthesis_provider_name = "openai"
+                        elif "gemini" in provider_class_name:
+                            synthesis_provider_name = "gemini"
+                        else:
+                            synthesis_provider_name = self._provider_name
+                    else:
+                        synthesis_provider_name = self._provider_name
+
+                    synthesis_model = self.config.synthesis_model or self._model or "unknown"
+
+                    cost_tracker.record_cost(
+                        provider=synthesis_provider_name,
+                        model=synthesis_model,
+                        input_tokens=getattr(response, "input_tokens", 0),
+                        output_tokens=getattr(response, "output_tokens", 0),
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to track synthesis cost: {e}")
+
+            return synthesis_text
         except Exception as e:
             logger.error(f"Failed to generate synthesis: {e}")
             # Fallback: simple concatenation
@@ -1085,7 +1462,8 @@ Please provide a comprehensive synthesis that:
 Council Responses:
 {responses_text}
 
-Analyze these responses and provide a structured synthesis in JSON format matching the SynthesisSchema."""
+Analyze these responses and provide a structured synthesis in JSON format \
+matching the SynthesisSchema."""
 
             # Try to get structured output from provider
             max_tokens = (

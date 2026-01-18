@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+- **Added**
 
 - LLM Response Reviewer - Supreme Court-style review system for evaluating multiple LLM responses
   - 9-justice default council with specialist support
@@ -18,14 +18,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Web UI for interactive review sessions
   - Comprehensive documentation in `documentation/REVIEWER_SETUP.md`
 
-### Changed
+- **Changed**
 
 - Improved installation command documentation with proper quoting for bash compatibility
 - Enhanced API key configuration documentation with cross-references
+- Design Audit & Polish:
+  - Updated Persona configurations (Rams, Kahneman, Taleb) with specific default models (`gpt-4-turbo`, `claude-3-opus`) for more nuanced responses
+  - Replaced "Custom Members" text input in Web UI with a visual selection grid
+  - Added 120s timeout to council member queries to prevent system hangs
+  - Refactored frontend logic for better modularity
+- **Frontend Architecture Migration (v2.0.0)**:
+  - Migrated from Vanilla JavaScript to React 18 with TypeScript
+  - Created 25+ modular components organized by feature area
+  - Implemented Context API for state management
+  - Added TypeScript for type safety
+  - Preserved Dieter Rams aesthetic (all CSS retained)
+  - Build produces optimized chunks: react-vendor (138KB), main (26KB)
+
+- **Fixed**
+
+- Fixed 12 failing tests by correcting import paths and mock configurations
+- Removed hardcoded developer path for MemU integration (security issue)
+- Made MemU integration configurable via `MEMU_PATH` environment variable
+- Standardized placeholder API key detection across all modules using `is_placeholder_key()` function
+- Improved error handling in CLI to catch all exception types
+- Fixed import sorting issues
+- Extracted duplicated council assembly code into reusable helper function
+- Improved test infrastructure with better mocking support
 
 ## [1.0.0] - 2026-01-11
 
-### Added
+- **Added**
 
 - Initial release of Council AI
 - 9 built-in expert personas (Rams, Kahneman, Grove, Taleb, Holman, Dempsey, Treasure, signal_analyst, compliance_auditor)
@@ -40,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation and examples
 - Contributing guidelines
 
-### Features
+- **Features**
 
 - **Council Creation**: Domain-based or custom assembly
 - **Persona Management**: Full CRUD operations, trait management
@@ -49,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration**: YAML-based config with CLI management
 - **Extensibility**: Hooks for pre/post processing
 
-### Documentation
+- **Documentation**
 
 - Comprehensive README with examples
 - Quickstart demo (no API key required)

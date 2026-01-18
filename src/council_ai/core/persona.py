@@ -14,7 +14,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import yaml
+import yaml  # type: ignore
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -27,6 +27,7 @@ class PersonaCategory(str, Enum):
     ANALYTICAL = "analytical"  # Deep analysis
     STRATEGIC = "strategic"  # Long-term thinking
     OPERATIONAL = "operational"  # Day-to-day execution
+    RED_TEAM = "red_team"  # Think like an attacker/fraudster
     CUSTOM = "custom"  # User-defined
 
 
@@ -38,6 +39,7 @@ class Trait(BaseModel):
     weight: float = Field(default=1.0, ge=0.0, le=2.0)
 
     def __str__(self) -> str:
+        """Return string representation."""
         return f"{self.name}: {self.description}"
 
 
@@ -87,6 +89,10 @@ class Persona(BaseModel):
     weight: float = Field(default=1.0, ge=0.0, le=2.0)
     enabled: bool = True
 
+    # Reasoning and web search capabilities
+    reasoning_mode: Optional[str] = None  # "chain_of_thought", "tree_of_thought", etc.
+    enable_web_search: bool = False  # Allow this persona to use web search
+
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("id", mode="before")
@@ -97,7 +103,8 @@ class Persona(BaseModel):
         # Ensure it starts with a letter and only contains valid characters
         if not re.match(r"^[a-z][a-z0-9_]*$", normalized):
             raise ValueError(
-                f"ID must start with a letter and contain only lowercase letters, numbers, and underscores: {v}"
+                "ID must start with a letter and contain "
+                f"only lowercase letters, numbers, and underscores: {v}"
             )
         return normalized
 
@@ -208,9 +215,11 @@ When responding:
         return Persona.from_dict(data)
 
     def __str__(self) -> str:
+        """Return string representation."""
         return f"{self.emoji} {self.name} ({self.title})"
 
     def __repr__(self) -> str:
+        """Return debug representation."""
         return f"Persona(id='{self.id}', name='{self.name}')"
 
 
@@ -242,6 +251,20 @@ class PersonaManager:
         )
         return config_dir / "personas"
 
+    def _get_personal_path(self) -> Optional[Path]:
+        """Get path to personal personas from council-ai-personal if available."""
+        try:
+            from .personal_integration import detect_personal_repo
+
+            repo_path = detect_personal_repo()
+            if repo_path:
+                personal_personas = repo_path / "personal" / "personas"
+                if personal_personas.exists():
+                    return personal_personas
+        except Exception:
+            pass
+        return None
+
     def _load_builtin_personas(self) -> None:
         """Load all built-in personas."""
         builtin_path = self._get_builtin_path()
@@ -256,14 +279,23 @@ class PersonaManager:
                     print(f"Warning: Failed to load {yaml_file}: {e}", file=sys.stderr)
 
     def _load_custom_personas(self) -> None:
-        """Load personas from custom paths and user directory."""
-        paths = self._custom_paths + [self._get_user_path()]
+        """Load personas from custom paths, personal repo, and user directory."""
+        paths = list(self._custom_paths)
+
+        # Add personal personas path (loaded before user path; user loads last)
+        personal_path = self._get_personal_path()
+        if personal_path:
+            paths.append(personal_path)
+
+        # Add user path (highest priority, loaded last)
+        paths.append(self._get_user_path())
 
         for path in paths:
-            if path.exists():
+            if path and path.exists():
                 for yaml_file in path.glob("*.yaml"):
                     try:
                         persona = Persona.from_yaml_file(yaml_file)
+                        # Later paths overwrite earlier ones (user configs take priority)
                         self._personas[persona.id] = persona
                     except Exception as e:
                         import sys
@@ -374,7 +406,10 @@ def get_persona_manager() -> PersonaManager:
         from .config import load_config
 
         config = load_config()
-        custom_paths = [config.custom_personas_path] if config.custom_personas_path else None
+        custom_personas_path = config.custom_personas_path
+        custom_paths: Optional[List[Union[str, Path]]] = (
+            [custom_personas_path] if custom_personas_path else None
+        )
         _default_manager = PersonaManager(custom_paths=custom_paths)
     return _default_manager
 

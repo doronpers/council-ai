@@ -1,0 +1,22 @@
+/**
+ * Global CSS Imports
+ *
+ * Import all CSS files from the legacy assets directory.
+ * These will be processed by Vite and bundled appropriately.
+ */
+
+/* Design Tokens and Base Styles */
+@import './tokens.css';
+@import './base.css';
+
+/* Main application styles - Dieter Rams Inspired */
+@import '../../assets/css/main.css';
+
+/* Member selection grid styles */
+@import '../../assets/css/selection.css';
+
+/* Critical above-the-fold styles */
+@import '../../assets/css/critical.css';
+
+/* Mobile responsive styles */
+@import '../../assets/css/mobile.css';

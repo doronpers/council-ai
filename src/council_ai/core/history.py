@@ -1,6 +1,4 @@
-"""
-Consultation History - Persistent storage for consultations.
-"""
+"""Consultation History - Persistent storage for consultations."""
 
 from __future__ import annotations
 
@@ -22,13 +20,13 @@ logger = logging.getLogger(__name__)
 class ConsultationHistory:
     """Manages persistent storage of consultation history."""
 
-    def __init__(self, storage_path: Optional[str] = None, use_sqlite: bool = False):
+    def __init__(self, storage_path: Optional[str] = None, use_sqlite: bool = True):
         """
         Initialize consultation history storage.
 
         Args:
             storage_path: Path to storage directory (defaults to config directory)
-            use_sqlite: If True, use SQLite database; otherwise use JSON files
+            use_sqlite: If True, use SQLite database; otherwise use JSON files (default: True)
         """
         if storage_path:
             self.storage_dir = Path(storage_path)
@@ -37,7 +35,7 @@ class ConsultationHistory:
             options = [
                 os.environ.get("COUNCIL_CONFIG_DIR"),
                 Path.home() / ".config" / "council-ai",
-                Path("/tmp/council-ai"),
+                Path("/tmp/council-ai"),  # nosec B108
             ]
 
             for option in options:
@@ -68,10 +66,16 @@ class ConsultationHistory:
         self._init_memu()
 
     def _init_memu(self) -> None:
-        """Initialize MemU service if available."""
-        memu_path = "/Volumes/Treehorn/Gits/memu"
-        if os.path.exists(memu_path):
-            sys.path.append(os.path.join(memu_path, "src"))
+        """Initialize MemU service if available.
+
+        MemU integration is optional and can be enabled by setting the MEMU_PATH
+        environment variable to the path of your memu installation.
+        """
+        memu_path = os.environ.get("MEMU_PATH")
+        if memu_path and os.path.exists(memu_path):
+            memu_src = os.path.join(memu_path, "src")
+            if os.path.exists(memu_src) and memu_src not in sys.path:
+                sys.path.append(memu_src)
             try:
                 from memu.app import MemoryService
 
@@ -89,9 +93,9 @@ class ConsultationHistory:
                 )
                 logger.info(f"MemU service initialized from {memu_path}")
             except ImportError as e:
-                logger.warning(f"Failed to import memu from {memu_path}: {e}")
+                logger.debug(f"Failed to import memu from {memu_path}: {e}")
             except Exception as e:
-                logger.warning(f"Failed to initialize MemU: {e}")
+                logger.debug(f"Failed to initialize MemU: {e}")
 
     def _init_db(self) -> None:
         """Initialize SQLite database."""
@@ -146,7 +150,8 @@ class ConsultationHistory:
             conn.execute(
                 """
                 CREATE TRIGGER consultations_ai AFTER INSERT ON consultations BEGIN
-                  INSERT INTO consultations_fts(rowid, query, synthesis) VALUES (new.rowid, new.query, new.synthesis);
+                  INSERT INTO consultations_fts(rowid, query, synthesis)
+                  VALUES (new.rowid, new.query, new.synthesis);
                 END
             """
             )
@@ -154,7 +159,8 @@ class ConsultationHistory:
             conn.execute(
                 """
                 CREATE TRIGGER consultations_ad AFTER DELETE ON consultations BEGIN
-                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis) VALUES('delete', old.rowid, old.query, old.synthesis);
+                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis)
+                  VALUES('delete', old.rowid, old.query, old.synthesis);
                 END
             """
             )
@@ -162,8 +168,10 @@ class ConsultationHistory:
             conn.execute(
                 """
                 CREATE TRIGGER consultations_au AFTER UPDATE ON consultations BEGIN
-                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis) VALUES('delete', old.rowid, old.query, old.synthesis);
-                  INSERT INTO consultations_fts(rowid, query, synthesis) VALUES (new.rowid, new.query, new.synthesis);
+                  INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis)
+                  VALUES('delete', old.rowid, old.query, old.synthesis);
+                  INSERT INTO consultations_fts(rowid, query, synthesis)
+                  VALUES (new.rowid, new.query, new.synthesis);
                 END
             """
             )
@@ -179,6 +187,38 @@ class ConsultationHistory:
         conn.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_query ON consultations(query)
+        """
+        )
+        # Create cost_tracking table
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cost_tracking (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                consultation_id TEXT,
+                session_id TEXT,
+                provider TEXT NOT NULL,
+                model TEXT NOT NULL,
+                input_tokens INTEGER NOT NULL,
+                output_tokens INTEGER NOT NULL,
+                cost_usd REAL NOT NULL,
+                timestamp TEXT NOT NULL,
+                FOREIGN KEY (consultation_id) REFERENCES consultations(id)
+            )
+        """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_cost_consultation ON cost_tracking(consultation_id)
+        """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_cost_session ON cost_tracking(session_id)
+        """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_cost_timestamp ON cost_tracking(timestamp)
         """
         )
         conn.commit()
@@ -207,7 +247,7 @@ class ConsultationHistory:
         else:
             consultation_id = result.id
 
-        data = {
+        data: Dict[str, Any] = {
             "id": consultation_id,
             "query": result.query,
             "context": result.context,
@@ -229,7 +269,8 @@ class ConsultationHistory:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO consultations
-                (id, session_id, query, context, mode, timestamp, synthesis, responses, tags, notes, metadata)
+                (id, session_id, query, context, mode, timestamp, synthesis, responses, tags,
+                notes, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
@@ -255,13 +296,12 @@ class ConsultationHistory:
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             os.chmod(json_path, 0o600)
-        except (OSError, PermissionError):
+        except OSError:
             pass
 
         # Also memorize with MemU if available
         if self.memu_service:
             try:
-
                 # Background memorization could be risky in sync context,
                 # but for simplicity we'll just run it in a new event loop or thread if needed,
                 # however council-ai usually runs in an async environment.
@@ -303,6 +343,77 @@ class ConsultationHistory:
         import threading
 
         threading.Thread(target=_run_memu, daemon=True).start()
+
+    def get_memu_context(self, query: str, session_id: str, k: int = 5) -> str:
+        """
+        Retrieve relevant context from MemU for the given query.
+
+        Args:
+            query: The query to find relevant context for
+            session_id: Current session ID for context
+            k: Maximum number of items to retrieve
+
+        Returns:
+            Formatted context string suitable for prompt injection, or empty string if MemU unavailable
+        """
+        if not self.memu_service:
+            return ""
+
+        try:
+            import asyncio
+
+            # Try to get the current event loop
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # We're in an async context, can't use run_until_complete
+                    # Return empty for now - could use asyncio.create_task in future
+                    logger.debug("MemU context retrieval skipped: already in async context")
+                    return ""
+            except RuntimeError:
+                # No event loop running, create a new one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            async def _retrieve_context():
+                try:
+                    # Use MemU's retrieve method to get relevant context
+                    results = await self.memu_service.retrieve(
+                        queries=[{"role": "user", "content": {"text": query}}],
+                        method="rag",
+                        k=k,
+                    )
+
+                    context_parts = []
+                    if results and "items" in results:
+                        for item in results["items"]:
+                            # Extract content and format for prompt injection
+                            content = item.get("content", "")
+                            if content:
+                                # Add a header to indicate this is from memory
+                                context_parts.append(f"[Memory Context]: {content}")
+
+                    return "\n\n".join(context_parts)
+
+                except Exception as e:
+                    logger.debug(f"MemU context retrieval failed: {e}")
+                    return ""
+
+            try:
+                result = loop.run_until_complete(_retrieve_context())
+                return result
+            finally:
+                # Only close if we created a new loop
+                try:
+                    current_loop = asyncio.get_event_loop()
+                    if current_loop is loop and not current_loop.is_running():
+                        loop.close()
+                except Exception:
+                    pass
+
+        except Exception as e:
+            logger.debug(f"Failed to retrieve MemU context: {e}")
+            return ""
 
     def load(self, consultation_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -373,7 +484,10 @@ class ConsultationHistory:
 
             conn = sqlite3.connect(self.db_path)
             order = "DESC" if reverse else "ASC"
-            query = f"SELECT id, query, mode, timestamp, synthesis FROM consultations ORDER BY {order_by} {order}"
+            query = (
+                "SELECT id, query, mode, timestamp, synthesis FROM consultations "
+                f"ORDER BY {order_by} {order}"  # nosec B608
+            )
             if limit:
                 query += f" LIMIT {limit} OFFSET {offset}"
             cursor = conn.execute(query)
@@ -623,7 +737,8 @@ class ConsultationHistory:
         if self.use_sqlite:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.execute(
-                "SELECT id, name, member_ids, started_at FROM sessions ORDER BY started_at DESC LIMIT ?",
+                "SELECT id, name, member_ids, started_at FROM sessions "
+                "ORDER BY started_at DESC LIMIT ?",
                 (limit,),
             )
             rows = cursor.fetchall()
@@ -785,3 +900,125 @@ class ConsultationHistory:
                 json.dump(consultation, f, indent=2, ensure_ascii=False)
 
         return True
+
+    def save_cost(
+        self,
+        consultation_id: str,
+        provider: str,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        cost_usd: float,
+        session_id: Optional[str] = None,
+    ) -> None:
+        """
+        Save cost tracking record.
+
+        Args:
+            consultation_id: ID of the consultation
+            provider: Provider name
+            model: Model name
+            input_tokens: Input tokens used
+            output_tokens: Output tokens used
+            cost_usd: Cost in USD
+            session_id: Optional session ID
+        """
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute(
+                """
+                INSERT INTO cost_tracking
+                (consultation_id, session_id, provider, model, input_tokens, output_tokens, cost_usd, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    consultation_id,
+                    session_id,
+                    provider,
+                    model,
+                    input_tokens,
+                    output_tokens,
+                    cost_usd,
+                    datetime.now().isoformat(),
+                ),
+            )
+            conn.commit()
+            conn.close()
+
+    def get_consultation_costs(self, consultation_id: str) -> List[Dict[str, Any]]:
+        """
+        Get cost records for a consultation.
+
+        Args:
+            consultation_id: ID of the consultation
+
+        Returns:
+            List of cost records
+        """
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.execute(
+                """
+                SELECT provider, model, input_tokens, output_tokens, cost_usd, timestamp
+                FROM cost_tracking
+                WHERE consultation_id = ?
+                ORDER BY timestamp
+            """,
+                (consultation_id,),
+            )
+            rows = cursor.fetchall()
+            conn.close()
+
+            return [
+                {
+                    "provider": row[0],
+                    "model": row[1],
+                    "input_tokens": row[2],
+                    "output_tokens": row[3],
+                    "cost_usd": row[4],
+                    "timestamp": row[5],
+                }
+                for row in rows
+            ]
+        return []
+
+    def get_session_costs(self, session_id: str) -> Dict[str, Any]:
+        """
+        Get cost summary for a session.
+
+        Args:
+            session_id: ID of the session
+
+        Returns:
+            Dictionary with total cost and breakdown
+        """
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.execute(
+                """
+                SELECT
+                    COUNT(DISTINCT consultation_id) as consultation_count,
+                    SUM(input_tokens) as total_input_tokens,
+                    SUM(output_tokens) as total_output_tokens,
+                    SUM(cost_usd) as total_cost
+                FROM cost_tracking
+                WHERE session_id = ?
+            """,
+                (session_id,),
+            )
+            row = cursor.fetchone()
+            conn.close()
+
+            if row and row[3]:  # total_cost is not None
+                return {
+                    "consultation_count": row[0] or 0,
+                    "total_input_tokens": row[1] or 0,
+                    "total_output_tokens": row[2] or 0,
+                    "total_cost_usd": row[3] or 0.0,
+                }
+        return {
+            "consultation_count": 0,
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "total_cost_usd": 0.0,
+        }

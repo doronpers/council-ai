@@ -1,23 +1,50 @@
 {
   "name": "council-ai-web",
-  "version": "1.0.0",
-  "description": "Council AI web application",
+  "version": "2.0.0",
+  "description": "Council AI web application - React Edition",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix && prettier --write .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "launch": "python3 launch-council.py --open",
+    "launch:lan": "python3 launch-council.py --network",
+    "launch:persistent": "python3 launch-council.py --retry",
+    "report": "npm run lint && npm audit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@types/node": "^25.0.9",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-compat": "^6.0.2",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-prettier": "^5.5.5",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-security": "^3.0.1",
     "globals": "^17.0.0",
     "prettier": "^3.8.0",
+    "typescript": "^5.7.3",
     "vite": "^5.4.20"
-  }
+  },
+  "browserslist": [
+    ">0.3%",
+    "not dead",
+    "not op_mini all",
+    "not ie 11",
+    "chrome >= 90",
+    "firefox >= 90",
+    "safari >= 14"
+  ]
 }

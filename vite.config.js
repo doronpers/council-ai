@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
+  plugins: [react()],
   root: resolve(__dirname, 'src/council_ai/webapp'),
   build: {
     outDir: resolve(__dirname, 'src/council_ai/webapp/static'),
@@ -15,27 +17,23 @@ export default defineConfig({
         manualChunks: (id) => {
           // Split vendor chunks
           if (id.includes('node_modules')) {
+            if (id.includes('react')) {
+              return 'react-vendor';
+            }
             return 'vendor';
-          }
-          // Split core utilities
-          if (id.includes('/core/')) {
-            return 'core';
-          }
-          // Split UI components
-          if (id.includes('/ui/')) {
-            return 'ui';
-          }
-          // Split lazy-loaded modules
-          if (id.includes('/lazy/')) {
-            return 'lazy';
           }
         },
       },
     },
     cssCodeSplit: true,
-    minify: 'esbuild', // Use esbuild (included with Vite) instead of terser
+    minify: 'esbuild',
     sourcemap: false,
     target: 'es2015',
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src/council_ai/webapp/src'),
+    },
   },
   server: {
     port: 5173,
