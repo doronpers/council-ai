@@ -98,6 +98,8 @@ export interface ConsultationRequest {
   enable_tts: boolean;
   temperature: number;
   max_tokens: number;
+  session_id?: string;
+  auto_recall?: boolean;
 }
 
 export interface MemberResponse {
@@ -128,6 +130,7 @@ export interface ConsultationResult {
     estimated_cost?: number;
   };
   tags?: string[];
+  session_id?: string;
 }
 
 export interface ConsultationAnalysis {

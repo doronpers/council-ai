@@ -344,6 +344,61 @@ class ConsultationHistory:
 
         threading.Thread(target=_run_memu, daemon=True).start()
 
+    def get_memu_context(self, query: str, session_id: str, k: int = 5) -> str:
+        """
+        Retrieve relevant context from MemU for the given query.
+
+        Args:
+            query: The query to find relevant context for
+            session_id: Current session ID for context
+            k: Maximum number of items to retrieve
+
+        Returns:
+            Formatted context string suitable for prompt injection, or empty string if MemU unavailable
+        """
+        if not self.memu_service:
+            return ""
+
+        try:
+            import asyncio
+
+            # This is tricky because get_memu_context is sync but MemU is async
+            # We'll run it in a one-off event loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            async def _retrieve_context():
+                try:
+                    # Use MemU's retrieve method to get relevant context
+                    results = await self.memu_service.retrieve(
+                        queries=[{"role": "user", "content": {"text": query}}],
+                        method="rag",
+                        k=k,
+                    )
+
+                    context_parts = []
+                    if results and "items" in results:
+                        for item in results["items"]:
+                            # Extract content and format for prompt injection
+                            content = item.get("content", "")
+                            if content:
+                                # Add a header to indicate this is from memory
+                                context_parts.append(f"[Memory Context]: {content}")
+
+                    return "\n\n".join(context_parts)
+
+                except Exception as e:
+                    logger.debug(f"MemU context retrieval failed: {e}")
+                    return ""
+
+            result = loop.run_until_complete(_retrieve_context())
+            loop.close()
+            return result
+
+        except Exception as e:
+            logger.debug(f"Failed to retrieve MemU context: {e}")
+            return ""
+
     def load(self, consultation_id: str) -> Optional[Dict[str, Any]]:
         """
         Load a consultation by ID.

@@ -17,12 +17,23 @@ const ProviderSelect: React.FC = () => {
   const { providers, settings, updateSettings } = useApp();
 
   const handleProviderChange = (provider: string) => {
-    updateSettings({ provider });
+    const previousProvider = settings.provider;
+    const previousDefaultBaseUrl = previousProvider
+      ? PROVIDER_BASE_URLS[previousProvider]
+      : undefined;
 
-    // Auto-prefill base URL for known providers if no custom URL is set
-    if (!settings.base_url && PROVIDER_BASE_URLS[provider]) {
-      updateSettings({ base_url: PROVIDER_BASE_URLS[provider] });
-    }
+    // Auto-prefill base URL for known providers if no custom URL is set.
+    // Treat "default URL for previous provider" as non-custom so switching providers updates it.
+    const shouldAutoPrefillBaseUrl =
+      !settings.base_url ||
+      (previousDefaultBaseUrl !== undefined && settings.base_url === previousDefaultBaseUrl);
+
+    updateSettings({
+      provider,
+      ...(shouldAutoPrefillBaseUrl && PROVIDER_BASE_URLS[provider]
+        ? { base_url: PROVIDER_BASE_URLS[provider] }
+        : {}),
+    });
   };
 
   const getProviderHint = (provider: string) => {

@@ -83,13 +83,14 @@ class ConsultRequest(BaseModel):
     temperature: Optional[float] = 0.7  # Sampling temperature
     max_tokens: Optional[int] = 1000  # Max tokens per response
     session_id: Optional[str] = None
-    auto_recall: bool = False
+    auto_recall: Optional[bool] = None
 
 
 class ConsultResponse(BaseModel):
     synthesis: Optional[str]
     responses: list[dict]
     mode: str
+    session_id: Optional[str] = None
 
 
 def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
@@ -327,7 +328,7 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
             context=payload.context,
             mode=mode,
             session_id=payload.session_id,
-            auto_recall=payload.auto_recall,
+            auto_recall=payload.auto_recall if payload.auto_recall is not None else True,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -336,6 +337,7 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
         synthesis=result.synthesis,
         responses=[r.to_dict() for r in result.responses],
         mode=result.mode,
+        session_id=getattr(result, "session_id", None),
     )
 
 
@@ -351,7 +353,7 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
                 context=payload.context,
                 mode=mode,
                 session_id=payload.session_id,
-                auto_recall=payload.auto_recall,
+                auto_recall=payload.auto_recall if payload.auto_recall is not None else True,
             ):
                 # Convert update to SSE format
                 if "result" in update:
@@ -364,6 +366,7 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
                         "timestamp": result.timestamp.isoformat(),
                         "responses": [r.to_dict() for r in result.responses],
                         "synthesis": result.synthesis,
+                        "session_id": getattr(result, "session_id", None),
                     }
                 elif "response" in update:
                     # Convert MemberResponse to dict

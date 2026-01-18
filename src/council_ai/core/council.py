@@ -570,11 +570,23 @@ class Council:
         # Start/Resume session first to potentially get recall context
         session = self._start_session(query, context, session_id=session_id)
 
-        # Auto-recall context from history if not explicitly provided
+        # Auto-recall context from history and MemU if not explicitly provided
         if auto_recall and self._history and not context:
-            recall_context = self._history.get_recent_context(session.session_id)
-            if recall_context:
-                context = f"PREVIOUS CONVERSATION CONTEXT:\n{recall_context}"
+            context_parts = []
+
+            # Get recent conversation context
+            recent_context = self._history.get_recent_context(session.session_id)
+            if recent_context:
+                context_parts.append(f"PREVIOUS CONVERSATION CONTEXT:\n{recent_context}")
+
+            # Get MemU memory context
+            memu_context = self._history.get_memu_context(query, session.session_id)
+            if memu_context:
+                context_parts.append(f"MEMORY CONTEXT:\n{memu_context}")
+
+            # Combine contexts if we have any
+            if context_parts:
+                context = "\n\n".join(context_parts)
 
         # Get active members
         active_members = self._get_active_members(members)

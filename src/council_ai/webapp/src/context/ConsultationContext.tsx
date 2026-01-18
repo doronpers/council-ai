@@ -2,6 +2,7 @@
  * Consultation Context - Active consultation state
  */
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { useApp } from './AppContext';
 import type { ConsultationResult, MemberStatusInfo, MemberStatus, StreamEvent } from '../types';
 
 interface ConsultationContextType {
@@ -41,6 +42,9 @@ interface ConsultationContextType {
   // Handle stream event
   handleStreamEvent: (event: StreamEvent) => void;
 
+  // Update session from result
+  updateSessionFromResult: (result: ConsultationResult) => void;
+
   // Status message
   statusMessage: string;
   setStatusMessage: React.Dispatch<React.SetStateAction<string>>;
@@ -49,6 +53,7 @@ interface ConsultationContextType {
 const ConsultationContext = createContext<ConsultationContextType | undefined>(undefined);
 
 export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { setSessionId } = useApp();
   const [isConsulting, setIsConsulting] = useState(false);
   const [query, setQuery] = useState('');
   const [context, setContext] = useState('');
@@ -91,6 +96,15 @@ export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setStatusMessage('Consultation cancelled.');
   }, [abortController]);
 
+  const updateSessionFromResult = useCallback(
+    (result: ConsultationResult) => {
+      if (result.session_id && result.session_id !== setSessionId) {
+        setSessionId(result.session_id);
+      }
+    },
+    [setSessionId]
+  );
+
   const handleStreamEvent = useCallback(
     (event: StreamEvent) => {
       switch (event.type) {
@@ -126,6 +140,7 @@ export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ childr
         case 'complete':
           if (event.result) {
             setResult(event.result);
+            updateSessionFromResult(event.result);
           }
           setIsConsulting(false);
           setStatusMessage('Consultation complete.');
@@ -160,6 +175,7 @@ export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setAbortController,
     cancelConsultation,
     handleStreamEvent,
+    updateSessionFromResult,
     statusMessage,
     setStatusMessage,
   };

@@ -282,7 +282,7 @@ class PersonaManager:
         """Load personas from custom paths, personal repo, and user directory."""
         paths = list(self._custom_paths)
 
-        # Add personal personas path (loaded before user path for priority)
+        # Add personal personas path (loaded before user path; user loads last)
         personal_path = self._get_personal_path()
         if personal_path:
             paths.append(personal_path)
@@ -295,9 +295,8 @@ class PersonaManager:
                 for yaml_file in path.glob("*.yaml"):
                     try:
                         persona = Persona.from_yaml_file(yaml_file)
-                        # Only overwrite if not already loaded (user configs take priority)
-                        if persona.id not in self._personas:
-                            self._personas[persona.id] = persona
+                        # Later paths overwrite earlier ones (user configs take priority)
+                        self._personas[persona.id] = persona
                     except Exception as e:
                         import sys
 
