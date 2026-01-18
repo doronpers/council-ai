@@ -21,6 +21,7 @@ This file contains:
 3. **Tests**: All new features require pytest tests
 4. **Security**: NEVER log API keys or commit `.env` files
 5. **Personas**: Don't modify built-in personas without approval
+6. **Code Quality**: ALWAYS check whitespace, black formatting, and lint issues (ruff) before reporting task completion
 
 ## Key Commands
 

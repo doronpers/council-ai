@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 class ConsultationHistory:
     """Manages persistent storage of consultation history."""
 
-    def __init__(self, storage_path: Optional[str] = None, use_sqlite: bool = False):
+    def __init__(self, storage_path: Optional[str] = None, use_sqlite: bool = True):
         """
         Initialize consultation history storage.
 
         Args:
             storage_path: Path to storage directory (defaults to config directory)
-            use_sqlite: If True, use SQLite database; otherwise use JSON files
+            use_sqlite: If True, use SQLite database; otherwise use JSON files (default: True)
         """
         if storage_path:
             self.storage_dir = Path(storage_path)
@@ -181,6 +181,38 @@ class ConsultationHistory:
         conn.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_query ON consultations(query)
+        """
+        )
+        # Create cost_tracking table
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cost_tracking (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                consultation_id TEXT,
+                session_id TEXT,
+                provider TEXT NOT NULL,
+                model TEXT NOT NULL,
+                input_tokens INTEGER NOT NULL,
+                output_tokens INTEGER NOT NULL,
+                cost_usd REAL NOT NULL,
+                timestamp TEXT NOT NULL,
+                FOREIGN KEY (consultation_id) REFERENCES consultations(id)
+            )
+        """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_cost_consultation ON cost_tracking(consultation_id)
+        """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_cost_session ON cost_tracking(session_id)
+        """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_cost_timestamp ON cost_tracking(timestamp)
         """
         )
         conn.commit()
@@ -791,3 +823,125 @@ class ConsultationHistory:
                 json.dump(consultation, f, indent=2, ensure_ascii=False)
 
         return True
+
+    def save_cost(
+        self,
+        consultation_id: str,
+        provider: str,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        cost_usd: float,
+        session_id: Optional[str] = None,
+    ) -> None:
+        """
+        Save cost tracking record.
+
+        Args:
+            consultation_id: ID of the consultation
+            provider: Provider name
+            model: Model name
+            input_tokens: Input tokens used
+            output_tokens: Output tokens used
+            cost_usd: Cost in USD
+            session_id: Optional session ID
+        """
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute(
+                """
+                INSERT INTO cost_tracking
+                (consultation_id, session_id, provider, model, input_tokens, output_tokens, cost_usd, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    consultation_id,
+                    session_id,
+                    provider,
+                    model,
+                    input_tokens,
+                    output_tokens,
+                    cost_usd,
+                    datetime.now().isoformat(),
+                ),
+            )
+            conn.commit()
+            conn.close()
+
+    def get_consultation_costs(self, consultation_id: str) -> List[Dict[str, Any]]:
+        """
+        Get cost records for a consultation.
+
+        Args:
+            consultation_id: ID of the consultation
+
+        Returns:
+            List of cost records
+        """
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.execute(
+                """
+                SELECT provider, model, input_tokens, output_tokens, cost_usd, timestamp
+                FROM cost_tracking
+                WHERE consultation_id = ?
+                ORDER BY timestamp
+            """,
+                (consultation_id,),
+            )
+            rows = cursor.fetchall()
+            conn.close()
+
+            return [
+                {
+                    "provider": row[0],
+                    "model": row[1],
+                    "input_tokens": row[2],
+                    "output_tokens": row[3],
+                    "cost_usd": row[4],
+                    "timestamp": row[5],
+                }
+                for row in rows
+            ]
+        return []
+
+    def get_session_costs(self, session_id: str) -> Dict[str, Any]:
+        """
+        Get cost summary for a session.
+
+        Args:
+            session_id: ID of the session
+
+        Returns:
+            Dictionary with total cost and breakdown
+        """
+        if self.use_sqlite:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.execute(
+                """
+                SELECT
+                    COUNT(DISTINCT consultation_id) as consultation_count,
+                    SUM(input_tokens) as total_input_tokens,
+                    SUM(output_tokens) as total_output_tokens,
+                    SUM(cost_usd) as total_cost
+                FROM cost_tracking
+                WHERE session_id = ?
+            """,
+                (session_id,),
+            )
+            row = cursor.fetchone()
+            conn.close()
+
+            if row and row[3]:  # total_cost is not None
+                return {
+                    "consultation_count": row[0] or 0,
+                    "total_input_tokens": row[1] or 0,
+                    "total_output_tokens": row[2] or 0,
+                    "total_cost_usd": row[3] or 0.0,
+                }
+        return {
+            "consultation_count": 0,
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "total_cost_usd": 0.0,
+        }

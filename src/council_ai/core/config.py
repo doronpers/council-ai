@@ -127,6 +127,7 @@ class Config(BaseModel):
     custom_personas_path: Optional[str] = None
     custom_domains_path: Optional[str] = None
     presets: Dict[str, Any] = Field(default_factory=dict)
+    display: Dict[str, Any] = Field(default_factory=lambda: {"show_cost": False})
 
 
 class ConfigManager:

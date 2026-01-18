@@ -670,8 +670,26 @@ class Council:
         # Auto-save to history if enabled
         if self._history:
             try:
-                self._history.save(result)
+                consultation_id = self._history.save(result)
                 self._history.save_session(session)
+
+                # Save cost records
+                if consultation_id:
+                    from .cost_tracker import get_cost_tracker
+
+                    cost_tracker = get_cost_tracker()
+                    for cost_record in cost_tracker.get_records():
+                        self._history.save_cost(
+                            consultation_id=consultation_id,
+                            provider=cost_record.provider,
+                            model=cost_record.model,
+                            input_tokens=cost_record.input_tokens,
+                            output_tokens=cost_record.output_tokens,
+                            cost_usd=cost_record.cost_usd,
+                            session_id=session.session_id if session else None,
+                        )
+                    # Clear tracker for next consultation
+                    cost_tracker.clear()
             except Exception as e:
                 # Don't fail consultation if history save fails
                 logger.warning(f"Failed to save consultation to history: {e}")
@@ -827,8 +845,26 @@ class Council:
         # Auto-save to history if enabled
         if self._history:
             try:
-                self._history.save(result)
+                consultation_id = self._history.save(result)
                 self._history.save_session(session)
+
+                # Save cost records
+                if consultation_id:
+                    from .cost_tracker import get_cost_tracker
+
+                    cost_tracker = get_cost_tracker()
+                    for cost_record in cost_tracker.get_records():
+                        self._history.save_cost(
+                            consultation_id=consultation_id,
+                            provider=cost_record.provider,
+                            model=cost_record.model,
+                            input_tokens=cost_record.input_tokens,
+                            output_tokens=cost_record.output_tokens,
+                            cost_usd=cost_record.cost_usd,
+                            session_id=session.session_id if session else None,
+                        )
+                    # Clear tracker for next consultation
+                    cost_tracker.clear()
             except Exception as e:
                 # Don't fail consultation if history save fails
                 logger.warning(f"Failed to save consultation to history: {e}")
@@ -991,6 +1027,35 @@ REASONING: [your reasoning]
                     timeout=120.0,
                 )
             content = response.text
+
+            # Track cost if history is available
+            if (
+                self._history
+                and hasattr(response, "input_tokens")
+                and hasattr(response, "output_tokens")
+            ):
+                try:
+                    from .cost_tracker import get_cost_tracker
+
+                    cost_tracker = get_cost_tracker()
+
+                    # Get provider and model info
+                    provider_name = self._provider_name
+                    model_name = member.model or self._model or "unknown"
+
+                    # Calculate and record cost
+                    cost_tracker.record_cost(
+                        provider=provider_name,
+                        model=model_name,
+                        input_tokens=getattr(response, "input_tokens", 0),
+                        output_tokens=getattr(response, "output_tokens", 0),
+                    )
+
+                    # Store cost in history if we have a consultation ID
+                    # (We'll need to pass this through or store it temporarily)
+                    # For now, we'll store it when the consultation is saved
+                except Exception as e:
+                    logger.warning(f"Failed to track cost: {e}")
 
             # Run response hooks
             for hook in self._response_hooks:
@@ -1292,7 +1357,46 @@ Please provide a comprehensive synthesis that:
                     max_tokens=max_tokens,  # Synthesis can be longer
                     temperature=self.config.temperature,
                 )
-            return response.text
+            synthesis_text = response.text
+
+            # Track synthesis cost
+            if (
+                self._history
+                and hasattr(response, "input_tokens")
+                and hasattr(response, "output_tokens")
+            ):
+                try:
+                    from .cost_tracker import get_cost_tracker
+
+                    cost_tracker = get_cost_tracker()
+
+                    # Get synthesis provider name
+                    if hasattr(provider, "__class__"):
+                        # Try to get provider name from class
+                        provider_class_name = provider.__class__.__name__.lower()
+                        if "anthropic" in provider_class_name:
+                            synthesis_provider_name = "anthropic"
+                        elif "openai" in provider_class_name:
+                            synthesis_provider_name = "openai"
+                        elif "gemini" in provider_class_name:
+                            synthesis_provider_name = "gemini"
+                        else:
+                            synthesis_provider_name = self._provider_name
+                    else:
+                        synthesis_provider_name = self._provider_name
+
+                    synthesis_model = self.config.synthesis_model or self._model or "unknown"
+
+                    cost_tracker.record_cost(
+                        provider=synthesis_provider_name,
+                        model=synthesis_model,
+                        input_tokens=getattr(response, "input_tokens", 0),
+                        output_tokens=getattr(response, "output_tokens", 0),
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to track synthesis cost: {e}")
+
+            return synthesis_text
         except Exception as e:
             logger.error(f"Failed to generate synthesis: {e}")
             # Fallback: simple concatenation

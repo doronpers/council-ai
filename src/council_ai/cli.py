@@ -357,6 +357,8 @@ def quickstart():
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
 @click.option("--session", "-s", "session_id", help="Resume an existing session ID")
 @click.option("--no-recall", is_flag=True, help="Disable automatic context recall")
+@click.option("--quick", is_flag=True, help="Quick mode: 2-3 personas, 500 tokens, no synthesis")
+@click.option("--domains", help="Comma-separated list of domains for cross-domain consultation")
 @click.pass_context
 @require_api_key
 def consult(
@@ -373,6 +375,8 @@ def consult(
     output_json,
     session_id,
     no_recall,
+    quick,
+    domains,
 ):
     r"""
     Consult the council on a query.
@@ -402,11 +406,57 @@ def consult(
         if not mode:
             mode = preset_config.get("mode", "synthesis")
 
+    # Handle cross-domain consultation
+    if domains:
+        # Parse comma-separated domains
+        domain_list = [d.strip() for d in domains.split(",")]
+        from ..domains import get_domain
+
+        # Collect personas from all domains (deduplicate)
+        all_personas = []
+        seen_personas = set()
+        for dom_id in domain_list:
+            try:
+                dom = get_domain(dom_id)
+                for persona_id in dom.default_personas:
+                    if persona_id not in seen_personas:
+                        all_personas.append(persona_id)
+                        seen_personas.add(persona_id)
+            except ValueError:
+                console.print(f"[yellow]Warning:[/yellow] Domain '{dom_id}' not found, skipping")
+
+        # Use collected personas as members
+        if not members:
+            members = tuple(all_personas)
+        domain = None  # Clear domain since we're using explicit members
+
     # Apply defaults if still not set
     if not domain:
         domain = config_manager.get("default_domain", "general")
     if not mode:
         mode = config_manager.get("default_mode", "synthesis")
+
+    # Handle quick mode
+    if quick:
+        # Quick mode: limit personas, reduce tokens, skip synthesis
+        if not members and domain:
+            # Limit to first 2-3 personas from domain
+            from ..domains import get_domain
+
+            try:
+                dom = get_domain(domain)
+                members = tuple(dom.default_personas[:3])  # First 3 personas
+            except ValueError:
+                pass
+        elif members:
+            # Limit to first 2-3 specified members
+            members = tuple(list(members)[:3])
+
+        # Skip synthesis in quick mode
+        if mode == "synthesis":
+            mode = "individual"
+
+        # Set max tokens to 500 (will be applied via config override)
 
     # Create council
     provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
@@ -416,11 +466,22 @@ def consult(
 
     mode_enum = ConsultationMode(mode)
 
+    # Apply quick mode config overrides
+    if quick:
+        from .core.council import CouncilConfig
+
+        # Create a config override for quick mode
+        quick_config = CouncilConfig(max_tokens_per_response=500)
+    else:
+        quick_config = None
+
     # Only show progress spinner if not JSON output (for clean JSON output)
     if output_json:
         # Assemble council
         if members:
             council = Council(api_key=api_key, provider=provider, model=model, base_url=base_url)
+            if quick_config:
+                council.config = quick_config
             for member_id in members:
                 try:
                     council.add_member(member_id)
@@ -434,6 +495,8 @@ def consult(
                 model=model,
                 base_url=base_url,
             )
+            if quick_config:
+                council.config = quick_config
 
         try:
             from .core.history import ConsultationHistory
@@ -462,6 +525,8 @@ def consult(
                 council = Council(
                     api_key=api_key, provider=provider, model=model, base_url=base_url
                 )
+                if quick_config:
+                    council.config = quick_config
                 for member_id in members:
                     try:
                         council.add_member(member_id)
@@ -475,6 +540,8 @@ def consult(
                     model=model,
                     base_url=base_url,
                 )
+                if quick_config:
+                    council.config = quick_config
 
             progress.update(progress.task_ids[0], description="Consulting council...")
 
@@ -498,6 +565,85 @@ def consult(
     else:
         console.print()
         console.print(Markdown(output_text))
+
+    # Display cost if enabled
+    if result and result.id:
+        from .core.cost_tracker import get_cost_tracker
+
+        cost_tracker = get_cost_tracker()
+        total_cost = cost_tracker.get_total_cost()
+
+        if total_cost > 0:
+            show_cost = config_manager.get("display.show_cost", False)
+            if show_cost:
+                persona_count = len(result.responses)
+                mode_str = result.mode
+                console.print(
+                    f"\n[dim]Cost: ${total_cost:.2f} ({persona_count} personas, {mode_str})[/dim]"
+                )
+
+
+@main.command("q")
+@click.argument("query")
+@click.option("--preset", help="Use a saved preset configuration")
+@click.option("--domain", "-d", help="Domain preset to use")
+@click.option("--members", "-m", multiple=True, help="Specific personas to consult")
+@click.option("--provider", "-p", help="LLM provider (anthropic, openai)")
+@click.option("--api-key", "-k", envvar="COUNCIL_API_KEY", help="API key for provider")
+@click.option("--context", "-ctx", help="Additional context for the query")
+@click.option(
+    "--mode",
+    type=click.Choice(["individual", "sequential", "synthesis", "debate", "vote"]),
+    help="Consultation mode",
+)
+@click.option("--output", "-o", type=click.Path(), help="Save output to file")
+@click.option("--json", "output_json", is_flag=True, help="Output as JSON")
+@click.option("--session", "-s", "session_id", help="Resume an existing session ID")
+@click.option("--no-recall", is_flag=True, help="Disable automatic context recall")
+@click.option("--quick", is_flag=True, help="Quick mode: 2-3 personas, 500 tokens, no synthesis")
+@click.pass_context
+@require_api_key
+def q(
+    ctx,
+    query,
+    preset,
+    domain,
+    members,
+    provider,
+    api_key,
+    context,
+    mode,
+    output,
+    output_json,
+    session_id,
+    no_recall,
+    quick,
+):
+    """
+    Quick consultation shorthand (alias for 'council consult').
+
+    Examples:
+      council q "Should we refactor this module?"
+      council q --quick "What's the risk here?"
+      council q -d sonotheia "Review this SAR narrative"
+    """
+    # Delegate to consult function
+    ctx.invoke(
+        consult,
+        query=query,
+        preset=preset,
+        domain=domain,
+        members=members,
+        provider=provider,
+        api_key=api_key,
+        context=context,
+        mode=mode,
+        output=output,
+        output_json=output_json,
+        session_id=session_id,
+        no_recall=no_recall,
+        quick=quick,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1267,6 +1413,49 @@ def history_delete(consultation_id, yes):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Doctor Command
 # ═══════════════════════════════════════════════════════════════════════════════
+
+
+@main.group("cost")
+def cost_group():
+    """View cost tracking information."""
+    pass
+
+
+@cost_group.command("summary")
+@click.option("--session", "-s", "session_id", help="Session ID to get costs for")
+def cost_summary(session_id):
+    """Show cost summary for current session or specified session."""
+    from .core.history import ConsultationHistory
+
+    history = ConsultationHistory()
+
+    if session_id:
+        costs = history.get_session_costs(session_id)
+        if costs["total_cost_usd"] > 0:
+            console.print("\n[bold]Session Cost Summary[/bold]")
+            console.print(f"Session ID: {session_id}")
+            console.print(f"Total Cost: ${costs['total_cost_usd']:.2f}")
+            console.print(f"Consultations: {costs['consultation_count']}")
+            console.print(
+                f"Total Tokens: {costs['total_input_tokens'] + costs['total_output_tokens']:,}"
+            )
+        else:
+            console.print(f"[dim]No cost data found for session {session_id}[/dim]")
+    else:
+        # Show cost for most recent session
+        sessions = history.list_sessions(limit=1)
+        if sessions:
+            session_id = sessions[0]["id"]
+            costs = history.get_session_costs(session_id)
+            if costs["total_cost_usd"] > 0:
+                console.print("\n[bold]Recent Session Cost[/bold]")
+                console.print(f"Session: {sessions[0]['name']}")
+                console.print(f"Total Cost: ${costs['total_cost_usd']:.2f}")
+                console.print(f"Consultations: {costs['consultation_count']}")
+            else:
+                console.print("[dim]No cost data available for recent session[/dim]")
+        else:
+            console.print("[dim]No sessions found[/dim]")
 
 
 @main.command()
