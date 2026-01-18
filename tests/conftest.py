@@ -21,19 +21,23 @@ def anyio_backend():
 class MockProvider(LLMProvider):
     async def complete(self, system_prompt, user_prompt, max_tokens=1000, temperature=0.7):
         return LLMResponse(
-            content=f"Response from {self.provider_name} model {self.model}", model=self.model
+            text=f"Response from {self.provider_name} model {self.model}",
+            model=self.model,
+            provider=self.provider_name,
         )
 
     @property
     def provider_name(self):
         return getattr(self, "_provider_name", "mock")
 
-    def is_available(self):
+    def is_available(self) -> bool:
+        """Always return True for mocked provider."""
         return True
 
 
 @pytest.fixture
 def mock_get_provider(monkeypatch):
+    from council_ai import providers as providers_module
     from council_ai.core import council as council_module
 
     def side_effect(name, **kwargs):
@@ -43,6 +47,7 @@ def mock_get_provider(monkeypatch):
 
     mock = MagicMock(side_effect=side_effect)
     monkeypatch.setattr(council_module, "get_provider", mock)
+    monkeypatch.setattr(providers_module, "get_provider", mock)
     return mock
 
 
@@ -56,9 +61,14 @@ def mock_llm_manager(monkeypatch, mock_get_provider):
             self.base_url = base_url
 
         def get_provider(self, name):
-            return mock_get_provider.side_effect(
+            # Always return a valid provider for any requested name
+            provider = mock_get_provider.side_effect(
                 name, api_key=self.api_key, model=self.model, base_url=self.base_url
             )
+            # Make sure it's marked as available
+            if provider:
+                provider._is_available = True
+            return provider
 
         async def generate(
             self,
@@ -71,7 +81,9 @@ def mock_llm_manager(monkeypatch, mock_get_provider):
         ):
             resolved_provider = provider or self.preferred_provider
             return LLMResponse(
-                content=f"Response from {resolved_provider} model {self.model}", model=self.model
+                text=f"Response from {resolved_provider} model {self.model}",
+                model=self.model,
+                provider=resolved_provider,
             )
 
     from council_ai import providers as providers_module

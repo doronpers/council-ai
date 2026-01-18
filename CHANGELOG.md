@@ -35,6 +35,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Preserved Dieter Rams aesthetic (all CSS retained)
   - Build produces optimized chunks: react-vendor (138KB), main (26KB)
 
+- **Fixed**
+
+- Fixed 12 failing tests by correcting import paths and mock configurations
+- Removed hardcoded developer path for MemU integration (security issue)
+- Made MemU integration configurable via `MEMU_PATH` environment variable
+- Standardized placeholder API key detection across all modules using `is_placeholder_key()` function
+- Improved error handling in CLI to catch all exception types
+- Fixed import sorting issues
+- Extracted duplicated council assembly code into reusable helper function
+- Improved test infrastructure with better mocking support
+
 ## [1.0.0] - 2026-01-11
 
 - **Added**
