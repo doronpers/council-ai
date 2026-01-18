@@ -2,6 +2,7 @@
  * ErrorBoundary Component - Catches React errors and displays fallback UI
  */
 import React, { Component, ReactNode } from 'react';
+import './ErrorBoundary.css';
 import ErrorDisplay from './ErrorDisplay';
 import { createError, ErrorCategory } from '../../utils/errors';
 

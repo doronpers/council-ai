@@ -1,0 +1,43 @@
+/**
+ * Error Boundary Fallback Styles
+ */
+
+.error-boundary-fallback {
+  padding: 20px;
+  margin: 20px 0;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  text-align: center;
+}
+
+.error-boundary-dev-details {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.error-boundary-dev-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.error-boundary-stack {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  border-radius: var(--radius);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .error-boundary-stack {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}

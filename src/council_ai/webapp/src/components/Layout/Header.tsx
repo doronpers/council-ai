@@ -2,6 +2,7 @@
  * Header Component - Application header with navigation
  */
 import React from 'react';
+import './Header.css';
 
 const Header: React.FC = () => {
   const isReviewer =

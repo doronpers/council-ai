@@ -2,6 +2,7 @@
  * ResultsPanel Component - Container for consultation results
  */
 import React, { useMemo, useState } from 'react';
+import './ResultsPanel.css';
 import { useConsultation } from '../../context/ConsultationContext';
 import SynthesisCard from './SynthesisCard';
 import ResponseCard from './ResponseCard';

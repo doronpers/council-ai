@@ -2,6 +2,7 @@
  * ConfigPanel Component - Main configuration container
  */
 import React, { useMemo, useState, useEffect } from 'react';
+import './ConfigPanel.css';
 import ProviderSelect from './ProviderSelect';
 import ModelSelect from './ModelSelect';
 import DomainSelect from './DomainSelect';

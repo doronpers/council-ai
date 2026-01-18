@@ -53,7 +53,7 @@ interface ConsultationContextType {
 const ConsultationContext = createContext<ConsultationContextType | undefined>(undefined);
 
 export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { setSessionId } = useApp();
+  const { sessionId, setSessionId } = useApp();
   const [isConsulting, setIsConsulting] = useState(false);
   const [query, setQuery] = useState('');
   const [context, setContext] = useState('');
@@ -98,7 +98,7 @@ export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const updateSessionFromResult = useCallback(
     (result: ConsultationResult) => {
-      if (result.session_id && result.session_id !== setSessionId) {
+      if (result.session_id && result.session_id !== sessionId) {
         setSessionId(result.session_id);
       }
     },

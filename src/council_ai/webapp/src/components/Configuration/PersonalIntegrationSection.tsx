@@ -74,7 +74,7 @@ const PersonalIntegrationSection: React.FC = () => {
         if (issues.length === 0) {
           showNotification('All verification checks passed!', 'success');
         } else {
-          showNotification(`Verification found ${issues.length} issue(s)`, 'warning');
+          showNotification(`Verification found ${issues.length} issue(s)`, 'info');
         }
       }
     } catch (error) {

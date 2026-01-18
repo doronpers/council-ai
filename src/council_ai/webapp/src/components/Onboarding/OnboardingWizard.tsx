@@ -2,6 +2,7 @@
  * OnboardingWizard Component - First-time user walkthrough
  */
 import React, { useMemo, useState, useCallback } from 'react';
+import './OnboardingWizard.css';
 import WizardStep from './WizardStep';
 import DomainSelect from '../Configuration/DomainSelect';
 import ProviderSelect from '../Configuration/ProviderSelect';

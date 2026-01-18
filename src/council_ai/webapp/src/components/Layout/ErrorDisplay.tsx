@@ -2,6 +2,7 @@
  * ErrorDisplay Component - Enhanced error display with recovery guidance
  */
 import React, { useState, useEffect } from 'react';
+import './ErrorDisplay.css';
 import { ErrorInfo, getErrorIcon, getSeverityLevel, isRecoverable } from '../../utils/errors';
 
 interface ErrorDisplayProps {
@@ -111,7 +112,7 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
             type="button"
             className="error-display-toggle"
             onClick={() => setIsExpanded(!isExpanded)}
-            aria-expanded={isExpanded}
+            aria-expanded={isExpanded ? 'true' : 'false'}
             aria-label="Toggle error details"
           >
             {isExpanded ? '▼' : '▶'}
