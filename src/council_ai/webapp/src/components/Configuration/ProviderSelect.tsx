@@ -4,8 +4,36 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 
+// Default base URLs for providers
+const PROVIDER_BASE_URLS: Record<string, string> = {
+  openai: 'https://api.openai.com/v1',
+  anthropic: 'https://api.anthropic.com',
+  gemini: 'https://generativelanguage.googleapis.com',
+  local: 'http://localhost:8000/v1',
+  ollama: 'http://localhost:11434/v1',
+};
+
 const ProviderSelect: React.FC = () => {
   const { providers, settings, updateSettings } = useApp();
+
+  const handleProviderChange = (provider: string) => {
+    updateSettings({ provider });
+
+    // Auto-prefill base URL for known providers if no custom URL is set
+    if (!settings.base_url && PROVIDER_BASE_URLS[provider]) {
+      updateSettings({ base_url: PROVIDER_BASE_URLS[provider] });
+    }
+  };
+
+  const getProviderHint = (provider: string) => {
+    if (provider === 'local' || provider === 'ollama') {
+      return 'Local endpoint - configure Base URL in Advanced Settings';
+    }
+    if (PROVIDER_BASE_URLS[provider]) {
+      return `Default: ${PROVIDER_BASE_URLS[provider]}`;
+    }
+    return 'Configure Base URL in Advanced Settings';
+  };
 
   return (
     <div>
@@ -13,7 +41,7 @@ const ProviderSelect: React.FC = () => {
       <select
         id="provider"
         value={settings.provider || ''}
-        onChange={(e) => updateSettings({ provider: e.target.value })}
+        onChange={(e) => handleProviderChange(e.target.value)}
       >
         {providers.map((provider) => (
           <option key={provider} value={provider}>
@@ -21,7 +49,9 @@ const ProviderSelect: React.FC = () => {
           </option>
         ))}
       </select>
-      <p className="field-hint">Saved to browser</p>
+      <p className="field-hint">
+        {settings.provider ? getProviderHint(settings.provider) : 'Select a provider'}
+      </p>
     </div>
   );
 };

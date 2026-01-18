@@ -41,21 +41,23 @@ Council(
     persona_manager: Optional[PersonaManager] = None,
     model: Optional[str] = None,
     base_url: Optional[str] = None,
+    endpoint: Optional[str] = None,
     history: Optional[Any] = None,
 )
 ```
 
 **Parameters:**
 
-| Parameter         | Type                       | Default       | Description                                                                                            |
-| ----------------- | -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
-| `api_key`         | `Optional[str]`            | `None`        | API key for the LLM provider. If not provided, will be read from environment variables or config file. |
-| `provider`        | `str`                      | `"anthropic"` | LLM provider name. Options: `"anthropic"`, `"openai"`, `"gemini"`, `"http"`.                           |
-| `config`          | `Optional[CouncilConfig]`  | `None`        | Council configuration. Uses default config if not provided.                                            |
-| `persona_manager` | `Optional[PersonaManager]` | `None`        | Custom persona manager. Uses global persona manager if not provided.                                   |
-| `model`           | `Optional[str]`            | `None`        | Model name override (e.g., `"gpt-4"`, `"claude-3-opus-20240229"`).                                     |
-| `base_url`        | `Optional[str]`            | `None`        | Base URL override for custom endpoints.                                                                |
-| `history`         | `Optional[Any]`            | `None`        | ConsultationHistory instance for auto-saving consultations.                                            |
+| Parameter         | Type                       | Default       | Description                                                                                                                        |
+| ----------------- | -------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `api_key`         | `Optional[str]`            | `None`        | API key for the LLM provider. If not provided, will be read from environment variables, `.env` file (auto-loaded), or config file. |
+| `provider`        | `str`                      | `"anthropic"` | LLM provider name. Options: `"anthropic"`, `"openai"`, `"gemini"`, `"http"`, `"vercel"`.                                           |
+| `config`          | `Optional[CouncilConfig]`  | `None`        | Council configuration. Uses default config if not provided.                                                                        |
+| `persona_manager` | `Optional[PersonaManager]` | `None`        | Custom persona manager. Uses global persona manager if not provided.                                                               |
+| `model`           | `Optional[str]`            | `None`        | Model name override (e.g., `"gpt-4"`, `"claude-3-opus-20240229"`). Available models depend on provider.                            |
+| `base_url`        | `Optional[str]`            | `None`        | Base URL override for custom endpoints.                                                                                            |
+| `endpoint`        | `Optional[str]`            | `None`        | Backward-compatible alias for `base_url`.                                                                                          |
+| `history`         | `Optional[Any]`            | `None`        | ConsultationHistory instance for auto-saving consultations.                                                                        |
 
 **Example:**
 
@@ -454,27 +456,35 @@ config = CouncilConfig(
     context_window: int = 10,
     use_structured_output: bool = False,
     export_enabled_state: bool = False,
+    enable_analysis: bool = True,
+    enable_web_search: bool = False,
+    web_search_provider: Optional[str] = None,
+    reasoning_mode: Optional[str] = None,
 )
 ```
 
 **Fields:**
 
-| Field                     | Type               | Default              | Description                                                                     |
-| ------------------------- | ------------------ | -------------------- | ------------------------------------------------------------------------------- |
-| `name`                    | `str`              | `"Advisory Council"` | Council name for identification.                                                |
-| `description`             | `str`              | `""`                 | Council description.                                                            |
-| `mode`                    | `ConsultationMode` | `SYNTHESIS`          | Default consultation mode.                                                      |
-| `max_tokens_per_response` | `int`              | `1000`               | Maximum tokens per member response.                                             |
-| `temperature`             | `float`            | `0.7`                | Sampling temperature (0.0-2.0).                                                 |
-| `include_reasoning`       | `bool`             | `True`               | Whether to include reasoning in responses.                                      |
-| `include_confidence`      | `bool`             | `True`               | Whether to include confidence levels.                                           |
-| `synthesis_prompt`        | `Optional[str]`    | `None`               | Custom synthesis prompt template.                                               |
-| `synthesis_provider`      | `Optional[str]`    | `None`               | Provider override for synthesis (when set, uses a separate provider instance).  |
-| `synthesis_model`         | `Optional[str]`    | `None`               | Model override for synthesis. Can be used with or without `synthesis_provider`. |
-| `synthesis_max_tokens`    | `Optional[int]`    | `None`               | Max tokens override for synthesis.                                              |
-| `context_window`          | `int`              | `10`                 | Number of previous exchanges to include.                                        |
-| `use_structured_output`   | `bool`             | `False`              | Enable structured synthesis output (experimental).                              |
-| `export_enabled_state`    | `bool`             | `False`              | Include enabled flags in exports.                                               |
+| Field                     | Type               | Default              | Description                                                                                     |
+| ------------------------- | ------------------ | -------------------- | ----------------------------------------------------------------------------------------------- |
+| `name`                    | `str`              | `"Advisory Council"` | Council name for identification.                                                                |
+| `description`             | `str`              | `""`                 | Council description.                                                                            |
+| `mode`                    | `ConsultationMode` | `SYNTHESIS`          | Default consultation mode.                                                                      |
+| `max_tokens_per_response` | `int`              | `1000`               | Maximum tokens per member response.                                                             |
+| `temperature`             | `float`            | `0.7`                | Sampling temperature (0.0-2.0).                                                                 |
+| `include_reasoning`       | `bool`             | `True`               | Whether to include reasoning in responses.                                                      |
+| `include_confidence`      | `bool`             | `True`               | Whether to include confidence levels.                                                           |
+| `synthesis_prompt`        | `Optional[str]`    | `None`               | Custom synthesis prompt template.                                                               |
+| `synthesis_provider`      | `Optional[str]`    | `None`               | Provider override for synthesis (when set, uses a separate provider instance).                  |
+| `synthesis_model`         | `Optional[str]`    | `None`               | Model override for synthesis. Can be used with or without `synthesis_provider`.                 |
+| `synthesis_max_tokens`    | `Optional[int]`    | `None`               | Max tokens override for synthesis.                                                              |
+| `context_window`          | `int`              | `10`                 | Number of previous exchanges to include.                                                        |
+| `use_structured_output`   | `bool`             | `False`              | Enable structured synthesis output (experimental).                                              |
+| `export_enabled_state`    | `bool`             | `False`              | Include enabled flags in exports.                                                               |
+| `enable_analysis`         | `bool`             | `True`               | Enable separate consensus analysis pass.                                                        |
+| `enable_web_search`       | `bool`             | `False`              | Enable web search for consultations.                                                            |
+| `web_search_provider`     | `Optional[str]`    | `None`               | Web search provider ("tavily", "serper", "google"). Auto-detects from env vars if None.         |
+| `reasoning_mode`          | `Optional[str]`    | `None`               | Reasoning mode ("chain_of_thought", "tree_of_thought", "reflective", "analytical", "creative"). |
 
 **Example:**
 
@@ -1213,12 +1223,15 @@ Abstract base class for LLM providers.
 
 #### Supported Providers
 
-| Provider         | Value         | Models                                                                          |
-| ---------------- | ------------- | ------------------------------------------------------------------------------- |
-| Anthropic Claude | `"anthropic"` | `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307` |
-| OpenAI GPT       | `"openai"`    | `gpt-4-turbo-preview`, `gpt-4`, `gpt-3.5-turbo`                                 |
-| Google Gemini    | `"gemini"`    | `gemini-pro`, `gemini-pro-vision`                                               |
-| Custom HTTP      | `"http"`      | Custom endpoint                                                                 |
+| Provider          | Value         | Models                                                                                                   |
+| ----------------- | ------------- | -------------------------------------------------------------------------------------------------------- |
+| Anthropic Claude  | `"anthropic"` | `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307`, and other Claude models |
+| OpenAI GPT        | `"openai"`    | `gpt-4-turbo-preview`, `gpt-4`, `gpt-3.5-turbo`, `gpt-4o`, and other OpenAI models                       |
+| Google Gemini     | `"gemini"`    | `gemini-pro`, `gemini-pro-vision`, and other Gemini models                                               |
+| Vercel AI Gateway | `"vercel"`    | Uses OpenAI-compatible endpoint (models depend on gateway configuration)                                 |
+| Custom HTTP       | `"http"`      | Custom endpoint (models depend on endpoint)                                                              |
+
+**Note:** Available models vary by provider and may change over time. Check your provider's documentation for the latest model list. Council AI uses provider defaults when no model is specified.
 
 #### Methods
 
@@ -1716,4 +1729,4 @@ council.disable_member("treasure")  # Not needed for this domain
 
 ## Version
 
-API Reference for Council AI v1.0.0
+API Reference for Council AI v2.0.0

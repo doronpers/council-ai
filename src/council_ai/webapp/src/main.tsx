@@ -4,6 +4,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import ReviewerApp from './components/Reviewer/ReviewerApp';
+import { NotificationProvider } from './components/Layout/NotificationContainer';
 
 // Import global styles
 import './styles/index.css';
@@ -16,8 +18,16 @@ if (!rootElement) {
   );
 }
 
+const isReviewerRoute = window.location.pathname.startsWith('/reviewer');
+
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <App />
+    {isReviewerRoute ? (
+      <NotificationProvider>
+        <ReviewerApp />
+      </NotificationProvider>
+    ) : (
+      <App />
+    )}
   </React.StrictMode>
 );

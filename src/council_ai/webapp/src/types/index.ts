@@ -61,6 +61,13 @@ export interface ModelCapability {
   models: string[];
 }
 
+// Token usage types
+export interface TokenUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+}
+
 // Settings types (localStorage)
 export interface UserSettings {
   provider?: string;
@@ -72,6 +79,9 @@ export interface UserSettings {
   max_tokens?: number;
   enable_tts?: boolean;
   tts_voice?: string;
+  members?: string[];
+  api_key?: string;
+  query?: string;
 }
 
 // Consultation types
@@ -98,6 +108,9 @@ export interface MemberResponse {
   content: string;
   timestamp: string;
   error?: string;
+  provider?: string;
+  model?: string;
+  usage?: TokenUsage;
 }
 
 export interface ConsultationResult {
@@ -108,6 +121,13 @@ export interface ConsultationResult {
   mode: string;
   timestamp: string;
   analysis?: ConsultationAnalysis;
+  usage_summary?: {
+    total_input_tokens: number;
+    total_output_tokens: number;
+    total_tokens: number;
+    estimated_cost?: number;
+  };
+  tags?: string[];
 }
 
 export interface ConsultationAnalysis {
@@ -142,6 +162,9 @@ export interface StreamEvent {
   result?: ConsultationResult;
   data?: ConsultationAnalysis;
   error?: string;
+  provider?: string;
+  model?: string;
+  usage?: TokenUsage;
 }
 
 // History types

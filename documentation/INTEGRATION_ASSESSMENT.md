@@ -1,3 +1,5 @@
+> **⚠️ INTERNAL PLANNING DOCUMENT**: This is an internal assessment document for integration planning. For user-facing documentation, see [README.md](../README.md) or [documentation/README.md](README.md).
+
 # Council AI + Feedback-Loop Integration Assessment
 
 ## Executive Summary

@@ -5,28 +5,38 @@ import React, { useState } from 'react';
 import type { HistoryEntry, ConsultationResult } from '../../types';
 import { formatTimestamp, truncate } from '../../utils/helpers';
 import { deleteHistoryEntry, getConsultation, updateConsultationMetadata } from '../../utils/api';
+import TagInput from './TagInput';
+import { useNotifications } from '../Layout/NotificationContainer';
 
 interface HistoryItemProps {
   entry: HistoryEntry;
   onDeleted: () => void;
   onView?: (result: ConsultationResult) => void;
+  onCompare?: (entry: HistoryEntry, result: ConsultationResult) => void;
 }
 
-const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView }) => {
+const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onCompare }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [tags, setTags] = useState(entry.tags || []);
   const [notes, setNotes] = useState(entry.notes || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
+  const [isComparing, setIsComparing] = useState(false);
+  const { showNotification } = useNotifications();
 
   const handleDelete = async () => {
-    if (!confirm('Delete this consultation?')) return;
+    // Use confirm for now, but could be replaced with a proper modal component
+    if (!window.confirm('Delete this consultation? This action cannot be undone.')) {
+      return;
+    }
     try {
       await deleteHistoryEntry(entry.id);
       onDeleted();
+      showNotification('Consultation deleted successfully', 'success');
     } catch (err) {
       console.error('Failed to delete history entry:', err);
-      alert('Failed to delete entry');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete entry';
+      showNotification(`Error: ${errorMessage}`, 'error');
     }
   };
 
@@ -37,16 +47,36 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView }) =
       if (onView) {
         onView(result);
       } else {
-        // Fallback: show in alert if no handler
-        alert(
-          `Query: ${result.query}\n\nResponses: ${result.responses.length}\nSynthesis: ${result.synthesis || 'N/A'}`
-        );
+        // Fallback: show notification if no handler
+        // This should rarely happen as onView is typically provided
+        showNotification('Consultation details loaded', 'info');
       }
     } catch (err) {
       console.error('Failed to load consultation:', err);
-      alert('Failed to load consultation details');
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to load consultation details';
+      showNotification(`Error: ${errorMessage}`, 'error');
     } finally {
       setIsViewing(false);
+    }
+  };
+
+  const handleCompare = async () => {
+    if (!onCompare) {
+      showNotification('Comparison unavailable', 'info');
+      return;
+    }
+    setIsComparing(true);
+    try {
+      const result = await getConsultation(entry.id);
+      onCompare(entry, result);
+    } catch (err) {
+      console.error('Failed to load consultation for comparison:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to load consultation details';
+      showNotification(`Error: ${errorMessage}`, 'error');
+    } finally {
+      setIsComparing(false);
     }
   };
 
@@ -55,15 +85,27 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView }) =
     try {
       await updateConsultationMetadata(entry.id, tags, notes);
       setIsEditing(false);
+      showNotification('Tags and notes saved successfully', 'success');
     } catch (err) {
       console.error('Failed to save metadata:', err);
-      alert('Failed to save tags/notes');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save tags/notes';
+      showNotification(`Error: ${errorMessage}`, 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleCancelEdit = () => {
+    // Check if there are unsaved changes
+    const hasTagChanges = JSON.stringify(tags) !== JSON.stringify(entry.tags || []);
+    const hasNoteChanges = notes !== (entry.notes || '');
+
+    if (hasTagChanges || hasNoteChanges) {
+      if (!window.confirm('You have unsaved changes. Discard them?')) {
+        return;
+      }
+    }
+
     setTags(entry.tags || []);
     setNotes(entry.notes || '');
     setIsEditing(false);
@@ -71,42 +113,26 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView }) =
 
   return (
     <div className="history-item">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 500, marginBottom: '4px' }}>{truncate(entry.query, 60)}</div>
-          <div className="muted" style={{ fontSize: '12px' }}>
+      <div className="history-item-header">
+        <div className="history-item-content">
+          <div className="history-item-query">{truncate(entry.query, 60)}</div>
+          <div className="history-item-meta muted">
             {formatTimestamp(entry.timestamp)} · {entry.mode} · {entry.member_count} members
           </div>
           {entry.tags && entry.tags.length > 0 && (
-            <div style={{ marginTop: '4px', fontSize: '11px' }}>
+            <div className="history-item-tags">
               {entry.tags.map((tag, i) => (
-                <span
-                  key={i}
-                  style={{
-                    display: 'inline-block',
-                    padding: '2px 6px',
-                    marginRight: '4px',
-                    backgroundColor: 'var(--accent-blue, #0066cc)',
-                    color: 'white',
-                    borderRadius: '3px',
-                    fontSize: '10px',
-                  }}
-                >
+                <span key={`${entry.id}-tag-${i}-${tag}`} className="history-item-tag">
                   {tag}
                 </span>
               ))}
             </div>
           )}
           {entry.notes && (
-            <div
-              className="muted"
-              style={{ marginTop: '4px', fontSize: '11px', fontStyle: 'italic' }}
-            >
-              {truncate(entry.notes, 80)}
-            </div>
+            <div className="history-item-notes muted">{truncate(entry.notes, 80)}</div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '4px', marginLeft: '12px' }}>
+        <div className="history-item-actions">
           <button
             type="button"
             className="response-action-btn"
@@ -115,6 +141,15 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView }) =
             title="View details"
           >
             {isViewing ? '⏳' : '👁️'}
+          </button>
+          <button
+            type="button"
+            className="response-action-btn"
+            onClick={handleCompare}
+            disabled={isComparing}
+            title="Compare consultation"
+          >
+            {isComparing ? '⏳' : '⚖️'}
           </button>
           <button
             type="button"
@@ -136,75 +171,33 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView }) =
       </div>
 
       {isEditing && (
-        <div
-          style={{
-            marginTop: '12px',
-            padding: '12px',
-            backgroundColor: 'var(--bg-secondary, #f5f5f5)',
-            borderRadius: '4px',
-          }}
-        >
-          <div style={{ marginBottom: '8px' }}>
-            <label
-              style={{ display: 'block', fontSize: '12px', marginBottom: '4px', fontWeight: 500 }}
-            >
-              Tags (comma-separated):
-            </label>
-            <input
-              type="text"
-              value={tags.join(', ')}
-              onChange={(e) =>
-                setTags(
-                  e.target.value
-                    .split(',')
-                    .map((t) => t.trim())
-                    .filter((t) => t)
-                )
-              }
-              placeholder="tag1, tag2, tag3"
-              style={{
-                width: '100%',
-                padding: '6px',
-                fontSize: '12px',
-                border: '1px solid var(--border, #ddd)',
-                borderRadius: '3px',
-              }}
+        <div className="history-edit-form">
+          <div className="history-edit-form-field">
+            <label className="history-edit-form-label">Tags:</label>
+            <TagInput
+              tags={tags}
+              onChange={setTags}
+              placeholder="Add tags..."
+              disabled={isSaving}
             />
           </div>
-          <div style={{ marginBottom: '8px' }}>
-            <label
-              style={{ display: 'block', fontSize: '12px', marginBottom: '4px', fontWeight: 500 }}
-            >
-              Notes:
-            </label>
+          <div className="history-edit-form-field">
+            <label className="history-edit-form-label">Notes:</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add notes about this consultation..."
               rows={3}
-              style={{
-                width: '100%',
-                padding: '6px',
-                fontSize: '12px',
-                border: '1px solid var(--border, #ddd)',
-                borderRadius: '3px',
-                fontFamily: 'inherit',
-              }}
+              className="history-edit-form-textarea"
+              disabled={isSaving}
             />
           </div>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <div className="history-edit-form-actions">
             <button
               type="button"
               onClick={handleCancelEdit}
               disabled={isSaving}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                border: '1px solid var(--border, #ddd)',
-                borderRadius: '3px',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-              }}
+              className="history-edit-form-btn history-edit-form-btn--cancel"
             >
               Cancel
             </button>
@@ -212,15 +205,7 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView }) =
               type="button"
               onClick={handleSaveMetadata}
               disabled={isSaving}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                border: 'none',
-                borderRadius: '3px',
-                backgroundColor: 'var(--accent-blue, #0066cc)',
-                color: 'white',
-                cursor: 'pointer',
-              }}
+              className="history-edit-form-btn history-edit-form-btn--save"
             >
               {isSaving ? 'Saving...' : 'Save'}
             </button>

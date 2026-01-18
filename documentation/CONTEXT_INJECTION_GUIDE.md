@@ -73,7 +73,7 @@ council.add_member("rams")
 # Load one or more markdown files
 context = load_markdown_files([
     "README.md",
-    "documentation/ARCHITECTURE.md",
+    "documentation/API_REFERENCE.md",
     "CHANGELOG.md"
 ])
 
@@ -212,9 +212,9 @@ council.add_member("rams")
 # Load multiple files of different types
 context = load_context_from_files([
     "README.md",                    # Markdown
-    "src/main.py",                  # Code
-    "documentation/ARCHITECTURE.md", # Markdown
-    "config/settings.yaml",         # Code (YAML)
+    "src/council_ai/cli.py",       # Code
+    "documentation/API_REFERENCE.md", # Markdown
+    "config.yaml.example",         # Configuration (YAML)
 ])
 
 result = council.consult(
@@ -264,8 +264,7 @@ focus_areas:
 ### Option 2: Programmatically Modify Persona
 
 ```python
-from council_ai import Council
-from council_ai.core.persona import get_persona
+from council_ai import Council, get_persona
 
 council = Council(api_key="your-key", provider="anthropic")
 
@@ -289,8 +288,7 @@ result = council.consult("Should we use async endpoints?")
 ### Option 3: System Prompt Override
 
 ```python
-from council_ai import Council
-from council_ai.core.persona import get_persona
+from council_ai import Council, get_persona
 
 council = Council(api_key="your-key", provider="anthropic")
 
@@ -352,15 +350,15 @@ context = load_context_from_files([
     # Documentation
     "README.md",
     "CONTRIBUTING.md",
-    "documentation/ARCHITECTURE.md",
+    "documentation/API_REFERENCE.md",
 
     # Code
-    "src/main.py",
-    "src/core/council.py",
+    "src/council_ai/cli.py",
+    "src/council_ai/core/council.py",
 
     # Configuration
     "pyproject.toml",
-    "config/settings.yaml",
+    "config.yaml.example",
 
     # Images (if supported by provider)
     # "diagrams/flow.png",
@@ -386,7 +384,7 @@ result = council.consult(
 
 ```python
 from pathlib import Path
-from council_ai.utils.context import load_code_files, truncate_content
+from council_ai.utils.context import load_code_files
 
 # Load with automatic truncation
 context = load_code_files(
@@ -405,6 +403,7 @@ You can use pre-consult hooks to automatically inject context:
 ```python
 from council_ai import Council
 from pathlib import Path
+from typing import Optional, Tuple
 
 council = Council(api_key="your-key", provider="anthropic")
 
@@ -416,7 +415,7 @@ def auto_load_context(query: str, context: Optional[str]) -> Tuple[str, Optional
 
     # Auto-load from common files
     context_files = []
-    for path in ["README.md", "ARCHITECTURE.md"]:
+    for path in ["README.md", "AGENT_KNOWLEDGE_BASE.md"]:
         if Path(path).exists():
             context_files.append(path)
 

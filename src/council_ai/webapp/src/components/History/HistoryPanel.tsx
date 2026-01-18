@@ -1,37 +1,153 @@
 /**
  * HistoryPanel Component - Consultation history display
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { loadHistory } from '../../utils/api';
-import HistoryItem from './HistoryItem';
 import type { HistoryEntry, ConsultationResult } from '../../types';
+import { truncate } from '../../utils/helpers';
+import HistorySearch from './HistorySearch';
+import HistoryFilters from './HistoryFilters';
+import HistoryItem from './HistoryItem';
+import Modal from '../Layout/Modal';
+import ComparisonView from '../Results/ComparisonView';
+import { useNotifications } from '../Layout/NotificationContainer';
+
+interface CompareSelection {
+  entry: HistoryEntry;
+  result: ConsultationResult;
+}
 
 const HistoryPanel: React.FC = () => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewingResult, setViewingResult] = useState<ConsultationResult | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<HistoryEntry[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [filters, setFilters] = useState<{
+    dateFrom?: string;
+    dateTo?: string;
+    domain?: string;
+    mode?: string;
+  }>({});
+  const [displayLimit, setDisplayLimit] = useState(20);
+  const [hasMore, setHasMore] = useState(false);
+  const [compareLeft, setCompareLeft] = useState<CompareSelection | null>(null);
+  const [compareRight, setCompareRight] = useState<CompareSelection | null>(null);
+  const { showNotification } = useNotifications();
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await loadHistory(10);
+      const data = await loadHistory(displayLimit, filters);
       setHistory(data);
+      setHasMore(data.length >= displayLimit);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load history');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters, displayLimit]);
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [fetchHistory]);
+
+  const displayHistory = searchQuery ? searchResults : history;
+
+  // Reset to default history when search query is cleared
+  useEffect(() => {
+    if (!searchQuery) {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
+
+  const handleLoadMore = () => {
+    setDisplayLimit((prev) => prev + 20);
+  };
+
+  const handleCompareSelection = (entry: HistoryEntry, result: ConsultationResult) => {
+    setViewingResult(null);
+    if (compareLeft?.entry.id === entry.id) {
+      setCompareLeft(null);
+      return;
+    }
+    if (compareRight?.entry.id === entry.id) {
+      setCompareRight(null);
+      return;
+    }
+
+    if (!compareLeft) {
+      setCompareLeft({ entry, result });
+      showNotification('Added to comparison A', 'info');
+      return;
+    }
+    if (!compareRight) {
+      setCompareRight({ entry, result });
+      showNotification('Added to comparison B', 'info');
+      return;
+    }
+
+    setCompareLeft(compareRight);
+    setCompareRight({ entry, result });
+    showNotification('Replaced comparison A', 'info');
+  };
+
+  const clearComparison = () => {
+    setCompareLeft(null);
+    setCompareRight(null);
+  };
+
+  const swapComparison = () => {
+    setCompareLeft(compareRight);
+    setCompareRight(compareLeft);
+  };
+
+  const comparisonReady = compareLeft && compareRight;
 
   return (
     <section className="panel" id="history-section">
       <h2>Recent Consultations</h2>
+
+      <div className="history-search-wrapper">
+        <HistorySearch
+          onResultsChange={setSearchResults}
+          onSearchingChange={setIsSearching}
+          onQueryChange={setSearchQuery}
+        />
+      </div>
+
+      <HistoryFilters onFilterChange={setFilters} />
+
+      {(compareLeft || compareRight) && (
+        <div className="history-compare-bar">
+          <div className="history-compare-slots">
+            <div
+              className={`history-compare-slot ${compareLeft ? 'history-compare-slot--active' : ''}`}
+            >
+              <span className="history-compare-label">A</span>
+              <span className="history-compare-text">
+                {compareLeft ? truncate(compareLeft.entry.query, 40) : 'Select a consultation'}
+              </span>
+            </div>
+            <div
+              className={`history-compare-slot ${compareRight ? 'history-compare-slot--active' : ''}`}
+            >
+              <span className="history-compare-label">B</span>
+              <span className="history-compare-text">
+                {compareRight ? truncate(compareRight.entry.query, 40) : 'Select a consultation'}
+              </span>
+            </div>
+          </div>
+          <div className="history-compare-actions">
+            <button type="button" className="btn btn-secondary btn-sm" onClick={clearComparison}>
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="empty-state">
@@ -45,144 +161,105 @@ const HistoryPanel: React.FC = () => {
         </div>
       )}
 
-      {!isLoading && !error && history.length === 0 && (
+      {!isLoading && !error && displayHistory.length === 0 && (
         <div className="empty-state">
-          <p>No recent consultations</p>
-          <p className="hint">Your consultation history will appear here.</p>
-        </div>
-      )}
-
-      {!isLoading && !error && history.length > 0 && (
-        <div id="history-list">
-          {history.map((entry) => (
-            <HistoryItem
-              key={entry.id}
-              entry={entry}
-              onDeleted={fetchHistory}
-              onView={setViewingResult}
-            />
-          ))}
-        </div>
-      )}
-
-      {viewingResult && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={() => setViewingResult(null)}
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              padding: '24px',
-              maxWidth: '800px',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-              }}
+          <p>{searchQuery ? 'No matching results found' : 'No recent consultations'}</p>
+          {!searchQuery && <p className="hint">Your consultation history will appear here.</p>}
+          {searchQuery && (
+            <button
+              type="button"
+              className="btn-secondary empty-state-clear-btn"
+              onClick={() => setSearchQuery('')}
             >
-              <h3 style={{ margin: 0 }}>Consultation Details</h3>
-              <button
-                onClick={() => setViewingResult(null)}
-                style={{
-                  border: 'none',
-                  background: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  padding: '0 8px',
-                }}
-              >
-                ×
+              Clear search
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isLoading && !error && displayHistory.length > 0 && (
+        <>
+          <div
+            id="history-list"
+            className={`history-list ${isSearching ? 'history-list--searching' : ''}`}
+          >
+            {displayHistory.map((entry) => (
+              <HistoryItem
+                key={entry.id}
+                entry={entry}
+                onDeleted={fetchHistory}
+                onView={setViewingResult}
+                onCompare={handleCompareSelection}
+              />
+            ))}
+          </div>
+
+          {!searchQuery && hasMore && (
+            <div className="history-load-more">
+              <button type="button" className="btn btn-secondary" onClick={handleLoadMore}>
+                Load More Consultations
               </button>
             </div>
-            <div style={{ marginBottom: '12px' }}>
-              <strong>Query:</strong>
-              <div
-                style={{
-                  marginTop: '4px',
-                  padding: '8px',
-                  backgroundColor: '#f5f5f5',
-                  borderRadius: '4px',
-                }}
-              >
-                {viewingResult.query}
-              </div>
+          )}
+        </>
+      )}
+
+      <Modal
+        isOpen={!!viewingResult}
+        onClose={() => setViewingResult(null)}
+        title="Consultation Details"
+      >
+        {viewingResult && (
+          <>
+            <div className="detail-section">
+              <span className="detail-label">Query:</span>
+              <div className="detail-content">{viewingResult.query}</div>
             </div>
             {viewingResult.context && (
-              <div style={{ marginBottom: '12px' }}>
-                <strong>Context:</strong>
-                <div
-                  style={{
-                    marginTop: '4px',
-                    padding: '8px',
-                    backgroundColor: '#f5f5f5',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {viewingResult.context}
-                </div>
+              <div className="detail-section">
+                <span className="detail-label">Context:</span>
+                <div className="detail-content">{viewingResult.context}</div>
               </div>
             )}
-            <div style={{ marginBottom: '12px' }}>
-              <strong>Responses ({viewingResult.responses.length}):</strong>
-              <div style={{ marginTop: '8px', maxHeight: '300px', overflow: 'auto' }}>
+            <div className="detail-section">
+              <span className="detail-label">Responses ({viewingResult.responses.length}):</span>
+              <div className="detail-content detail-content--scrollable">
                 {viewingResult.responses.map((response, i) => (
                   <div
-                    key={i}
-                    style={{
-                      marginBottom: '12px',
-                      padding: '12px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                    }}
+                    key={`${response.persona_name}-${i}-${response.content.substring(0, 20)}`}
+                    className="response-item"
                   >
-                    <div style={{ fontWeight: 500, marginBottom: '4px' }}>
+                    <div className="response-item-header">
                       {response.persona_emoji} {response.persona_name} ({response.persona_title})
                     </div>
-                    <div style={{ fontSize: '14px', color: '#666' }}>{response.content}</div>
+                    <div className="response-item-content">{response.content}</div>
                   </div>
                 ))}
               </div>
             </div>
             {viewingResult.synthesis && (
-              <div style={{ marginBottom: '12px' }}>
-                <strong>Synthesis:</strong>
-                <div
-                  style={{
-                    marginTop: '4px',
-                    padding: '8px',
-                    backgroundColor: '#e8f4f8',
-                    borderRadius: '4px',
-                  }}
-                >
+              <div className="detail-section">
+                <span className="detail-label">Synthesis:</span>
+                <div className="detail-content detail-content--highlight">
                   {viewingResult.synthesis}
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
+
+      <Modal isOpen={!!comparisonReady} onClose={clearComparison} title="Consultation Comparison">
+        {comparisonReady && (
+          <ComparisonView
+            leftResult={compareLeft.result}
+            rightResult={compareRight.result}
+            leftLabel={truncate(compareLeft.entry.query, 40)}
+            rightLabel={truncate(compareRight.entry.query, 40)}
+            onSwap={swapComparison}
+          />
+        )}
+      </Modal>
     </section>
   );
 };

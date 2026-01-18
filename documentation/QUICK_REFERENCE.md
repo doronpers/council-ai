@@ -48,8 +48,7 @@ result = council.consult("Should we use REST or GraphQL?")
 ## Persona Customization
 
 ```python
-from council_ai import Council
-from council_ai.core.persona import get_persona
+from council_ai import Council, get_persona
 
 council = Council(api_key="key", provider="anthropic")
 
@@ -88,6 +87,30 @@ result = council.consult(
 )
 ```
 
+## Web UI Configuration
+
+### Local LLM Setup
+
+```bash
+# 1. Select provider (local/ollama)
+# 2. Go to Advanced Settings
+# 3. Set Base URL:
+# Ollama: http://localhost:11434/v1
+# LM Studio: http://localhost:1234/v1
+# Custom: http://your-server:8000/v1
+# 4. API Key (usually empty for local)
+```
+
+### Custom Endpoints
+
+```bash
+# For any OpenAI-compatible endpoint:
+# 1. Choose provider that matches your model type
+# 2. In Advanced Settings, set Base URL to your endpoint
+# 3. Add API key if required
+# 4. Settings are saved to browser automatically
+```
+
 ## Environment Variables
 
 ```bash
@@ -100,16 +123,7 @@ export TAVILY_API_KEY="your-key"
 export SERPER_API_KEY="your-key"
 ```
 
-## Reasoning Modes
-
-- `standard` - Default
-- `chain_of_thought` - Step-by-step
-- `tree_of_thought` - Multiple paths
-- `reflective` - Think, reflect, refine
-- `analytical` - Deep analysis
-- `creative` - Divergent thinking
-
-See full documentation:
+## Related Guides
 
 - `documentation/CONTEXT_INJECTION_GUIDE.md`
 - `documentation/WEB_SEARCH_AND_REASONING.md`

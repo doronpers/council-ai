@@ -1,6 +1,7 @@
 # Persona Model & Parameter Settings
 
-This document verifies that each persona has unique model/parameter defaults where specified.
+This document summarizes the **built-in persona** model/provider overrides defined in
+`src/council_ai/personas/*.yaml`.
 
 **Key Feature**: Council AI supports personas using **various LLM providers simultaneously**.
 Each persona can be configured to use a different provider (Anthropic, OpenAI, Gemini, etc.),
@@ -8,13 +9,13 @@ enabling heterogeneous councils where different personas leverage different LLM 
 
 ## Personas with Unique Model Settings
 
-| Persona      | Provider            | Model                        | Temperature   | Notes                                       |
-| ------------ | ------------------- | ---------------------------- | ------------- | ------------------------------------------- |
-| **rams**     | anthropic (default) | `claude-3-opus-20240229`     | `0.3`         | Low temperature for precise design thinking |
-| **kahneman** | openai (default)    | `gpt-4-turbo-preview`        | `0.5`         | Balanced for cognitive analysis             |
-| **taleb**    | openai (default)    | `gpt-4-turbo-preview`        | `0.9`         | High temperature for creative risk thinking |
-| **holman**   | `openai`            | `gpt-4o`                     | default (0.7) | Security-focused, uses latest GPT-4o        |
-| **treasure** | `anthropic`         | `claude-3-5-sonnet-20240620` | default (0.7) | Communication expert, uses Claude Sonnet    |
+| Persona      | Provider    | Model                        | Temperature   | Notes                                       |
+| ------------ | ----------- | ---------------------------- | ------------- | ------------------------------------------- |
+| **rams**     | `anthropic` | `claude-3-opus-20240229`     | `0.3`         | Low temperature for precise design thinking |
+| **kahneman** | `openai`    | `gpt-4-turbo-preview`        | `0.5`         | Balanced for cognitive analysis             |
+| **taleb**    | `openai`    | `gpt-4-turbo-preview`        | `0.9`         | High temperature for creative risk thinking |
+| **holman**   | `openai`    | `gpt-4o`                     | default (0.7) | Security-focused, uses latest GPT-4o        |
+| **treasure** | `anthropic` | `claude-3-5-sonnet-20240620` | default (0.7) | Communication expert, uses Claude Sonnet    |
 
 ## Personas Using Council Defaults
 
