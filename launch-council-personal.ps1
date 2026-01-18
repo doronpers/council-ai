@@ -10,6 +10,13 @@ param(
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
+# Activate virtual environment if it exists
+if (Test-Path "venv\Scripts\Activate.ps1") {
+    & "venv\Scripts\Activate.ps1"
+} elseif (Test-Path ".venv\Scripts\Activate.ps1") {
+    & ".venv\Scripts\Activate.ps1"
+}
+
 # Set personal configuration environment
 $env:COUNCIL_CONFIG_DIR = "$env:USERPROFILE\.config\council-ai"
 
