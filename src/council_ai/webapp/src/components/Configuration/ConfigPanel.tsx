@@ -12,6 +12,7 @@ import ApiKeyInput from './ApiKeyInput';
 import BaseUrlInput from './BaseUrlInput';
 import MemberSelectionGrid from '../Members/MemberSelectionGrid';
 import TTSSettings from '../TTS/TTSSettings';
+import PersonalIntegrationSection from './PersonalIntegrationSection';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../Layout/NotificationContainer';
 
@@ -209,6 +210,8 @@ const ConfigPanel: React.FC = () => {
           )}
 
           <TTSSettings />
+
+          <PersonalIntegrationSection />
 
           <div className="config-actions">
             <button type="button" className="btn btn-secondary" onClick={handleReset}>

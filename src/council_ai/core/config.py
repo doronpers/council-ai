@@ -159,16 +159,75 @@ class ConfigManager:
         self.config = self.load()
 
     def load(self) -> Config:
-        """Load configuration from file."""
+        """Load configuration from file with personal config support."""
+        # Start with defaults
+        default_config = Config()
+
+        personal_data = self._load_personal_config()
+        if personal_data:
+            try:
+                personal_config = Config(**personal_data)
+                # Merge personal config into defaults
+                default_config = self._merge_configs(default_config, personal_config)
+            except Exception as e:
+                logger.debug(f"Failed to parse personal config: {e}")
+
+        # Load user config (highest priority, overrides personal)
         if self.path.exists():
             try:
                 with open(self.path, encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
-                return Config(**data)
+                user_config = Config(**data)
+                # Merge user config over personal/default
+                return self._merge_configs(default_config, user_config)
             except Exception as e:
                 logger.warning(f"Failed to load config from {self.path}: {e}")
-                return Config()
-        return Config()
+                return default_config
+
+        return default_config
+
+    def _load_personal_config(self) -> Optional[Dict]:
+        """Load personal config from council-ai-personal if available."""
+        try:
+            from .personal_integration import PersonalIntegration
+
+            integration = PersonalIntegration()
+            repo_path = integration.detect_repo()
+            if repo_path:
+                personal_dir = repo_path / "personal" / "config"
+                config_file = personal_dir / "config.yaml"
+                if config_file.exists():
+                    with open(config_file, encoding="utf-8") as f:
+                        return yaml.safe_load(f) or {}
+        except Exception as e:
+            logger.debug(f"Could not load personal config: {e}")
+        return None
+
+    def _merge_configs(self, base: Config, override: Config) -> Config:
+        """Merge two configs, with override taking precedence."""
+        # Convert to dicts for easier merging
+        base_dict = base.model_dump(exclude_none=True)
+        override_dict = override.model_dump(exclude_none=True)
+
+        # Deep merge
+        merged = self._deep_merge(base_dict, override_dict)
+
+        # Convert back to Config
+        try:
+            return Config(**merged)
+        except Exception as e:
+            logger.warning(f"Failed to merge configs: {e}")
+            return base
+
+    def _deep_merge(self, base: Dict, override: Dict) -> Dict:
+        """Deep merge two dictionaries."""
+        result = base.copy()
+        for key, value in override.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
 
     def save(self, config: Optional[Config] = None) -> None:
         """Save configuration to file."""

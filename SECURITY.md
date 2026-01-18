@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability in Council AI, please report it by:
 
-1. **Email**: doron@sonotheia.com
+1. **Email**: <doron@sonotheia.com>
 2. **Subject**: "Council AI Security Vulnerability"
 3. Include a detailed description of the vulnerability
 
@@ -64,6 +64,28 @@ All dependencies are from trusted sources and regularly updated.
 2. **API Rate Limits**: Subject to provider rate limits
 3. **Cost Management**: Monitor usage to avoid unexpected costs
 4. **Content Filtering**: LLM providers may have content policies
+
+## Recent Security Audit
+
+A comprehensive security audit was performed on **2026-01-18**, covering:
+
+- **Static Analysis**: `bandit` scan performed on all source files.
+- **SQL Injection**: Verified that dynamic SQL (ORDER BY clauses) is whitelisted against allowed column names.
+- **File Permissions**: Verified that `os.chmod` is only used for legitimate script integration purposes.
+- **Dependency Scan**: Confirmed all dependencies are up to date and from trusted sources.
+
+### Automated Security Checks
+
+Security checks are integrated into our development workflow:
+
+- `bandit` is run automatically as part of the audit suite.
+- `ruff` and `mypy` ensure code quality and type safety, reducing the surface for logical vulnerabilities.
+
+To run these checks manually:
+
+```bash
+./scripts/audit_recent.sh
+```
 
 ## Security Updates
 

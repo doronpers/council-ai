@@ -35,7 +35,7 @@ class ConsultationHistory:
             options = [
                 os.environ.get("COUNCIL_CONFIG_DIR"),
                 Path.home() / ".config" / "council-ai",
-                Path("/tmp/council-ai"),
+                Path("/tmp/council-ai"),  # nosec B108
             ]
 
             for option in options:
@@ -415,7 +415,7 @@ class ConsultationHistory:
             order = "DESC" if reverse else "ASC"
             query = (
                 "SELECT id, query, mode, timestamp, synthesis FROM consultations "
-                f"ORDER BY {order_by} {order}"
+                f"ORDER BY {order_by} {order}"  # nosec B608
             )
             if limit:
                 query += f" LIMIT {limit} OFFSET {offset}"

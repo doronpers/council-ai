@@ -605,3 +605,67 @@ async def tts_voices() -> dict:
         "provider": config.tts.provider,
         "fallback_provider": config.tts.fallback_provider,
     }
+
+
+# Personal Integration API Endpoints
+@app.get("/api/personal/status")
+def get_personal_status_endpoint():
+    """Get personal integration status."""
+    try:
+        from council_ai.core.personal_integration import get_personal_status
+
+        status = get_personal_status()
+        return status
+    except Exception as e:
+        logger.error(f"Failed to get personal status: {e}")
+        return {
+            "detected": False,
+            "configured": False,
+            "repo_path": None,
+            "config_dir": None,
+        }
+
+
+@app.post("/api/personal/integrate")
+def integrate_personal_endpoint():
+    """Trigger personal integration."""
+    try:
+        from pathlib import Path
+
+        from council_ai.core.personal_integration import detect_personal_repo, integrate_personal
+
+        repo_path = detect_personal_repo()
+        if not repo_path:
+            raise HTTPException(
+                status_code=404, detail="council-ai-personal repository not detected"
+            )
+
+        success = integrate_personal(Path(repo_path))
+        if success:
+            return {"success": True, "message": "Integration completed successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Integration failed")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to integrate personal: {e}")
+        raise HTTPException(status_code=500, detail=f"Integration error: {str(e)}")
+
+
+@app.get("/api/personal/verify")
+def verify_personal_integration_endpoint():
+    """Verify personal integration."""
+    try:
+        from council_ai.core.personal_integration import verify_personal_integration
+
+        verification = verify_personal_integration()
+        return verification
+    except Exception as e:
+        logger.error(f"Failed to verify personal integration: {e}")
+        return {
+            "detected": False,
+            "configured": False,
+            "configs_loaded": False,
+            "personas_available": False,
+            "issues": [f"Verification error: {str(e)}"],
+        }

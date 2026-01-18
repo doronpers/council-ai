@@ -196,6 +196,112 @@ def check_api_keys() -> Tuple[bool, Optional[str]]:
     return (False, None)
 
 
+def detect_personal_integration() -> Tuple[bool, Optional[str]]:
+    """
+    Detect if council-ai-personal is available.
+
+    Returns:
+        (is_detected, repo_path)
+    """
+    try:
+        from council_ai.core.personal_integration import detect_personal_repo
+
+        repo_path = detect_personal_repo()
+        if repo_path:
+            return (True, str(repo_path))
+    except ImportError:
+        # Module not available yet (during initial setup)
+        pass
+    except Exception:
+        pass
+
+    # Fallback: check common locations
+    script_dir = Path(__file__).parent.resolve()
+    sibling_path = script_dir.parent / "council-ai-personal"
+    if sibling_path.exists() and (sibling_path / "personal").exists():
+        return (True, str(sibling_path))
+
+    home_path = Path.home() / "council-ai-personal"
+    if home_path.exists() and (home_path / "personal").exists():
+        return (True, str(home_path))
+
+    return (False, None)
+
+
+def is_first_run() -> bool:
+    """
+    Check if this is the first run of Council AI.
+
+    Returns:
+        True if this appears to be the first run
+    """
+    config_dir = Path.home() / ".config" / "council-ai"
+    first_run_flag = config_dir / ".first_run_complete"
+
+    # If flag exists, not first run
+    if first_run_flag.exists():
+        return False
+
+    # Check if config directory is empty or doesn't exist
+    if not config_dir.exists():
+        return True
+
+    # Check if config.yaml exists and has meaningful content
+    config_file = config_dir / "config.yaml"
+    if not config_file.exists():
+        return True
+
+    try:
+        with open(config_file, encoding="utf-8") as f:
+            content = f.read().strip()
+            # If config is empty or just has defaults, consider it first run
+            if not content or len(content) < 50:
+                return True
+    except Exception:
+        return True
+
+    return False
+
+
+def mark_first_run_complete() -> None:
+    """Mark that first run setup is complete."""
+    config_dir = Path.home() / ".config" / "council-ai"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    first_run_flag = config_dir / ".first_run_complete"
+    first_run_flag.touch()
+
+
+def offer_personal_integration(repo_path: str) -> bool:
+    """
+    Offer to integrate council-ai-personal.
+
+    Args:
+        repo_path: Path to council-ai-personal repository
+
+    Returns:
+        True if user accepted integration, False otherwise
+    """
+    if QUIET:
+        return False
+
+    print_info(f"\n📦 Found council-ai-personal at: {repo_path}")
+    print_info("This repository contains personal configurations and personas.")
+    print_status(
+        "Would you like to integrate it now? (This will copy configs to ~/.config/council-ai/)",
+        CYAN,
+    )
+
+    try:
+        response = input("Integrate now? [Y/n]: ").strip().lower()
+        if response in ("", "y", "yes"):
+            return True
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+
+    return False
+
+
 def install_council(editable: bool = True) -> bool:
     """Install council-ai package."""
     print_info("Upgrading pip...")
@@ -385,6 +491,10 @@ def launch_web_app(
         print_warning(f"Port {port} is already in use")
         if pid:
             print_info(f"Process {pid} is currently using this port.")
+            if not IS_WINDOWS:
+                print_info(f"To kill it, run: kill {pid}")
+            else:
+                print_info(f"To kill it, run: taskkill /PID {pid} /F")
         print_info("Trying to use the existing service...")
         if open_browser_flag:
             open_browser(url)
@@ -397,6 +507,22 @@ def launch_web_app(
     if not QUIET:
         print()
 
+    # Check personal integration status
+    personal_status = ""
+    try:
+        from council_ai.core.personal_integration import get_personal_status
+
+        status = get_personal_status()
+        if status.get("configured"):
+            personal_status = f"\n{BOLD}Personal Integration:{RESET} ✅ Active"
+        elif status.get("detected"):
+            personal_status = (
+                f"\n{BOLD}Personal Integration:{RESET} ⚠️  Detected but not integrated"
+                f"\n  Run 'council personal integrate' to activate"
+            )
+    except Exception:
+        pass
+
     # Welcome message
     access_msg = f"  {CYAN}{url}{RESET}"
     if host == "0.0.0.0":
@@ -408,14 +534,15 @@ def launch_web_app(
 {BOLD}{MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}
 
 {BOLD}Access the web interface at:{RESET}
-{access_msg}
+{access_msg}{personal_status}
 
 {BOLD}Features:{RESET}
   • Consult with multiple AI personas
-  • Choose from 12 domain presets
+  • Choose from 12+ domain presets
   • Multiple consultation modes (synthesis, debate, vote)
   • Text-to-speech support (if configured)
   • Consultation history
+  • Personal configurations (if integrated)
 
 {BOLD}To stop:{RESET} Press {CYAN}Ctrl+C{RESET}
 
@@ -473,6 +600,23 @@ def check_npm_installed() -> bool:
         return False
 
 
+def get_npm_install_instructions() -> str:
+    """Get instructions for installing npm/Node.js."""
+    if IS_MAC:
+        return "Install Node.js from https://nodejs.org/ or use Homebrew:\n" "  brew install node"
+    elif IS_WINDOWS:
+        return (
+            "Install Node.js from https://nodejs.org/\n"
+            "Download the Windows installer and follow the setup wizard."
+        )
+    else:
+        return (
+            "Install Node.js from https://nodejs.org/ or use your package manager:\n"
+            "  sudo apt-get install nodejs npm  # Debian/Ubuntu\n"
+            "  sudo yum install nodejs npm       # RHEL/CentOS"
+        )
+
+
 def build_frontend() -> bool:
     """Install dependencies and build the frontend."""
     print_info("Building frontend assets (this may take a minute)...")
@@ -523,7 +667,10 @@ def check_frontend_ready() -> bool:
     if not check_npm_installed():
         print_error("npm is not installed. Cannot build frontend.")
         print_info("Please install Node.js and npm to build the web interface.")
-        print_info("Or download a pre-built release.")
+        print_info("")
+        print_info(get_npm_install_instructions())
+        print_info("")
+        print_info("Or download a pre-built release if available.")
         return False
 
     if not QUIET:
@@ -679,17 +826,42 @@ def main():
     if not check_frontend_ready():
         return 1
 
+    # Check for first run and personal integration
+    if is_first_run():
+        print_info("\n🎉 Welcome to Council AI! This appears to be your first launch.")
+        print_info("We'll help you get set up.\n")
+
+        # Check for personal integration
+        personal_detected, personal_path = detect_personal_integration()
+        if personal_detected and personal_path:
+            if offer_personal_integration(personal_path):
+                print_info("Integrating council-ai-personal...")
+                try:
+                    from council_ai.core.personal_integration import integrate_personal
+
+                    if integrate_personal(Path(personal_path)):
+                        print_success("Personal integration completed!")
+                    else:
+                        print_warning("Personal integration failed, but continuing...")
+                except Exception as e:
+                    print_warning(f"Personal integration error: {e}")
+                    print_info("You can integrate later with: council personal integrate")
+
+        # Mark first run as complete
+        mark_first_run_complete()
+
     # Check API keys (warning only, not blocking)
     has_key, provider = check_api_keys()
     if not has_key:
         print_warning("No API key detected")
         print_info("You can set one of:")
-        print_info("  • ANTHROPIC_API_KEY (for Claude)")
-        print_info("  • OPENAI_API_KEY (for GPT-4)")
-        print_info("  • GEMINI_API_KEY (for Gemini)")
+        print_info("  • ANTHROPIC_API_KEY (for Claude) - https://console.anthropic.com/")
+        print_info("  • OPENAI_API_KEY (for GPT-4) - https://platform.openai.com/api-keys")
+        print_info("  • GEMINI_API_KEY (for Gemini) - https://ai.google.dev/")
         print_info("  • COUNCIL_API_KEY (generic)")
         print_info("")
         print_info("The web app will start, but you'll need to configure an API key in the UI")
+        print_info("Or run 'council init' for guided setup")
     else:
         print_success(f"API key detected for {provider}")
 

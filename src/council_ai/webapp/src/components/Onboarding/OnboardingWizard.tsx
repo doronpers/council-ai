@@ -8,6 +8,7 @@ import ProviderSelect from '../Configuration/ProviderSelect';
 import ApiKeyInput from '../Configuration/ApiKeyInput';
 import MemberSelectionGrid from '../Members/MemberSelectionGrid';
 import QueryInput from '../Consultation/QueryInput';
+import PersonalIntegrationStep from './PersonalIntegrationStep';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../Layout/NotificationContainer';
 
@@ -66,7 +67,10 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete, onSkip 
           }
           break;
 
-        case 4: // Query input
+        case 4: // Personal integration (optional, no validation needed)
+          break;
+
+        case 5: // Query input
           if (!settings.query || settings.query.trim().length === 0) {
             errors.push('Please enter a question for the council.');
           } else if (settings.query.trim().length < 10) {
@@ -154,6 +158,11 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete, onSkip 
             <ApiKeyInput />
           </div>
         ),
+      },
+      {
+        title: 'Personal Integration (Optional)',
+        description: 'Integrate your personal configurations and personas.',
+        content: <PersonalIntegrationStep />,
       },
       {
         title: 'Write your first query',

@@ -129,6 +129,17 @@ pip install -e ".[all]"
 pip install -e ".[dev]"
 ```
 
+### Code Quality & Security Audit
+
+The codebase is regularly audited for quality, security, and type safety. You can run the latest audit suite using:
+
+```bash
+# Run the automated audit script (ruff, mypy, bandit, pytest)
+./scripts/audit_recent.sh
+```
+
+This script ensures that the latest changes adhere to our coding standards and security best practices.
+
 > [!NOTE]
 > **Windows Users:** If you encounter "command not found" errors, ensure your Python `Scripts` directory is in your PATH. Alternatively, you can run commands using the `python -m` syntax (e.g., `python -m pytest`, `python -m black src/`).
 
