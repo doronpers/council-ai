@@ -361,53 +361,55 @@ class ConsultationHistory:
 
         try:
             import asyncio
-            import threading
 
-            # This is tricky because get_memu_context is sync but MemU is async
-            # We need to handle the case where we might already be in an event loop
-            result_container = {"value": ""}
+            # Try to get the current event loop
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # We're in an async context, can't use run_until_complete
+                    # Return empty for now - could use asyncio.create_task in future
+                    logger.debug("MemU context retrieval skipped: already in async context")
+                    return ""
+            except RuntimeError:
+                # No event loop running, create a new one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
 
-            def _retrieve_in_thread():
+            async def _retrieve_context():
                 try:
-                    # Create a new event loop for this thread
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
+                    # Use MemU's retrieve method to get relevant context
+                    results = await self.memu_service.retrieve(
+                        queries=[{"role": "user", "content": {"text": query}}],
+                        method="rag",
+                        k=k,
+                    )
 
-                    async def _retrieve_context():
-                        try:
-                            # Use MemU's retrieve method to get relevant context
-                            results = await self.memu_service.retrieve(
-                                queries=[{"role": "user", "content": {"text": query}}],
-                                method="rag",
-                                k=k,
-                            )
+                    context_parts = []
+                    if results and "items" in results:
+                        for item in results["items"]:
+                            # Extract content and format for prompt injection
+                            content = item.get("content", "")
+                            if content:
+                                # Add a header to indicate this is from memory
+                                context_parts.append(f"[Memory Context]: {content}")
 
-                            context_parts = []
-                            if results and "items" in results:
-                                for item in results["items"]:
-                                    # Extract content and format for prompt injection
-                                    content = item.get("content", "")
-                                    if content:
-                                        # Add a header to indicate this is from memory
-                                        context_parts.append(f"[Memory Context]: {content}")
+                    return "\n\n".join(context_parts)
 
-                            return "\n\n".join(context_parts)
-
-                        except Exception as e:
-                            logger.debug(f"MemU context retrieval failed: {e}")
-                            return ""
-
-                    result_container["value"] = loop.run_until_complete(_retrieve_context())
-                    loop.close()
                 except Exception as e:
-                    logger.debug(f"Failed to run MemU retrieval in thread: {e}")
+                    logger.debug(f"MemU context retrieval failed: {e}")
+                    return ""
 
-            # Run in a separate thread to avoid event loop conflicts
-            thread = threading.Thread(target=_retrieve_in_thread, daemon=True)
-            thread.start()
-            thread.join(timeout=2.0)  # Timeout after 2 seconds
-
-            return result_container["value"]
+            try:
+                result = loop.run_until_complete(_retrieve_context())
+                return result
+            finally:
+                # Only close if we created a new loop
+                try:
+                    current_loop = asyncio.get_event_loop()
+                    if current_loop is loop and not current_loop.is_running():
+                        loop.close()
+                except Exception:
+                    pass
 
         except Exception as e:
             logger.debug(f"Failed to retrieve MemU context: {e}")
