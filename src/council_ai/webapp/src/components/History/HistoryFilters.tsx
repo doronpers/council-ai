@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 
 interface HistoryFiltersProps {
   onFilterChange: (filters: {
@@ -16,6 +16,7 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({ onFilterChange }) => {
   const [mode, setMode] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
+  const contentId = useId();
 
   const validateDates = (): boolean => {
     if (dateFrom && dateTo && dateFrom > dateTo) {
@@ -63,13 +64,19 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({ onFilterChange }) => {
 
   return (
     <div className="history-filters">
-      <div className="history-filters-header" onClick={() => setIsOpen(!isOpen)}>
-        <div className="history-filters-title">Filters</div>
-        <div className="history-filters-toggle">{isOpen ? '▲' : '▼'}</div>
-      </div>
+      <button
+        type="button"
+        className="history-filters-header"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-controls={contentId}
+      >
+        <span className="history-filters-title">Filters</span>
+        <span className="history-filters-toggle">{isOpen ? '▲' : '▼'}</span>
+      </button>
 
       {isOpen && (
-        <div className="history-filters-content">
+        <div className="history-filters-content" id={contentId}>
           <div className="history-filters-field">
             <label className="history-filters-label">Date From</label>
             <input
@@ -115,6 +122,7 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({ onFilterChange }) => {
               <option value="">Any</option>
               <option value="synthesis">Synthesis</option>
               <option value="individual">Individual</option>
+              <option value="sequential">Sequential</option>
               <option value="debate">Debate</option>
               <option value="vote">Vote</option>
             </select>

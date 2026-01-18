@@ -116,6 +116,7 @@ const HistoryPanel: React.FC = () => {
           onResultsChange={setSearchResults}
           onSearchingChange={setIsSearching}
           onQueryChange={setSearchQuery}
+          onError={(message) => showNotification(`History search failed: ${message}`, 'error')}
         />
       </div>
 
@@ -163,9 +164,15 @@ const HistoryPanel: React.FC = () => {
 
       {!isLoading && !error && displayHistory.length === 0 && (
         <div className="empty-state">
-          <p>{searchQuery ? 'No matching results found' : 'No recent consultations'}</p>
+          <p>
+            {searchQuery
+              ? isSearching
+                ? 'Searching history...'
+                : 'No matching results found'
+              : 'No recent consultations'}
+          </p>
           {!searchQuery && <p className="hint">Your consultation history will appear here.</p>}
-          {searchQuery && (
+          {searchQuery && !isSearching && (
             <button
               type="button"
               className="btn-secondary empty-state-clear-btn"

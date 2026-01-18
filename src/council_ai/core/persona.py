@@ -27,6 +27,7 @@ class PersonaCategory(str, Enum):
     ANALYTICAL = "analytical"  # Deep analysis
     STRATEGIC = "strategic"  # Long-term thinking
     OPERATIONAL = "operational"  # Day-to-day execution
+    SPECIALIST = "specialist"  # Deep domain expertise
     RED_TEAM = "red_team"  # Think like an attacker/fraudster
     CUSTOM = "custom"  # User-defined
 

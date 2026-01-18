@@ -7,9 +7,9 @@ from council_ai.core.persona import PersonaManager
 
 
 def test_all_builtin_personas_load():
-    """Test that all 9 built-in personas load correctly."""
+    """Test that all 14 built-in personas load correctly."""
     personas = list_personas()
-    assert len(personas) == 9, f"Expected 9 personas, got {len(personas)}"
+    assert len(personas) == 14, f"Expected 14 personas, got {len(personas)}"
 
     # Check each persona has required fields
     for persona in personas:

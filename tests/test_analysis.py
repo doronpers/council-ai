@@ -1,4 +1,5 @@
 """Tests for the analysis module."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

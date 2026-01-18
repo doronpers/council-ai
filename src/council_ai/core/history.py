@@ -229,6 +229,7 @@ class ConsultationHistory:
         result: ConsultationResult,
         tags: Optional[List[str]] = None,
         notes: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Save a consultation result.
@@ -258,7 +259,7 @@ class ConsultationHistory:
             "tags": tags or [],
             "notes": notes,
             "session_id": getattr(result, "session_id", None),
-            "metadata": {},
+            "metadata": metadata or {},
         }
 
         if self.use_sqlite:
@@ -461,6 +462,10 @@ class ConsultationHistory:
         offset: int = 0,
         order_by: str = "timestamp",
         reverse: bool = True,
+        domain: Optional[str] = None,
+        mode: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         List consultations.
@@ -470,10 +475,45 @@ class ConsultationHistory:
             offset: Skip N results
             order_by: Field to sort by (timestamp, query)
             reverse: If True, sort descending
+            domain: Optional domain filter (matches metadata["domain"])
+            mode: Optional consultation mode filter
+            date_from: ISO timestamp string to filter after
+            date_to: ISO timestamp string to filter before
 
         Returns:
             List of consultation summaries
         """
+        date_from_dt = None
+        date_to_dt = None
+        if date_from:
+            try:
+                date_from_dt = datetime.fromisoformat(date_from)
+            except ValueError as exc:
+                raise ValueError(f"Invalid date_from format: {date_from}") from exc
+        if date_to:
+            try:
+                date_to_dt = datetime.fromisoformat(date_to)
+            except ValueError as exc:
+                raise ValueError(f"Invalid date_to format: {date_to}") from exc
+
+        def _matches_filters(entry: Dict[str, Any]) -> bool:
+            if mode and entry.get("mode") != mode:
+                return False
+            if domain:
+                metadata = entry.get("metadata") or {}
+                if metadata.get("domain") != domain:
+                    return False
+            if date_from_dt or date_to_dt:
+                try:
+                    ts = datetime.fromisoformat(entry.get("timestamp", ""))
+                except ValueError:
+                    return False
+                if date_from_dt and ts < date_from_dt:
+                    return False
+                if date_to_dt and ts > date_to_dt:
+                    return False
+            return True
+
         if self.use_sqlite:
             # Validate order_by to prevent SQL injection
             allowed_order_by = ["timestamp", "query", "mode", "id"]
@@ -485,25 +525,46 @@ class ConsultationHistory:
             conn = sqlite3.connect(self.db_path)
             order = "DESC" if reverse else "ASC"
             query = (
-                "SELECT id, query, mode, timestamp, synthesis FROM consultations "
+                "SELECT id, query, mode, timestamp, synthesis, responses, tags, notes, metadata "
+                "FROM consultations "
                 f"ORDER BY {order_by} {order}"  # nosec B608
             )
-            if limit:
-                query += f" LIMIT {limit} OFFSET {offset}"
             cursor = conn.execute(query)
             rows = cursor.fetchall()
             conn.close()
-
-            return [
-                {
-                    "id": row[0],
-                    "query": row[1],
-                    "mode": row[2],
-                    "timestamp": row[3],
-                    "synthesis": row[4],
-                }
-                for row in rows
-            ]
+            results: List[Dict[str, Any]] = []
+            for row in rows:
+                try:
+                    responses = json.loads(row[5]) if row[5] else []
+                except json.JSONDecodeError:
+                    responses = []
+                try:
+                    tags = json.loads(row[6]) if row[6] else []
+                except json.JSONDecodeError:
+                    tags = []
+                try:
+                    metadata = json.loads(row[8]) if row[8] else {}
+                except json.JSONDecodeError:
+                    metadata = {}
+                results.append(
+                    {
+                        "id": row[0],
+                        "query": row[1],
+                        "mode": row[2],
+                        "timestamp": row[3],
+                        "synthesis": row[4],
+                        "member_count": len(responses) if isinstance(responses, list) else 0,
+                        "tags": tags,
+                        "notes": row[7],
+                        "metadata": metadata,
+                    }
+                )
+            filtered = [entry for entry in results if _matches_filters(entry)]
+            if offset:
+                filtered = filtered[offset:]
+            if limit:
+                filtered = filtered[:limit]
+            return filtered
         else:
             # List JSON files
             files = sorted(
@@ -512,16 +573,13 @@ class ConsultationHistory:
                 reverse=reverse,
             )
 
-            if offset:
-                files = files[offset:]
-            if limit:
-                files = files[:limit]
-
             results = []
             for json_path in files:
                 try:
                     with open(json_path, "r", encoding="utf-8") as f:
                         data = json.load(f)
+                        responses = data.get("responses", [])
+                        metadata = data.get("metadata", {})
                         results.append(
                             {
                                 "id": data.get("id", json_path.stem),
@@ -529,13 +587,23 @@ class ConsultationHistory:
                                 "mode": data.get("mode", ""),
                                 "timestamp": data.get("timestamp", ""),
                                 "synthesis": data.get("synthesis"),
+                                "member_count": (
+                                    len(responses) if isinstance(responses, list) else 0
+                                ),
+                                "tags": data.get("tags", []),
+                                "notes": data.get("notes"),
+                                "metadata": metadata,
                             }
                         )
                 except Exception as e:
                     logger.debug(f"Failed to read consultation file {json_path}: {e}")
                     continue
-
-            return results
+            filtered = [entry for entry in results if _matches_filters(entry)]
+            if offset:
+                filtered = filtered[offset:]
+            if limit:
+                filtered = filtered[:limit]
+            return filtered
 
     def search(self, query: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """

@@ -6,16 +6,19 @@ interface HistorySearchProps {
   onResultsChange: (results: HistoryEntry[]) => void;
   onSearchingChange: (isSearching: boolean) => void;
   onQueryChange: (query: string) => void;
+  onError?: (message: string) => void;
 }
 
 const HistorySearch: React.FC<HistorySearchProps> = ({
   onResultsChange,
   onSearchingChange,
   onQueryChange,
+  onError,
 }) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   // Memoize callbacks to avoid dependency issues
   const handleResultsChange = useCallback(
@@ -31,6 +34,31 @@ const HistorySearch: React.FC<HistorySearchProps> = ({
     },
     [onSearchingChange]
   );
+
+  const handleError = useCallback(
+    (message: string) => {
+      if (onError) {
+        onError(message);
+      }
+    },
+    [onError]
+  );
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      const isModifierPressed = event.metaKey || event.ctrlKey;
+      if (!isModifierPressed || event.key.toLowerCase() !== 'k') {
+        return;
+      }
+      event.preventDefault();
+      inputRef.current?.focus();
+    };
+
+    window.addEventListener('keydown', handleShortcut);
+    return () => {
+      window.removeEventListener('keydown', handleShortcut);
+    };
+  }, []);
 
   useEffect(() => {
     onQueryChange(query);
@@ -49,6 +77,8 @@ const HistorySearch: React.FC<HistorySearchProps> = ({
           handleResultsChange(results);
         } catch (error) {
           console.error('Search failed:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Search failed';
+          handleError(errorMessage);
           handleResultsChange([]);
         } finally {
           setIsSearching(false);
@@ -67,16 +97,18 @@ const HistorySearch: React.FC<HistorySearchProps> = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [query, handleResultsChange, handleSearchingChange, onQueryChange]);
+  }, [query, handleError, handleResultsChange, handleSearchingChange, onQueryChange]);
 
   return (
     <div className="history-search">
       <input
-        type="text"
+        ref={inputRef}
+        type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search history (Ctrl+K)..."
+        placeholder="Search history (Ctrl/Cmd+K)..."
         className="history-search-input"
+        aria-keyshortcuts="Ctrl+K Meta+K"
       />
       {query && (
         <button

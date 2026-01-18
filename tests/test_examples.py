@@ -58,12 +58,11 @@ def test_review_repository():
     import review_repository
 
     # Mock mocks
-    with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "fake-key"}), patch(
-        "review_repository.Council"
-    ) as mock_council_class, patch(
-        "review_repository.RepositoryReviewer"
-    ) as mock_reviewer_class, patch(
-        "builtins.print"
+    with (
+        patch.dict("os.environ", {"ANTHROPIC_API_KEY": "fake-key"}),
+        patch("review_repository.Council") as mock_council_class,
+        patch("review_repository.RepositoryReviewer") as mock_reviewer_class,
+        patch("builtins.print"),
     ):
         # Setup mocks
         # We don't use mock_council_class widely here, but ensuring it's patched prevents real calls

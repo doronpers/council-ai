@@ -1,6 +1,6 @@
 # Council AI - Roadmap & TODOs
 
-**Last Updated**: 2026-01-16
+**Last Updated**: 2026-01-18
 **Single Source of Truth**: This file contains all TODOs, planned features, and roadmap items.
 
 ---
@@ -13,6 +13,14 @@
 2. ✅ **Added Tags/Notes Editing UI** - History items now support inline editing of tags and notes
 3. ✅ **Added View Full Consultation Details** - Modal dialog to view complete consultation history
 4. ✅ **Documented Google Docs Feature** - Enhanced TODO documentation with implementation steps
+
+### Web UI Improvements (2026-01-18)
+
+1. ✅ **History Search UI** - Debounced search UI with Ctrl/Cmd+K focus shortcut
+2. ✅ **Advanced Filtering** - Date, domain, and mode filters in the history panel
+3. ✅ **Consultation Export** - Export menu for markdown and JSON results
+4. ✅ **Consultation Comparison** - Side-by-side comparison view for history entries
+5. ✅ **Error Boundaries** - App-level error boundaries with fallback UI
 
 ### Core Improvements (2026-01-16)
 
@@ -33,37 +41,13 @@ _No high priority items at this time._
 
 ### Web UI Enhancements
 
-#### 1. History Search UI
-
-- **Status**: 📝 TODO
-- **Description**: Backend has `/api/history/search` endpoint, but no UI component
-- **Implementation**: Add search bar to HistoryPanel component
-- **Files**: `src/council_ai/webapp/src/components/History/HistoryPanel.tsx`
-- **Estimated Effort**: 2-3 hours
-
-#### 2. Session Management UI
+#### 1. Session Management UI
 
 - **Status**: 📝 TODO
 - **Description**: Backend has session endpoints (`/api/sessions`, `/api/sessions/{id}`), but no UI
 - **Implementation**: Add session view/management to history panel
 - **Files**: `src/council_ai/webapp/src/components/History/`
 - **Estimated Effort**: 4-6 hours
-
-#### 3. Consultation Export
-
-- **Status**: 📝 TODO
-- **Description**: No way to export consultations (JSON, Markdown, PDF)
-- **Implementation**: Add export functionality to history items
-- **Files**: `src/council_ai/webapp/src/components/History/HistoryItem.tsx`
-- **Estimated Effort**: 3-4 hours
-
-#### 4. Advanced Filtering
-
-- **Status**: 📝 TODO
-- **Description**: History panel shows all consultations, no filtering by date/domain/mode
-- **Implementation**: Add filter controls to HistoryPanel
-- **Files**: `src/council_ai/webapp/src/components/History/HistoryPanel.tsx`
-- **Estimated Effort**: 3-4 hours
 
 ### Integration & Architecture
 
@@ -117,7 +101,7 @@ _No high priority items at this time._
 
 ### Web UI Enhancements
 
-#### 9. Consultation Sharing
+#### 1. Consultation Sharing
 
 - **Status**: 📝 TODO
 - **Description**: No way to share consultations with others
@@ -125,31 +109,15 @@ _No high priority items at this time._
 - **Files**: `src/council_ai/webapp/src/components/History/HistoryItem.tsx`
 - **Estimated Effort**: 2-3 hours
 
-#### 10. Consultation Comparison
+#### 2. Keyboard Shortcuts
 
 - **Status**: 📝 TODO
-- **Description**: No way to compare multiple consultations side-by-side
-- **Implementation**: Add comparison view component
-- **Files**: New component `src/council_ai/webapp/src/components/History/ComparisonView.tsx`
-- **Estimated Effort**: 4-6 hours
-
-#### 11. Keyboard Shortcuts
-
-- **Status**: 📝 TODO
-- **Description**: No keyboard shortcuts for common actions
-- **Implementation**: Add keyboard shortcuts (e.g., Ctrl+Enter to submit)
+- **Description**: Add keyboard shortcuts for common actions beyond history search (Ctrl/Cmd+K)
+- **Implementation**: Add shortcuts for submit and navigation (e.g., Ctrl+Enter, / to focus query)
 - **Files**: `src/council_ai/webapp/src/App.tsx`, new hook
 - **Estimated Effort**: 2-3 hours
 
-#### 12. Error Boundaries
-
-- **Status**: 📝 TODO
-- **Description**: React error boundaries not implemented
-- **Implementation**: Add error boundaries for better error handling
-- **Files**: New component `src/council_ai/webapp/src/components/ErrorBoundary.tsx`
-- **Estimated Effort**: 1-2 hours
-
-#### 13. Loading States Review
+#### 3. Loading States Review
 
 - **Status**: 📝 TODO
 - **Description**: Some async operations may lack loading indicators
@@ -157,7 +125,7 @@ _No high priority items at this time._
 - **Files**: Various components
 - **Estimated Effort**: 2-3 hours
 
-#### 14. Mobile Responsiveness Review
+#### 4. Mobile Responsiveness Review
 
 - **Status**: 📝 TODO
 - **Description**: Some components may need mobile optimization
@@ -215,10 +183,10 @@ These are lower priority and depend on Phase 1 & 2 completion:
 
 ## 📊 Progress Summary
 
-- **Completed**: 8 items (2026-01-16)
+- **Completed**: 13 items (2026-01-16 to 2026-01-18)
 - **High Priority**: 0 items
-- **Medium Priority**: 8 items
-- **Low Priority**: 8 items
+- **Medium Priority**: 5 items
+- **Low Priority**: 6 items
 - **Future Considerations**: Multiple items (depends on integration phases)
 
 ---

@@ -17,11 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dedicated launcher script (`launch-reviewer.py`)
   - Web UI for interactive review sessions
   - Comprehensive documentation in `documentation/REVIEWER_SETUP.md`
+- History search keyboard shortcut (Ctrl/Cmd+K) for the web UI
 
 - **Changed**
 
 - Improved installation command documentation with proper quoting for bash compatibility
 - Enhanced API key configuration documentation with cross-references
+- Updated persona roster documentation and IDs to reflect 14 built-in personas
+- Refined history panel UI styling and filter accessibility
 - Design Audit & Polish:
   - Updated Persona configurations (Rams, Kahneman, Taleb) with specific default models (`gpt-4-turbo`, `claude-3-opus`) for more nuanced responses
   - Replaced "Custom Members" text input in Web UI with a visual selection grid
@@ -45,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed import sorting issues
 - Extracted duplicated council assembly code into reusable helper function
 - Improved test infrastructure with better mocking support
+- Surface history search errors as notifications instead of silent console errors
 
 ## [1.0.0] - 2026-01-11
 

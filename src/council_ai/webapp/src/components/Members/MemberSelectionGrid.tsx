@@ -10,7 +10,12 @@ import PersonaDetailModal from './PersonaDetailModal';
 const categoryLabels: Record<Persona['category'], string> = {
   advisory: 'Advisory Council',
   adversarial: 'Red Team',
+  creative: 'Creative',
+  analytical: 'Analytical',
+  strategic: 'Strategic',
+  operational: 'Operational',
   specialist: 'Specialists',
+  red_team: 'Red Team',
   custom: 'Custom',
 };
 
@@ -39,13 +44,22 @@ const MemberSelectionGrid: React.FC = () => {
   const groupedPersonas = useMemo(() => {
     return filteredPersonas.reduce<Record<Persona['category'], Persona[]>>(
       (acc, persona) => {
+        // Initialize category array if it doesn't exist
+        if (!acc[persona.category]) {
+          acc[persona.category] = [];
+        }
         acc[persona.category].push(persona);
         return acc;
       },
       {
         advisory: [],
         adversarial: [],
+        creative: [],
+        analytical: [],
+        strategic: [],
+        operational: [],
         specialist: [],
+        red_team: [],
         custom: [],
       }
     );

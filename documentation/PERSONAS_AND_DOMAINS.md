@@ -18,11 +18,19 @@ Personas live in `src/council_ai/personas/*.yaml`.
 - `holman` (🔓) — security and attack mindset
 - `taleb` (🦢) — tail risk, antifragility, hidden failure modes
 - `grove` (🎯) — strategy, competition, leverage points
+- `fraud_examiner` (🔍) — fraud tactics, evidence chain reasoning
 
-### Specialists
+### Specialists (security & compliance)
 
-- `signal_analyst` (🛡️) — signal authenticity / audio defense
+- `signal_analyst` (🔬) — audio forensics, deepfake detection
 - `compliance_auditor` (⚖️) — compliance / regulated-industry lens
+
+### Specialists (audio & post-production)
+
+- `adr_supervisor` (🎭) — ADR performance matching and sync
+- `dialogue_editor` (🎙️) — dialogue clarity, continuity, and noise management
+- `rerecording_mixer` (🎚️) — mix translation, dynamics, delivery standards
+- `sound_designer` (🎬) — narrative impact, creative sound design
 
 ## Domain presets
 
@@ -43,6 +51,7 @@ Built-in domains:
 - `leadership`
 - `creative`
 - `writing`
+- `audio_post`
 - `career`
 - `decisions`
 - `devops`

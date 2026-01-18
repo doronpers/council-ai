@@ -61,12 +61,13 @@ The history panel provides comprehensive consultation management:
 
 ### Features
 
-- **Search**: Real-time search across consultation history with debounced queries
+- **Search**: Real-time search across consultation history with debounced queries (Ctrl/Cmd+K to focus)
 - **Filters**: Filter by date range, domain, and consultation mode
 - **Tags & Notes**: Add structured tags and notes to consultations for better organization
   - Tokenized tag input with Enter to add, Backspace to remove
   - Explicit Save/Cancel buttons for metadata edits
 - **Detail View**: Modal-based detail view with proper focus management
+- **Comparison**: Select two consultations to compare synthesis and responses side-by-side
 - **Empty States**: Clear messaging when no results are found
 - **Load More**: Incremental loading for longer histories
 
@@ -87,6 +88,7 @@ First-time users see a guided onboarding wizard that walks through:
 - **HistoryFilters**: Collapsible filter panel with date validation
 - **TagInput**: Tokenized tag input component with validation
 - **Modal**: Reusable modal component with accessibility features
+- **ComparisonView**: Side-by-side consultation comparison
 
 ## Reviewer UI
 

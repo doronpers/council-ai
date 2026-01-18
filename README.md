@@ -27,8 +27,8 @@ Or manually:
 
 This interactive demo shows you:
 
-- All 9 built-in personas and their characteristics
-- 14 domain presets and what they're for
+- All 14 built-in personas and their characteristics
+- 15 domain presets and what they're for
 - How to set up and use councils
 - Example usage patterns
 
@@ -73,8 +73,8 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 
 **Key Features:**
 
-- 🎭 **9 Built-in Personas** - Advisory Council (build it right) + Red Team (break & survive) + Experts
-- 🌐 **14 Domain Presets** - Coding, business, startup, creative, career, and more
+- 🎭 **14 Built-in Personas** - Advisory Council (build it right) + Red Team (break & survive) + Specialists
+- 🌐 **15 Domain Presets** - Coding, business, startup, creative, career, and more
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
 - 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints. Personas can use various LLM providers simultaneously.
 - 💬 **Multiple Modes** - Individual, synthesis, debate, vote, or sequential
@@ -267,27 +267,39 @@ for response in result.responses:
 
 ### Advisory Council (Build It Right)
 
-| Persona                | Focus                     | Core Question                                 |
-| ---------------------- | ------------------------- | --------------------------------------------- |
-| 🎨 **Dieter Rams**     | Simplification, Design    | "Is this as simple as possible?"              |
-| 🎖️ **Martin Dempsey**  | Mission Clarity, Autonomy | "Can this operate without asking permission?" |
-| 🧠 **Daniel Kahneman** | Cognitive Load, UX        | "Does this work with human cognition?"        |
-| 🔊 **Julian Treasure** | Communication, Listening  | "Are we listening with integrity?"            |
+| Persona (ID)                        | Focus                     | Core Question                                 |
+| ----------------------------------- | ------------------------- | --------------------------------------------- |
+| 🎨 **Dieter Rams** (`rams`)         | Simplification, Design    | "Is this as simple as possible?"              |
+| 🎖️ **Martin Dempsey** (`dempsey`)   | Mission Clarity, Autonomy | "Can this operate without asking permission?" |
+| 🧠 **Daniel Kahneman** (`kahneman`) | Cognitive Load, UX        | "Does this work with human cognition?"        |
+| 🔊 **Julian Treasure** (`treasure`) | Communication, Listening  | "Are we listening with integrity?"            |
 
 ### Red Team Council (Break & Survive)
 
-| Persona              | Focus                 | Core Question                              |
-| -------------------- | --------------------- | ------------------------------------------ |
-| 🔓 **Pablos Holman** | Security, Exploits    | "How would I break this?"                  |
-| 🦢 **Nassim Taleb**  | Risk, Antifragility   | "What's the hidden risk?"                  |
-| 🎯 **Andy Grove**    | Strategy, Competition | "What 10X force could make us irrelevant?" |
+| Persona (ID)                                       | Focus                   | Core Question                                       |
+| -------------------------------------------------- | ----------------------- | --------------------------------------------------- |
+| 🔓 **Pablos Holman** (`holman`)                    | Security, Exploits      | "How would I break this?"                           |
+| 🦢 **Nassim Taleb** (`taleb`)                      | Risk, Antifragility     | "What's the hidden risk?"                           |
+| 🎯 **Andy Grove** (`grove`)                        | Strategy, Competition   | "What 10X force could make us irrelevant?"          |
+| 🔍 **Detective Ray Castellano** (`fraud_examiner`) | Fraud tactics, evidence | "How would a sophisticated fraudster exploit this?" |
 
 ### Specialist Council (Deep Domain Expertise)
 
-| Persona                   | Focus                   | Core Question                                 |
-| ------------------------- | ----------------------- | --------------------------------------------- |
-| 🛡️ **Signal Analyst**     | Deepfake Defense, Audio | "Is this signal authentic or synthetic?"      |
-| ⚖️ **Compliance Auditor** | Regulations, Fintech    | "Does this comply with relevant regulations?" |
+#### Security & Compliance
+
+| Persona (ID)                              | Focus                               | Core Question                                                        |
+| ----------------------------------------- | ----------------------------------- | -------------------------------------------------------------------- |
+| 🔬 **Dr. Elena Vance** (`signal_analyst`) | Audio forensics, deepfake detection | "What does the physics tell us that perception might miss?"          |
+| ⚖️ **Marcus Chen** (`compliance_auditor`) | Regulations, fintech                | "Will this withstand examiner scrutiny and protect the institution?" |
+
+#### Audio & Post-Production
+
+| Persona (ID)                             | Focus                           | Core Question                                                                       |
+| ---------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
+| 🎭 **James Mitchell** (`adr_supervisor`) | ADR performance & sync          | "Can we match the original performance while fixing technical issues?"              |
+| 🎙️ **Sarah Kimura** (`dialogue_editor`)  | Dialogue clarity & continuity   | "Does every word serve the story, and can the audience understand it effortlessly?" |
+| 🎚️ **Marcus Webb** (`rerecording_mixer`) | Mix translation & dynamics      | "Does this mix serve the director's vision while meeting delivery requirements?"    |
+| 🎬 **Alex Rivera** (`sound_designer`)    | Narrative impact & sound design | "What sounds will make this moment unforgettable and emotionally resonant?"         |
 
 ---
 
@@ -298,22 +310,23 @@ for response in result.responses:
 council domain list
 ```
 
-| Domain       | Description             | Default Personas                                  |
-| ------------ | ----------------------- | ------------------------------------------------- |
-| `coding`     | Software development    | Rams, Kahneman, Holman, Taleb                     |
-| `business`   | Business strategy       | Grove, Taleb, Dempsey, Kahneman                   |
-| `startup`    | Early-stage decisions   | Grove, Taleb, Kahneman, Rams                      |
-| `product`    | Product management      | Kahneman, Rams, Treasure, Grove                   |
-| `leadership` | Team & org leadership   | Dempsey, Kahneman, Grove                          |
-| `creative`   | Creative projects       | Treasure, Rams, Kahneman                          |
-| `writing`    | Written content         | Treasure, Kahneman, Rams                          |
-| `career`     | Career decisions        | Grove, Kahneman, Dempsey, Taleb                   |
-| `decisions`  | Major life decisions    | Kahneman, Taleb, Dempsey                          |
-| `devops`     | Infrastructure & ops    | Dempsey, Holman, Taleb, Grove                     |
-| `data`       | Data science            | Kahneman, Taleb, Rams                             |
-| `general`    | General purpose         | Kahneman, Taleb, Grove, Rams                      |
-| `llm_review` | High-quality LLM review | Dempsey, Kahneman, Rams, Treasure                 |
-| `sonotheia`  | Audio defense & fintech | signal_analyst, compliance_auditor, Holman, Taleb |
+| Domain       | Description             | Default Personas                                                   |
+| ------------ | ----------------------- | ------------------------------------------------------------------ |
+| `coding`     | Software development    | Rams, Kahneman, Holman, Taleb                                      |
+| `business`   | Business strategy       | Grove, Taleb, Dempsey, Kahneman                                    |
+| `startup`    | Early-stage decisions   | Grove, Taleb, Kahneman, Rams                                       |
+| `product`    | Product management      | Kahneman, Rams, Treasure, Grove                                    |
+| `leadership` | Team & org leadership   | Dempsey, Kahneman, Grove                                           |
+| `creative`   | Creative projects       | Treasure, Rams, Kahneman                                           |
+| `writing`    | Written content         | Treasure, Kahneman, Rams                                           |
+| `audio_post` | Audio post-production   | dialogue_editor, rerecording_mixer, sound_designer, adr_supervisor |
+| `career`     | Career decisions        | Grove, Kahneman, Dempsey, Taleb                                    |
+| `decisions`  | Major life decisions    | Kahneman, Taleb, Dempsey                                           |
+| `devops`     | Infrastructure & ops    | Dempsey, Holman, Taleb, Grove                                      |
+| `data`       | Data science            | Kahneman, Taleb, Rams                                              |
+| `general`    | General purpose         | Kahneman, Taleb, Grove, Rams                                       |
+| `llm_review` | High-quality LLM review | Dempsey, Kahneman, Rams, Treasure                                  |
+| `sonotheia`  | Audio defense & fintech | signal_analyst, compliance_auditor, Holman, Taleb                  |
 
 ---
 
@@ -471,8 +484,7 @@ Enable deeper analysis with extended thinking for complex queries:
 
 ```python
 config = CouncilConfig(
-    enable_reasoning=True,
-    reasoning_effort="high"  # low, medium, or high
+    reasoning_mode="analytical"  # chain_of_thought, tree_of_thought, reflective, creative
 )
 council = Council(api_key="key", config=config)
 
@@ -545,7 +557,7 @@ print(result.synthesis)             # Markdown-formatted synthesis text
 ### Config File
 
 Council AI stores configuration in `~/.config/council-ai/config.yaml`.
-Override the location with `COUNCIL_AI_CONFIG_DIR`.
+Override the location with `COUNCIL_CONFIG_PATH`.
 
 ```yaml
 api:

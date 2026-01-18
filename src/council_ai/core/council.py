@@ -139,6 +139,7 @@ class Council:
         self._sessions: List[Session] = []
         self._current_session: Optional[Session] = None
         self._history = history
+        self._domain_id: Optional[str] = None
 
         # Web search tool (initialized lazily)
         self._web_search_tool: Optional[Any] = None
@@ -172,6 +173,7 @@ class Council:
 
         domain_config = get_domain(domain)
         council = cls(api_key=api_key, provider=provider, **kwargs)
+        council._domain_id = domain
         council.config.name = domain_config.name
         council.config.description = domain_config.description
 
@@ -682,7 +684,8 @@ class Council:
         # Auto-save to history if enabled
         if self._history:
             try:
-                consultation_id = self._history.save(result)
+                metadata = {"domain": self._domain_id} if self._domain_id else None
+                consultation_id = self._history.save(result, metadata=metadata)
                 self._history.save_session(session)
 
                 # Save cost records
@@ -869,7 +872,8 @@ class Council:
         # Auto-save to history if enabled
         if self._history:
             try:
-                consultation_id = self._history.save(result)
+                metadata = {"domain": self._domain_id} if self._domain_id else None
+                consultation_id = self._history.save(result, metadata=metadata)
                 self._history.save_session(session)
 
                 # Save cost records

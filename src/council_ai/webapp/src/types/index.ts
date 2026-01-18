@@ -14,7 +14,16 @@ export interface Persona {
   name: string;
   title: string;
   emoji: string;
-  category: 'advisory' | 'adversarial' | 'specialist' | 'custom';
+  category:
+    | 'advisory'
+    | 'adversarial'
+    | 'creative'
+    | 'analytical'
+    | 'strategic'
+    | 'operational'
+    | 'specialist'
+    | 'red_team'
+    | 'custom';
   core_question: string;
   razor: string;
   traits: PersonaTrait[];
@@ -179,6 +188,7 @@ export interface HistoryEntry {
   member_count: number;
   tags?: string[];
   notes?: string;
+  metadata?: Record<string, unknown>;
 }
 
 // TTS types
