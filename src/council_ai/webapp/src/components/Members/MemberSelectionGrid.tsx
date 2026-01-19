@@ -25,16 +25,75 @@ const MemberSelectionGrid: React.FC = () => {
   const [activePersona, setActivePersona] = useState<Persona | null>(null);
 
   const filteredPersonas = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    // #region agent log
+    fetch('http://127.0.0.1:7249/ingest/e30f8502-08ed-4363-a0ee-35ab27492402', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'MemberSelectionGrid.tsx:27',
+        message: 'filteredPersonas entry',
+        data: {
+          searchQuery: searchQuery,
+          searchQueryType: typeof searchQuery,
+          personasCount: personas.length,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run2',
+        hypothesisId: 'B',
+      }),
+    }).catch(() => {});
+    // #endregion
+    const query = searchQuery ? searchQuery.trim().toLowerCase() : '';
+    // #region agent log
+    fetch('http://127.0.0.1:7249/ingest/e30f8502-08ed-4363-a0ee-35ab27492402', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'MemberSelectionGrid.tsx:30',
+        message: 'After query processing',
+        data: { query: query },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run2',
+        hypothesisId: 'B',
+      }),
+    }).catch(() => {});
+    // #endregion
     if (!query) return personas;
     return personas.filter((persona) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7249/ingest/e30f8502-08ed-4363-a0ee-35ab27492402', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'MemberSelectionGrid.tsx:33',
+          message: 'Filtering persona',
+          data: {
+            personaId: persona?.id,
+            name: persona?.name,
+            title: persona?.title,
+            razor: persona?.razor,
+            core_question: persona?.core_question,
+            focus_areas: persona?.focus_areas,
+            nameType: typeof persona?.name,
+            titleType: typeof persona?.title,
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run2',
+          hypothesisId: 'B',
+        }),
+      }).catch(() => {});
+      // #endregion
       const haystack = [
-        persona.name,
-        persona.title,
-        persona.razor,
-        persona.core_question,
-        ...persona.focus_areas,
+        persona.name || '',
+        persona.title || '',
+        persona.razor || '',
+        persona.core_question || '',
+        ...(persona.focus_areas || []),
       ]
+        .filter(Boolean)
         .join(' ')
         .toLowerCase();
       return haystack.includes(query);
@@ -45,6 +104,45 @@ const MemberSelectionGrid: React.FC = () => {
     return filteredPersonas.reduce<Record<Persona['category'], Persona[]>>(
       (acc, persona) => {
         // Initialize category array if it doesn't exist
+        // #region agent log
+        fetch('http://127.0.0.1:7249/ingest/e30f8502-08ed-4363-a0ee-35ab27492402', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'MemberSelectionGrid.tsx:56',
+            message: 'Reduce - persona category check',
+            data: {
+              personaId: persona?.id,
+              personaCategory: persona?.category,
+              categoryType: typeof persona?.category,
+              categoryExists: persona?.category !== undefined,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run3',
+            hypothesisId: 'C',
+          }),
+        }).catch(() => {});
+        // #endregion
+        // Handle undefined/null category
+        if (!persona || persona.category == null || persona.category === undefined) {
+          // #region agent log
+          fetch('http://127.0.0.1:7249/ingest/e30f8502-08ed-4363-a0ee-35ab27492402', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'MemberSelectionGrid.tsx:60',
+              message: 'Skipping persona with invalid category',
+              data: { personaId: persona?.id },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              runId: 'run3',
+              hypothesisId: 'C',
+            }),
+          }).catch(() => {});
+          // #endregion
+          return acc;
+        }
         if (!acc[persona.category]) {
           acc[persona.category] = [];
         }

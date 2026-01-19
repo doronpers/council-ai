@@ -10,7 +10,7 @@ from typing import Any, List, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -36,6 +36,14 @@ from council_ai.webapp.reviewer import router as reviewer_router
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Council AI", version="1.0.0")
+
+
+# Handle favicon requests to prevent 404 errors
+@app.get("/favicon.ico")
+async def favicon():
+    """Return 204 No Content for favicon requests to prevent 404 errors."""
+    return Response(status_code=204)
+
 
 # Include reviewer API routes
 app.include_router(reviewer_router)
