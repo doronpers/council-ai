@@ -14,11 +14,6 @@ const ResultsPanel: React.FC = () => {
   const { result, streamingSynthesis, streamingResponses, isConsulting } = useConsultation();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Show nothing if no results and not consulting
-  if (!result && !isConsulting && streamingResponses.size === 0) {
-    return null;
-  }
-
   // During streaming, show streaming content
   const showStreamingSynthesis = isConsulting && streamingSynthesis;
   const showStreamingResponses = isConsulting && streamingResponses.size > 0;
@@ -44,6 +39,11 @@ const ResultsPanel: React.FC = () => {
       return haystack.includes(query);
     });
   }, [result, searchTerm]);
+
+  // Show nothing if no results and not consulting
+  if (!result && !isConsulting && streamingResponses.size === 0) {
+    return null;
+  }
 
   return (
     <section className="panel" id="results-section">
