@@ -20,7 +20,7 @@ Want to explore Council AI before setting up an API key? Run:
 
 ```bash
 # Run the interactive launcher (handles setup automatically)
-./launcher.sh
+./bin/launcher.sh
 ```
 
 Or manually:
@@ -754,9 +754,11 @@ For frontend development with hot-reloading:
    ```
 
 2. In a separate terminal, start the React dev server:
+
    ```bash
    npm run dev
    ```
+
    Access the app at <http://localhost:5173>.
 
 ### Text-to-Speech (TTS) Integration 🔊

@@ -4,8 +4,8 @@
 
 set -e
 
-# Change to the directory where the script is located
-cd "$(dirname "$0")"
+# Change to the project root (one level up from this script)
+cd "$(dirname "$0")/.."
 
 # Colors
 RED='\033[0;31m'
@@ -37,4 +37,4 @@ if ! python3 -c "import council_ai" &> /dev/null; then
 fi
 
 # Hand over to the Python launcher
-python3 launch-council.py "$@"
+python3 bin/launch-council.py "$@"
