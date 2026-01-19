@@ -1,56 +1,160 @@
 /* Member Selection Grid */
 .members-selection-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.member-selection-item {
-  display: block; /* label wrapper */
-  cursor: pointer;
-  position: relative;
-}
-
-/* Hide default checkbox but keep it accessible */
-.member-checkbox {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.member-selection-card {
+/* Enhanced Member Card */
+.member-selection-card-enhanced {
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  position: relative;
   transition: all 0.2s ease;
+  overflow: hidden;
   height: 100%;
 }
 
-.member-checkbox:checked + .member-selection-card {
+.member-selection-card-enhanced:hover {
+  border-color: var(--text-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.member-selection-card-enhanced.selected {
+  background: rgba(234, 91, 12, 0.03);
   border-color: var(--primary);
-  background: rgba(234, 91, 12, 0.05); /* Slight tint */
   box-shadow: 0 0 0 1px var(--primary);
 }
 
-.member-checkbox:focus + .member-selection-card {
+/* Toggle Button (Main Card Area) */
+.member-selection-card-toggle {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 16px;
+  cursor: pointer;
+  text-align: left;
+  flex: 1;
+}
+
+.member-selection-card-toggle:focus {
+  outline: none;
+}
+
+.member-selection-card-enhanced:focus-within {
   box-shadow: 0 0 0 2px rgba(234, 91, 12, 0.3);
 }
 
-.member-selection-card:hover {
-  border-color: var(--text-secondary);
-  transform: translateY(-1px);
+/* Header Section */
+.member-selection-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  width: 100%;
 }
 
-.member-name-small {
-  font-size: 0.8rem;
-  font-weight: 500;
-  margin-top: 4px;
+.member-emoji {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.member-selection-card-info {
+  flex: 1;
+  min-width: 0; /* Crucial for text truncation */
+}
+
+.member-selection-card-name {
+  font-weight: 600;
+  font-size: 1rem;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.member-selection-card-title {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-selection-card-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Razor / Description */
+.member-selection-card-razor {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Focus Tags */
+.member-selection-card-focus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.focus-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Learn More Link/Button */
+.member-selection-card-details {
+  border: none;
+  background: transparent;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  padding: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.member-selection-card-details:hover {
+  background: var(--bg-secondary);
+  color: var(--primary);
+}
+
+.member-selection-card-enhanced.selected .member-selection-card-details {
+  border-top-color: rgba(234, 91, 12, 0.2);
 }
