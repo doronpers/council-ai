@@ -18,16 +18,27 @@ const MemberSelectionCard: React.FC<MemberSelectionCardProps> = ({
   onToggle,
   onViewDetails,
 }) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onToggle(persona.id);
+    }
+  };
+
   return (
     <div
       className={`member-selection-card-enhanced ${isSelected ? 'selected' : ''}`}
       onClick={() => onToggle(persona.id)}
+      onKeyDown={handleKeyDown}
       role="button"
       aria-pressed={isSelected}
+      aria-label={`${isSelected ? 'Deselect' : 'Select'} ${persona.name}, ${persona.title}`}
       tabIndex={0}
     >
       <div className="member-selection-card-header">
-        <span className="member-emoji">{escapeHtml(persona.emoji)}</span>
+        <span className="member-emoji" aria-hidden="true">
+          {escapeHtml(persona.emoji)}
+        </span>
         <div className="member-selection-card-info">
           <div className="member-selection-card-name">{escapeHtml(persona.name)}</div>
           <div className="member-selection-card-title">{escapeHtml(persona.title)}</div>
@@ -40,7 +51,12 @@ const MemberSelectionCard: React.FC<MemberSelectionCardProps> = ({
             e.stopPropagation();
             onViewDetails(persona);
           }}
-          aria-label="Learn more"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.stopPropagation();
+            }
+          }}
+          aria-label={`Learn more about ${persona.name}`}
         >
           ℹ️
         </button>

@@ -201,6 +201,25 @@ export interface TTSVoice {
 // Member status during consultation
 export type MemberStatus = 'pending' | 'responding' | 'completed' | 'error';
 
+// Configuration Diagnostics types
+export interface ConfigSourceInfo {
+  value: unknown;
+  source: 'cli' | 'env' | 'file' | 'default';
+  overridden: boolean;
+}
+
+export interface ConfigIssue {
+  type: string;
+  message: string;
+  severity: 'warning' | 'error';
+}
+
+export interface ConfigDiagnosticsResponse {
+  config_sources: Record<string, ConfigSourceInfo>;
+  warnings: ConfigIssue[];
+  errors: ConfigIssue[];
+}
+
 export interface MemberStatusInfo {
   id: string;
   name: string;

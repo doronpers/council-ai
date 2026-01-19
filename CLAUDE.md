@@ -410,8 +410,23 @@ Run diagnostics: `council config show` or check `AGENT_KNOWLEDGE_BASE.md` sectio
 2. Check backend is running: `council web --reload`
 3. For dev mode: Run both backend and `npm run dev` in separate terminals
 
+## Recent UX Improvements (January 2026)
+
+The web application has undergone a comprehensive design audit and UX polish guided by Dieter Rams' 10 Principles of Good Design. See `DESIGN_AUDIT_REPORT.md` and `IMPLEMENTATION_SUMMARY.md` for full details.
+
+**Key Improvements:**
+
+- ✅ **Accessibility**: Full keyboard navigation, ARIA labels, screen reader support
+- ✅ **User Feedback**: Empty states, character counters, loading indicators
+- ✅ **Visual Polish**: Professional favicon, consistent styling, no inline styles
+- ✅ **Type Safety**: Removed all `any` types, added proper TypeScript interfaces
+- ✅ **Performance**: Optimized memoization, cleaner component architecture
+- ✅ **Code Quality**: 171/171 tests passing, clean build, production-ready
+
 ## Additional Resources
 
+- **Design Audit Report:** `DESIGN_AUDIT_REPORT.md` - Comprehensive UX audit through Rams' 10 Principles
+- **Implementation Summary:** `IMPLEMENTATION_SUMMARY.md` - Detailed changes and improvements
 - **Complete API Documentation:** `documentation/API_REFERENCE.md`
 - **Agent Development Guide:** `AGENT_KNOWLEDGE_BASE.md`
 - **Contributing Guidelines:** `CONTRIBUTING.md`

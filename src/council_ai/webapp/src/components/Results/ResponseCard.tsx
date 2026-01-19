@@ -45,9 +45,10 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const { showNotification } = useNotifications();
 
-  // Interaction states
-  const likeKey = useMemo(() => `like-response-${personaId}`, [personaId]);
-  const bookmarkKey = useMemo(() => `bookmark-response-${personaId}`, [personaId]);
+  // Storage keys - simple string templates, no need to memoize
+  const likeKey = `like-response-${personaId}`;
+  const bookmarkKey = `bookmark-response-${personaId}`;
+  const favoriteKey = `favorite-response-${personaId}`;
 
   const [isLiked, setIsLiked] = useState(() => {
     try {
@@ -65,15 +66,6 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
     }
   });
 
-  const contentPreviewLimit = 500;
-  const isTruncated = content.length > contentPreviewLimit;
-
-  const contentPreview = useMemo(() => {
-    if (!isTruncated) return content;
-    return `${content.slice(0, contentPreviewLimit).trim()}…`;
-  }, [content, isTruncated]);
-
-  const favoriteKey = useMemo(() => `favorite-response-${personaId}`, [personaId]);
   const [isFavorited, setIsFavorited] = useState(() => {
     try {
       return localStorage.getItem(favoriteKey) === 'true';
@@ -81,6 +73,14 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
       return false;
     }
   });
+
+  const contentPreviewLimit = 500;
+  const isTruncated = content.length > contentPreviewLimit;
+
+  const contentPreview = useMemo(() => {
+    if (!isTruncated) return content;
+    return `${content.slice(0, contentPreviewLimit).trim()}…`;
+  }, [content, isTruncated]);
 
   // Get persona data from context if not provided
   const persona = personas.find((p) => p.id === personaId);
@@ -171,59 +171,67 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
             type="button"
             className={`response-action-btn ${isLiked ? 'liked' : ''}`}
             onClick={handleLike}
+            aria-label={isLiked ? 'Unlike response' : 'Like response'}
             title={isLiked ? 'Unlike' : 'Like response'}
           >
-            {isLiked ? '❤️' : '🤍'}
+            <span aria-hidden="true">{isLiked ? '❤️' : '🤍'}</span>
           </button>
           <button
             type="button"
             className={`response-action-btn ${isFavorited ? 'favorited' : ''}`}
             onClick={handleFavorite}
+            aria-label={isFavorited ? 'Unfavorite response' : 'Favorite response'}
             title={isFavorited ? 'Unfavorite' : 'Favorite response'}
           >
-            ★
+            <span aria-hidden="true">★</span>
           </button>
           <button
             type="button"
             className={`response-action-btn ${isBookmarked ? 'bookmarked' : ''}`}
             onClick={handleBookmark}
+            aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark response'}
             title={isBookmarked ? 'Remove bookmark' : 'Bookmark response'}
           >
-            📖
+            <span aria-hidden="true">📖</span>
           </button>
           <button
             type="button"
             className="response-action-btn"
             onClick={handleCopy}
+            aria-label={copied ? 'Copied to clipboard' : 'Copy response to clipboard'}
             title="Copy response"
           >
-            {copied ? '✓' : '📋'}
+            <span aria-hidden="true">{copied ? '✓' : '📋'}</span>
           </button>
           <button
             type="button"
             className="response-action-btn"
             onClick={handleShare}
+            aria-label="Share response"
             title="Share response"
           >
-            🔗
+            <span aria-hidden="true">🔗</span>
           </button>
           {onFollowUp && (
             <button
               type="button"
               className="response-action-btn"
               onClick={handleFollowUp}
+              aria-label="Ask follow-up question"
               title="Ask follow-up question"
             >
-              💬
+              <span aria-hidden="true">💬</span>
             </button>
           )}
           <button
             type="button"
             className={`response-action-btn ${showDetails ? 'active' : ''}`}
             onClick={() => setShowDetails(!showDetails)}
+            aria-label={showDetails ? 'Hide details' : 'Show details'}
+            aria-expanded={showDetails}
             title="Toggle details"
           >
-            ℹ️
+            <span aria-hidden="true">ℹ️</span>
           </button>
         </div>
       </div>
