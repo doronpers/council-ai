@@ -92,7 +92,7 @@ const MemberSelectionGrid: React.FC = () => {
       <div className="members-selection-header">
         <div className="members-selection-title">Select members</div>
         <div className="members-selection-actions">
-          <button type="button" className="btn btn-secondary" onClick={handleClearSelection}>
+          <button type="button" className="btn-minimal" onClick={handleClearSelection}>
             Clear selection
           </button>
         </div>
@@ -118,7 +118,7 @@ const MemberSelectionGrid: React.FC = () => {
               <div className="members-selection-category-title">{label}</div>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn-minimal"
                 onClick={() => handleSelectCategory(category as Persona['category'])}
               >
                 Select all

@@ -19,23 +19,34 @@ const MemberSelectionCard: React.FC<MemberSelectionCardProps> = ({
   onViewDetails,
 }) => {
   return (
-    <div className={`member-selection-card-enhanced ${isSelected ? 'selected' : ''}`}>
-      <button
-        type="button"
-        className="member-selection-card-toggle"
-        onClick={() => onToggle(persona.id)}
-        aria-pressed={isSelected}
-      >
-        <div className="member-selection-card-header">
-          <span className="member-emoji">{escapeHtml(persona.emoji)}</span>
-          <div className="member-selection-card-info">
-            <div className="member-selection-card-name">{escapeHtml(persona.name)}</div>
-            <div className="member-selection-card-title">{escapeHtml(persona.title)}</div>
-          </div>
-          <span className={`member-selection-card-badge ${persona.category}`}>
-            {escapeHtml(persona.category)}
-          </span>
+    <div
+      className={`member-selection-card-enhanced ${isSelected ? 'selected' : ''}`}
+      onClick={() => onToggle(persona.id)}
+      role="button"
+      aria-pressed={isSelected}
+      tabIndex={0}
+    >
+      <div className="member-selection-card-header">
+        <span className="member-emoji">{escapeHtml(persona.emoji)}</span>
+        <div className="member-selection-card-info">
+          <div className="member-selection-card-name">{escapeHtml(persona.name)}</div>
+          <div className="member-selection-card-title">{escapeHtml(persona.title)}</div>
         </div>
+
+        <button
+          type="button"
+          className="member-info-button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewDetails(persona);
+          }}
+          aria-label="Learn more"
+        >
+          ℹ️
+        </button>
+      </div>
+
+      <div className="member-selection-card-content">
         <div className="member-selection-card-razor">{escapeHtml(persona.razor)}</div>
         <div className="member-selection-card-focus">
           {persona.focus_areas.slice(0, 3).map((area, index) => (
@@ -44,14 +55,10 @@ const MemberSelectionCard: React.FC<MemberSelectionCardProps> = ({
             </span>
           ))}
         </div>
-      </button>
-      <button
-        type="button"
-        className="member-selection-card-details"
-        onClick={() => onViewDetails(persona)}
-      >
-        Learn more
-      </button>
+        <span className={`member-selection-card-badge ${persona.category}`}>
+          {escapeHtml(persona.category)}
+        </span>
+      </div>
     </div>
   );
 };

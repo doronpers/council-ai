@@ -14,21 +14,14 @@ import SubmitButton from './components/Consultation/SubmitButton';
 import ProgressDashboard from './components/Consultation/ProgressDashboard';
 import ResultsPanel from './components/Results/ResultsPanel';
 import HistoryPanel from './components/History/HistoryPanel';
-import OnboardingWizard from './components/Onboarding/OnboardingWizard';
-import { useOnboarding } from './hooks/useOnboarding';
 
 const App: React.FC = () => {
-  const { isComplete, completeOnboarding } = useOnboarding();
-
   return (
     <AppProvider>
       <NotificationProvider>
         <ConsultationProvider>
           <div className="app">
             <Header />
-            {isComplete === false && (
-              <OnboardingWizard onComplete={completeOnboarding} onSkip={completeOnboarding} />
-            )}
             <main>
               {/* Configuration Section */}
               <ErrorBoundary>
