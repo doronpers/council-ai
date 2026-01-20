@@ -68,8 +68,8 @@ class TestMainCLI:
 class TestConsultCommand:
     """Test the consult command."""
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_basic(self, mock_get_key, mock_council_class, runner, mock_api_key):
         """Test basic consult command."""
         mock_get_key.return_value = mock_api_key
@@ -83,8 +83,8 @@ class TestConsultCommand:
         assert result.exit_code == 0
         assert "Result" in result.output
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_with_domain(self, mock_get_key, mock_council_class, runner, mock_api_key):
         """Test consult with domain option."""
         mock_get_key.return_value = mock_api_key
@@ -98,8 +98,8 @@ class TestConsultCommand:
         assert result.exit_code == 0
         mock_council_class.for_domain.assert_called_once()
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_with_members(self, mock_get_key, mock_council_class, runner, mock_api_key):
         """Test consult with specific members."""
         mock_get_key.return_value = mock_api_key
@@ -115,8 +115,8 @@ class TestConsultCommand:
         assert result.exit_code == 0
         assert mock_council.add_member.called
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_with_output_file(
         self, mock_get_key, mock_council_class, runner, mock_api_key, tmp_path
     ):
@@ -134,8 +134,8 @@ class TestConsultCommand:
         assert output_file.exists()
         assert "Test content" in output_file.read_text()
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_json_output(self, mock_get_key, mock_council_class, runner, mock_api_key):
         """Test consult with JSON output."""
         mock_get_key.return_value = mock_api_key
@@ -150,7 +150,7 @@ class TestConsultCommand:
         data = json.loads(result.output)
         assert "query" in data
 
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_no_api_key(self, mock_get_key, runner):
         """Test consult fails without API key."""
         mock_get_key.return_value = None
@@ -158,7 +158,7 @@ class TestConsultCommand:
         assert result.exit_code == 1
         assert "No API key provided" in result.output
 
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_placeholder_api_key(self, mock_get_key, runner):
         """Test consult fails with placeholder API key."""
         mock_get_key.return_value = "your-api-key-here"
@@ -166,8 +166,8 @@ class TestConsultCommand:
         assert result.exit_code == 1
         assert "placeholder value" in result.output
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_with_mode(self, mock_get_key, mock_council_class, runner, mock_api_key):
         """Test consult with different modes."""
         mock_get_key.return_value = mock_api_key
@@ -368,8 +368,8 @@ class TestReviewCommand:
     """Test review command."""
 
     @patch("council_ai.tools.reviewer.RepositoryReviewer")
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_review_basic(
         self, mock_get_key, mock_council_class, mock_reviewer_class, runner, mock_api_key, tmp_path
     ):
@@ -401,7 +401,7 @@ class TestReviewCommand:
         # But we should at least test the command structure
         assert result.exit_code in [0, 1]  # May fail if reviewer not fully implemented
 
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_review_no_api_key(self, mock_get_key, runner, tmp_path):
         """Test review fails without API key."""
         mock_get_key.return_value = None
@@ -413,7 +413,7 @@ class TestReviewCommand:
 class TestHistoryCommands:
     """Test history management commands."""
 
-    @patch("council_ai.cli.ConsultationHistory")
+    @patch("council_ai.cli.commands.history.ConsultationHistory")
     def test_history_list(self, mock_history_class, runner):
         """Test listing history."""
         mock_history = MagicMock()
@@ -431,7 +431,7 @@ class TestHistoryCommands:
         assert result.exit_code == 0
         assert "Consultation History" in result.output
 
-    @patch("council_ai.cli.ConsultationHistory")
+    @patch("council_ai.cli.commands.history.ConsultationHistory")
     def test_history_list_empty(self, mock_history_class, runner):
         """Test listing empty history."""
         mock_history = MagicMock()
@@ -442,8 +442,8 @@ class TestHistoryCommands:
         assert result.exit_code == 0
         assert "No consultations found" in result.output
 
-    @patch("council_ai.cli.ConsultationHistory")
-    @patch("council_ai.cli.ConsultationResult")
+    @patch("council_ai.cli.commands.history.ConsultationHistory")
+    @patch("council_ai.cli.commands.history.ConsultationResult")
     def test_history_show(self, mock_result_class, mock_history_class, runner):
         """Test showing history item."""
         mock_history = MagicMock()
@@ -463,7 +463,7 @@ class TestHistoryCommands:
         result = runner.invoke(main, ["history", "show", "test-id"])
         assert result.exit_code == 0
 
-    @patch("council_ai.cli.ConsultationHistory")
+    @patch("council_ai.cli.commands.history.ConsultationHistory")
     def test_history_show_not_found(self, mock_history_class, runner):
         """Test showing non-existent history item."""
         mock_history = MagicMock()
@@ -474,7 +474,7 @@ class TestHistoryCommands:
         assert result.exit_code == 1
         assert "not found" in result.output
 
-    @patch("council_ai.cli.ConsultationHistory")
+    @patch("council_ai.cli.commands.history.ConsultationHistory")
     def test_history_search(self, mock_history_class, runner):
         """Test searching history."""
         mock_history = MagicMock()
@@ -492,8 +492,8 @@ class TestHistoryCommands:
         assert result.exit_code == 0
         assert "Search Results" in result.output
 
-    @patch("council_ai.cli.ConsultationHistory")
-    @patch("council_ai.cli.ConsultationResult")
+    @patch("council_ai.cli.commands.history.ConsultationHistory")
+    @patch("council_ai.cli.commands.history.ConsultationResult")
     def test_history_export(self, mock_result_class, mock_history_class, runner, tmp_path):
         """Test exporting history."""
         mock_history = MagicMock()
@@ -516,7 +516,7 @@ class TestHistoryCommands:
         assert result.exit_code == 0
         assert output_file.exists()
 
-    @patch("council_ai.cli.ConsultationHistory")
+    @patch("council_ai.cli.commands.history.ConsultationHistory")
     def test_history_delete(self, mock_history_class, runner):
         """Test deleting history item."""
         mock_history = MagicMock()
@@ -528,7 +528,7 @@ class TestHistoryCommands:
         assert result.exit_code == 0
         assert "Deleted" in result.output
 
-    @patch("council_ai.cli.ConsultationHistory")
+    @patch("council_ai.cli.commands.history.ConsultationHistory")
     def test_history_delete_not_found(self, mock_history_class, runner):
         """Test deleting non-existent history item."""
         mock_history = MagicMock()
@@ -562,8 +562,8 @@ class TestWebCommand:
 class TestInteractiveCommand:
     """Test interactive command."""
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_interactive_no_api_key(self, mock_get_key, mock_council, runner):
         """Test interactive fails without API key."""
         mock_get_key.return_value = None
@@ -571,8 +571,8 @@ class TestInteractiveCommand:
         assert result.exit_code == 1
         assert "No API key provided" in result.output
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_interactive_placeholder_key(self, mock_get_key, mock_council, runner):
         """Test interactive fails with placeholder key."""
         mock_get_key.return_value = "your-api-key-here"
@@ -584,8 +584,8 @@ class TestInteractiveCommand:
 class TestCLIErrorHandling:
     """Test CLI error handling and edge cases."""
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_invalid_member(self, mock_get_key, mock_council_class, runner, mock_api_key):
         """Test consult with invalid member."""
         mock_get_key.return_value = mock_api_key
@@ -597,8 +597,8 @@ class TestCLIErrorHandling:
         # Should continue with warning
         assert "Warning" in result.output or result.exit_code == 0
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_consult_exception_handling(
         self, mock_get_key, mock_council_class, runner, mock_api_key
     ):
@@ -641,8 +641,8 @@ class TestCLIRegressionScenarios:
         assert result.exit_code == 0
         # If there was orphaned code, the help would be wrong or command would fail
 
-    @patch("council_ai.cli.Council")
-    @patch("council_ai.cli.get_api_key")
+    @patch("council_ai.cli.utils.Council")
+    @patch("council_ai.cli.utils.get_api_key")
     def test_api_key_placeholder_detection(self, mock_get_key, mock_council_class, runner):
         """Test API key placeholder detection (regression test)."""
         for placeholder in ["your-api-key-here", "YOUR_API_KEY_HERE", "put-your-key-here"]:

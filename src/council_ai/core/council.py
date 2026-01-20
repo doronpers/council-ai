@@ -31,6 +31,7 @@ from .persona import Persona, PersonaManager, get_persona_manager
 from .reasoning import ReasoningMode, get_reasoning_prompt, get_reasoning_suffix
 from .schemas import SynthesisSchema
 from .session import ConsultationResult, MemberResponse, Session
+from .strategies import get_strategy
 
 logger = logging.getLogger(__name__)
 
@@ -599,19 +600,16 @@ class Council:
         for hook in self._pre_consult_hooks:
             query, context = hook(query, context)
 
-        # Get responses based on mode
-        if mode == ConsultationMode.INDIVIDUAL:
-            responses = await self._consult_individual(provider, active_members, query, context)
-        elif mode == ConsultationMode.SEQUENTIAL:
-            responses = await self._consult_sequential(provider, active_members, query, context)
-        elif mode == ConsultationMode.SYNTHESIS:
-            responses = await self._consult_individual(provider, active_members, query, context)
-        elif mode == ConsultationMode.DEBATE:
-            responses = await self._consult_debate(provider, active_members, query, context)
-        elif mode == ConsultationMode.VOTE:
-            responses = await self._consult_vote(provider, active_members, query, context)
-        else:
-            responses = await self._consult_individual(provider, active_members, query, context)
+        # Get responses based on mode using Strategy pattern
+        strategy = get_strategy(mode.value)
+        responses = await strategy.execute(
+            council=self,
+            query=query,
+            context=context,
+            members=members,
+            session_id=session_id,
+            auto_recall=auto_recall,
+        )
 
         # Generate synthesis if needed
         synthesis = None
@@ -757,48 +755,20 @@ class Council:
         for hook in self._pre_consult_hooks:
             query, context = hook(query, context)
 
-        # Get responses based on mode (streaming)
+        # Get responses based on mode using Strategy pattern
         responses: List[MemberResponse] = []
-        if mode == ConsultationMode.INDIVIDUAL:
-            async for update in self._consult_individual_stream(
-                provider, active_members, query, context
-            ):
-                yield update
-                if update.get("type") == "response_complete":
-                    responses.append(update["response"])
-        elif mode == ConsultationMode.SEQUENTIAL:
-            async for update in self._consult_sequential_stream(
-                provider, active_members, query, context
-            ):
-                yield update
-                if update.get("type") == "response_complete":
-                    responses.append(update["response"])
-        elif mode == ConsultationMode.SYNTHESIS:
-            async for update in self._consult_individual_stream(
-                provider, active_members, query, context
-            ):
-                yield update
-                if update.get("type") == "response_complete":
-                    responses.append(update["response"])
-        elif mode == ConsultationMode.DEBATE:
-            async for update in self._consult_debate_stream(
-                provider, active_members, query, context
-            ):
-                yield update
-                if update.get("type") == "response_complete":
-                    responses.append(update["response"])
-        elif mode == ConsultationMode.VOTE:
-            async for update in self._consult_vote_stream(provider, active_members, query, context):
-                yield update
-                if update.get("type") == "response_complete":
-                    responses.append(update["response"])
-        else:
-            async for update in self._consult_individual_stream(
-                provider, active_members, query, context
-            ):
-                yield update
-                if update.get("type") == "response_complete":
-                    responses.append(update["response"])
+        strategy = get_strategy(mode.value)
+        async for update in strategy.stream(
+            council=self,
+            query=query,
+            context=context,
+            members=members,
+            session_id=session_id,
+            auto_recall=auto_recall,
+        ):
+            yield update
+            if update.get("type") == "response_complete":
+                responses.append(update["response"])
 
         # Generate synthesis if needed (streaming)
         synthesis = None
@@ -898,93 +868,6 @@ class Council:
                 logger.warning(f"Failed to save consultation to history: {e}")
 
         yield {"type": "complete", "result": result}
-
-    async def _consult_individual(
-        self,
-        provider: LLMProvider,
-        members: List[Persona],
-        query: str,
-        context: Optional[str],
-    ) -> List[MemberResponse]:
-        """Get individual responses from all members in parallel."""
-        tasks = [self._get_member_response(provider, member, query, context) for member in members]
-        return await asyncio.gather(*tasks)
-
-    async def _consult_sequential(
-        self,
-        provider: LLMProvider,
-        members: List[Persona],
-        query: str,
-        context: Optional[str],
-    ) -> List[MemberResponse]:
-        """Get responses sequentially, each seeing previous responses."""
-        responses: List[MemberResponse] = []
-        accumulated_context = context or ""
-
-        for member in members:
-            response = await self._get_member_response(provider, member, query, accumulated_context)
-            responses.append(response)
-
-            # Add this response to context for next member
-            accumulated_context += f"\n\n{member.emoji} {member.name} said:\n{response.content}"
-
-        return responses
-
-    async def _consult_debate(
-        self,
-        provider: LLMProvider,
-        members: List[Persona],
-        query: str,
-        context: Optional[str],
-        rounds: int = 2,
-    ) -> List[MemberResponse]:
-        """Multi-round debate between members."""
-        all_responses: List[MemberResponse] = []
-
-        for round_num in range(rounds):
-            round_context = context or ""
-
-            # Add previous round responses to context
-            if all_responses:
-                round_context += "\n\nPrevious responses:\n"
-                for resp in all_responses:
-                    round_context += f"\n{resp.persona.emoji} {resp.persona.name}: {resp.content}\n"
-
-            round_query = (
-                query
-                if round_num == 0
-                else f"[Round {round_num + 1}] Respond to your colleagues' points on: {query}"
-            )
-
-            round_responses = await self._consult_individual(
-                provider, members, round_query, round_context
-            )
-            all_responses.extend(round_responses)
-
-        return all_responses
-
-    async def _consult_vote(
-        self,
-        provider: LLMProvider,
-        members: List[Persona],
-        query: str,
-        context: Optional[str],
-    ) -> List[MemberResponse]:
-        """Get votes/decisions from members."""
-        vote_query = f"""
-{query}
-
-Please provide:
-1. Your VOTE: APPROVE / REJECT / ABSTAIN
-2. Your CONFIDENCE: HIGH / MEDIUM / LOW
-3. Brief reasoning (2-3 sentences)
-
-Format your response as:
-VOTE: [your vote]
-CONFIDENCE: [your confidence]
-REASONING: [your reasoning]
-"""
-        return await self._consult_individual(provider, members, vote_query, context)
 
     async def _get_member_response(
         self,
@@ -1188,134 +1071,6 @@ REASONING: [your reasoning]
                 "persona_id": member.id,
                 "response": response,
             }
-
-    async def _consult_individual_stream(
-        self,
-        provider: LLMProvider,
-        members: List[Persona],
-        query: str,
-        context: Optional[str],
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """
-        Get individual responses from all members concurrently (streaming).
-
-        All personas are consulted in parallel, with their stream updates
-        merged and yielded as they arrive. This provides faster overall
-        response time while still streaming real-time updates.
-        """
-        if not members:
-            return
-
-        queue: asyncio.Queue[object] = asyncio.Queue()
-        done_sentinel = object()
-
-        async def consume_member_stream(member: Persona) -> None:
-            """Consume a single member's stream and put updates in the queue."""
-            try:
-                async for update in self._get_member_response_stream(
-                    provider, member, query, context
-                ):
-                    if isinstance(update, dict) and "persona_id" not in update:
-                        update = {**update, "persona_id": member.id}
-                    await queue.put(update)
-            except Exception as e:
-                logger.error("Error in stream for %s: %s", member.name, e)
-                response = MemberResponse(
-                    persona=member,
-                    content=f"[Error getting response: {e}]",
-                    timestamp=datetime.now(),
-                    error=str(e),
-                )
-                await queue.put(
-                    {
-                        "type": "response_complete",
-                        "persona_id": member.id,
-                        "response": response,
-                    }
-                )
-            finally:
-                await queue.put(done_sentinel)
-
-        tasks = [asyncio.create_task(consume_member_stream(member)) for member in members]
-
-        completed_streams = 0
-        try:
-            while completed_streams < len(tasks):
-                update = await queue.get()
-                if update is done_sentinel:
-                    completed_streams += 1
-                    continue
-                if isinstance(update, dict) and "persona_id" not in update:
-                    update = {**update, "persona_id": "unknown"}
-                yield update  # type: ignore[misc]
-        finally:
-            for task in tasks:
-                if not task.done():
-                    task.cancel()
-                    try:
-                        await task
-                    except asyncio.CancelledError:
-                        pass
-
-    async def _consult_sequential_stream(
-        self,
-        provider: LLMProvider,
-        members: List[Persona],
-        query: str,
-        context: Optional[str],
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """Get responses sequentially, each seeing previous responses (streaming)."""
-        accumulated_context = context or ""
-
-        for member in members:
-            async for update in self._get_member_response_stream(
-                provider, member, query, accumulated_context
-            ):
-                yield update
-                if update.get("type") == "response_complete":
-                    response = update["response"]
-                    accumulated_context += (
-                        f"\n\n{member.emoji} {member.name} said:\n{response.content}"
-                    )
-
-    async def _consult_debate_stream(
-        self,
-        provider: LLMProvider,
-        members: List[Persona],
-        query: str,
-        context: Optional[str],
-        rounds: int = 2,
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """Debate mode with streaming (simplified - streams first round)."""
-        # For streaming, we stream the first round of responses concurrently.
-        # Event ordering is non-deterministic because updates arrive as members respond.
-        async for update in self._consult_individual_stream(provider, members, query, context):
-            yield update
-
-    async def _consult_vote_stream(
-        self,
-        provider: LLMProvider,
-        members: List[Persona],
-        query: str,
-        context: Optional[str],
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """Vote mode with streaming."""
-        vote_query = f"""
-{query}
-
-Please provide:
-1. Your VOTE: APPROVE / REJECT / ABSTAIN
-2. Your CONFIDENCE: HIGH / MEDIUM / LOW
-3. Brief reasoning (2-3 sentences)
-
-Format your response as:
-VOTE: [your vote]
-CONFIDENCE: [your confidence]
-REASONING: [your reasoning]
-"""
-        # Stream individual votes concurrently; update order is non-deterministic.
-        async for update in self._consult_individual_stream(provider, members, vote_query, context):
-            yield update
 
     # ═══════════════════════════════════════════════════════════════════════════
     # Synthesis Generation
