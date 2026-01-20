@@ -19,16 +19,6 @@ const Header: React.FC = () => {
         <a href="/reviewer" className={`nav-link ${isReviewer ? 'nav-link--active' : ''}`}>
           ⚖️ Reviewer
         </a>
-        <button
-          type="button"
-          className="nav-link"
-          onClick={() => {
-            const modal = document.getElementById('diagnostics-modal');
-            if (modal) modal.style.display = 'flex';
-          }}
-        >
-          🏥 Council Doctor
-        </button>
       </nav>
     </header>
   );

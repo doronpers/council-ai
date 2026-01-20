@@ -16,20 +16,13 @@ import TTSSettings from '../TTS/TTSSettings';
 import PersonalIntegrationSection from './PersonalIntegrationSection';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../Layout/NotificationContainer';
-
-interface ConfigSourceInfo {
-  value: any;
-  source: string;
-  overridden: boolean;
-}
+import type { ConfigSourceInfo, ConfigIssue, ConfigDiagnosticsResponse } from '../../types';
 
 const ConfigPanel: React.FC = () => {
   const { saveSettings, resetSettings, settings } = useApp();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [configSources, setConfigSources] = useState<Record<string, ConfigSourceInfo>>({});
-  const [configIssues, setConfigIssues] = useState<
-    Array<{ type: string; message: string; severity: 'warning' | 'error' }>
-  >([]);
+  const [configIssues, setConfigIssues] = useState<ConfigIssue[]>([]);
   const { showNotification } = useNotifications();
 
   // Fetch configuration diagnostics
@@ -38,15 +31,12 @@ const ConfigPanel: React.FC = () => {
       try {
         const response = await fetch('/api/config/diagnostics');
         if (response.ok) {
-          const data = await response.json();
+          const data: ConfigDiagnosticsResponse = await response.json();
           setConfigSources(data.config_sources || {});
-          const issues = [];
-          issues.push(
-            ...(data.warnings || []).map((w: any) => ({ ...w, severity: 'warning' as const }))
-          );
-          issues.push(
-            ...(data.errors || []).map((e: any) => ({ ...e, severity: 'error' as const }))
-          );
+          const issues: ConfigIssue[] = [
+            ...(data.warnings || []).map((w) => ({ ...w, severity: 'warning' as const })),
+            ...(data.errors || []).map((e) => ({ ...e, severity: 'error' as const })),
+          ];
           setConfigIssues(issues);
         }
       } catch (error) {

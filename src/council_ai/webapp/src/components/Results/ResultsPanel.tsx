@@ -14,11 +14,6 @@ const ResultsPanel: React.FC = () => {
   const { result, streamingSynthesis, streamingResponses, isConsulting } = useConsultation();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Show nothing if no results and not consulting
-  if (!result && !isConsulting && streamingResponses.size === 0) {
-    return null;
-  }
-
   // During streaming, show streaming content
   const showStreamingSynthesis = isConsulting && streamingSynthesis;
   const showStreamingResponses = isConsulting && streamingResponses.size > 0;
@@ -27,7 +22,7 @@ const ResultsPanel: React.FC = () => {
   const showFinalResults = result && !isConsulting;
 
   const filteredResponses = useMemo(() => {
-    if (!result) return [];
+    if (!result || !result.responses) return [];
     const query = searchTerm.trim().toLowerCase();
     if (!query) return result.responses;
     return result.responses.filter((response) => {
@@ -44,6 +39,22 @@ const ResultsPanel: React.FC = () => {
       return haystack.includes(query);
     });
   }, [result, searchTerm]);
+
+  // Show empty state if no results and not consulting
+  if (!result && !isConsulting && streamingResponses.size === 0) {
+    return (
+      <section className="panel" id="results-section">
+        <h2>Results</h2>
+        <div className="empty-state">
+          <p className="empty-state-icon" aria-hidden="true">
+            💬
+          </p>
+          <p className="empty-state-text">Your consultation results will appear here</p>
+          <p className="empty-state-hint">Ask your council a question to get started</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel" id="results-section">

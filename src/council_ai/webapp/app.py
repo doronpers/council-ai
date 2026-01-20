@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any, List, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse, Response
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
@@ -38,18 +38,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Council AI", version="1.0.0")
 
-# Middleware to prevent caching of JS files in development
-class NoCacheMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        # Prevent caching of JavaScript files in development
-        if request.url.path.endswith(('.js', '.jsx', '.ts', '.tsx')):
-            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-            response.headers["Pragma"] = "no-cache"
-            response.headers["Expires"] = "0"
-        return response
-
-app.add_middleware(NoCacheMiddleware)
+# Handle favicon requests to prevent 404 errors
+@app.get("/favicon.ico")
+async def favicon():
+    """Return 204 No Content for favicon requests to prevent 404 errors."""
+    return Response(status_code=204)
 
 # Include reviewer API routes
 app.include_router(reviewer_router)

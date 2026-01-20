@@ -25,16 +25,18 @@ const MemberSelectionGrid: React.FC = () => {
   const [activePersona, setActivePersona] = useState<Persona | null>(null);
 
   const filteredPersonas = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = searchQuery ? searchQuery.trim().toLowerCase() : '';
+
     if (!query) return personas;
     return personas.filter((persona) => {
       const haystack = [
-        persona.name,
-        persona.title,
-        persona.razor,
-        persona.core_question,
-        ...persona.focus_areas,
+        persona.name || '',
+        persona.title || '',
+        persona.razor || '',
+        persona.core_question || '',
+        ...(persona.focus_areas || []),
       ]
+        .filter(Boolean)
         .join(' ')
         .toLowerCase();
       return haystack.includes(query);
@@ -45,6 +47,11 @@ const MemberSelectionGrid: React.FC = () => {
     return filteredPersonas.reduce<Record<Persona['category'], Persona[]>>(
       (acc, persona) => {
         // Initialize category array if it doesn't exist
+
+        // Handle undefined/null category
+        if (!persona || persona.category == null || persona.category === undefined) {
+          return acc;
+        }
         if (!acc[persona.category]) {
           acc[persona.category] = [];
         }
@@ -85,7 +92,7 @@ const MemberSelectionGrid: React.FC = () => {
       <div className="members-selection-header">
         <div className="members-selection-title">Select members</div>
         <div className="members-selection-actions">
-          <button type="button" className="btn btn-secondary" onClick={handleClearSelection}>
+          <button type="button" className="btn-minimal" onClick={handleClearSelection}>
             Clear selection
           </button>
         </div>
@@ -111,7 +118,7 @@ const MemberSelectionGrid: React.FC = () => {
               <div className="members-selection-category-title">{label}</div>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn-minimal"
                 onClick={() => handleSelectCategory(category as Persona['category'])}
               >
                 Select all

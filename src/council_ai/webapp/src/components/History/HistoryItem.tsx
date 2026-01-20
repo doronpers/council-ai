@@ -7,6 +7,7 @@ import { formatTimestamp, truncate } from '../../utils/helpers';
 import { deleteHistoryEntry, getConsultation, updateConsultationMetadata } from '../../utils/api';
 import TagInput from './TagInput';
 import { useNotifications } from '../Layout/NotificationContainer';
+import ConfirmDialog from '../Layout/ConfirmDialog';
 
 interface HistoryItemProps {
   entry: HistoryEntry;
@@ -22,13 +23,15 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onC
   const [isSaving, setIsSaving] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const { showNotification } = useNotifications();
 
-  const handleDelete = async () => {
-    // Use confirm for now, but could be replaced with a proper modal component
-    if (!window.confirm('Delete this consultation? This action cannot be undone.')) {
-      return;
-    }
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     try {
       await deleteHistoryEntry(entry.id);
       onDeleted();
@@ -95,17 +98,22 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onC
     }
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEditClick = () => {
     // Check if there are unsaved changes
     const hasTagChanges = JSON.stringify(tags) !== JSON.stringify(entry.tags || []);
     const hasNoteChanges = notes !== (entry.notes || '');
 
     if (hasTagChanges || hasNoteChanges) {
-      if (!window.confirm('You have unsaved changes. Discard them?')) {
-        return;
-      }
+      setShowDiscardConfirm(true);
+      return;
     }
 
+    setTags(entry.tags || []);
+    setNotes(entry.notes || '');
+    setIsEditing(false);
+  };
+
+  const handleDiscardConfirm = () => {
     setTags(entry.tags || []);
     setNotes(entry.notes || '');
     setIsEditing(false);
@@ -162,10 +170,11 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onC
           <button
             type="button"
             className="response-action-btn"
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
+            aria-label="Delete consultation"
             title="Delete entry"
           >
-            🗑️
+            <span aria-hidden="true">🗑️</span>
           </button>
         </div>
       </div>
@@ -195,7 +204,7 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onC
           <div className="history-edit-form-actions">
             <button
               type="button"
-              onClick={handleCancelEdit}
+              onClick={handleCancelEditClick}
               disabled={isSaving}
               className="history-edit-form-btn history-edit-form-btn--cancel"
             >
@@ -212,6 +221,28 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onC
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        title="Delete Consultation"
+        message="Are you sure you want to delete this consultation? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+      />
+
+      <ConfirmDialog
+        isOpen={showDiscardConfirm}
+        onConfirm={handleDiscardConfirm}
+        onCancel={() => setShowDiscardConfirm(false)}
+        title="Discard Changes"
+        message="You have unsaved changes to tags and notes. Do you want to discard them?"
+        confirmLabel="Discard"
+        cancelLabel="Keep Editing"
+        danger
+      />
     </div>
   );
 };

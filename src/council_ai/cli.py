@@ -13,11 +13,10 @@ from typing import Optional
 # Reconfigure stdout/stderr for Windows to support UTF-8 (emojis etc)
 if sys.platform == "win32":
     try:
-        import io
-        if hasattr(sys.stdout, 'reconfigure'):
-            sys.stdout.reconfigure(encoding='utf-8')
-        if hasattr(sys.stderr, 'reconfigure'):
-            sys.stderr.reconfigure(encoding='utf-8')
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
 
@@ -1604,3 +1603,7 @@ def doctor():
             console.print(f"• {rec}")
     else:
         console.print("• System appears healthy.")
+
+
+if __name__ == "__main__":
+    main()

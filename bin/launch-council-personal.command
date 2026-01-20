@@ -6,7 +6,8 @@ set -e
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+# Change to project root
+cd "$SCRIPT_DIR/.."
 
 # Activate virtual environment if it exists
 if [ -d "venv" ]; then
@@ -53,4 +54,4 @@ fi
 echo ""
 
 # Launch with personal settings
-python3 launch-council.py --open --install
+python3 bin/launch-council.py --open --install

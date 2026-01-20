@@ -2,6 +2,7 @@
  * TTSSettings Component - Text-to-Speech configuration
  */
 import React, { useState, useEffect } from 'react';
+import './TTSSettings.css';
 import { useApp } from '../../context/AppContext';
 import { loadTTSVoices } from '../../utils/api';
 import type { TTSVoice } from '../../types';
@@ -30,21 +31,12 @@ const TTSSettings: React.FC = () => {
   }
 
   return (
-    <div style={{ marginTop: '20px' }}>
-      <h4
-        style={{
-          fontSize: '13px',
-          textTransform: 'uppercase',
-          marginBottom: '12px',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        🔊 Text-to-Speech
-      </h4>
+    <div className="tts-settings">
+      <h4 className="tts-settings-title">🔊 Text-to-Speech</h4>
 
       {/* Enable TTS toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+      <div className="tts-toggle-wrapper">
+        <label className="tts-toggle-label">
           <input
             type="checkbox"
             id="enable_tts"
@@ -59,8 +51,7 @@ const TTSSettings: React.FC = () => {
       {/* Provider status */}
       <div
         id="tts-provider-status"
-        className={`field-hint ${hasKeys ? 'success' : 'error'}`}
-        style={{ marginBottom: '12px' }}
+        className={`field-hint tts-provider-status ${hasKeys ? 'success' : 'error'}`}
       >
         {hasKeys
           ? `Available providers: ${[
@@ -74,7 +65,7 @@ const TTSSettings: React.FC = () => {
 
       {/* Voice selection (shown when TTS is enabled) */}
       {settings.enable_tts && hasKeys && (
-        <div id="tts-options" style={{ marginTop: '12px' }}>
+        <div id="tts-options" className="tts-options">
           <label htmlFor="tts_voice">Voice</label>
           <select
             id="tts_voice"
@@ -90,9 +81,7 @@ const TTSSettings: React.FC = () => {
             ))}
           </select>
           {isLoadingVoices && (
-            <span className="muted" style={{ marginLeft: '8px' }}>
-              Loading voices...
-            </span>
+            <span className="muted tts-loading-indicator">Loading voices...</span>
           )}
         </div>
       )}

@@ -22,7 +22,7 @@ from typing import Optional, Tuple
 def load_env_file(env_path: Optional[Path] = None) -> None:
     """Load environment variables from .env file if it exists."""
     if env_path is None:
-        env_path = Path(__file__).parent / ".env"
+        env_path = Path(__file__).parent.parent / ".env"
 
     if env_path.exists():
         try:
@@ -43,6 +43,7 @@ def load_env_file(env_path: Optional[Path] = None) -> None:
         except Exception:
             # Silently fail if .env can't be read
             pass
+
 
 # Fix Unicode encoding issues on Windows
 if sys.platform == "win32":
@@ -131,9 +132,7 @@ def run_command(
         use_shell = False
         if IS_WINDOWS and cmd:
             exe_path = str(cmd[0]).lower()
-            if exe_path.endswith((".cmd", ".bat")) or (
-                len(cmd) == 1 and not Path(cmd[0]).suffix
-            ):
+            if exe_path.endswith((".cmd", ".bat")) or (len(cmd) == 1 and not Path(cmd[0]).suffix):
                 use_shell = True
 
         result = subprocess.run(
@@ -198,7 +197,7 @@ def check_council_installed() -> Tuple[bool, bool]:
             spec = importlib.util.find_spec("council_ai")
             if spec and spec.origin:
                 # Check if it's from the current directory (editable install)
-                current_dir = Path(__file__).parent.resolve()
+                current_dir = Path(__file__).parent.parent.resolve()
                 origin_path = Path(spec.origin).parent.parent
                 is_editable = (
                     current_dir in origin_path.parents or current_dir == origin_path.parent
@@ -271,7 +270,7 @@ def detect_personal_integration() -> Tuple[bool, Optional[str]]:
         pass
 
     # Fallback: check common locations
-    script_dir = Path(__file__).parent.resolve()
+    script_dir = Path(__file__).parent.parent.resolve()
     sibling_path = script_dir.parent / "council-ai-personal"
     if sibling_path.exists() and (sibling_path / "personal").exists():
         return (True, str(sibling_path))
@@ -371,7 +370,7 @@ def install_council(editable: bool = True) -> bool:
         print_warning("Could not upgrade pip (continuing anyway)")
 
     # Check for shared-ai-utils sibling directory (development mode)
-    script_dir = Path(__file__).parent.resolve()
+    script_dir = Path(__file__).parent.parent.resolve()
     shared_utils_dir = script_dir.parent / "shared-ai-utils"
 
     if shared_utils_dir.exists():
@@ -453,10 +452,10 @@ def find_open_port(start_port: int, max_attempts: int = 10) -> int:
                 is_listening = True
         except Exception:
             pass
-        
+
         if is_listening:
             continue
-        
+
         # Port appears free, try to bind to it to confirm
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
@@ -551,14 +550,14 @@ def get_local_ip() -> str:
 def is_council_service(url: str) -> bool:
     """Check if the service at the given URL is actually Council AI."""
     try:
-        import urllib.request
         import json
+        import urllib.request
 
         # Try to fetch the /api/info endpoint which Council AI provides
         info_url = f"{url}/api/info" if not url.endswith("/") else f"{url}api/info"
         req = urllib.request.Request(info_url)
         req.add_header("Accept", "application/json")
-        
+
         with urllib.request.urlopen(req, timeout=2) as response:
             data = json.loads(response.read().decode())
             # Council AI's /api/info returns a structure with "providers", "domains", etc.
@@ -593,7 +592,7 @@ def launch_web_app(
                 print_info(f"To kill it, run: kill {pid}")
             else:
                 print_info(f"To kill it, run: taskkill /PID {pid} /F")
-        
+
         # Verify it's actually Council AI before assuming it is
         print_info("Checking if the service on this port is Council AI...")
         if is_council_service(url):
@@ -609,12 +608,14 @@ def launch_web_app(
             if alt_port != port:
                 print_info(f"Found available port: {alt_port}")
                 print_info(f"Re-run with: --port {alt_port}")
-                print_info("Or the script will automatically use the next available port on next run.")
+                print_info(
+                    "Or the script will automatically use the next available port on next run."
+                )
             else:
                 print_info("Please use a different port or stop the service using this port.")
                 print_info("You can:")
-                print_info(f"  1. Use --port <different_port> to use a different port")
-                print_info(f"  2. Use --kill to attempt to free the port (use with caution)")
+                print_info("  1. Use --port <different_port> to use a different port")
+                print_info("  2. Use --kill to attempt to free the port (use with caution)")
             return 1  # Error: port conflict with non-Council service
 
     print_info(f"Launching Council AI web app on {url}")
@@ -736,7 +737,9 @@ def diagnose_npm_issue() -> str:
         if not node_exe:
             return "Node.js is not installed or not in PATH"
 
-        node_rc, node_out, node_err = run_command([node_exe, "--version"], check=False, capture_output=True)
+        node_rc, node_out, node_err = run_command(
+            [node_exe, "--version"], check=False, capture_output=True
+        )
         node_version = (node_out or node_err).strip()
         if node_rc != 0 or not node_version:
             return "Node.js is installed but could not be executed (check PATH / App Execution Aliases)"
@@ -754,7 +757,9 @@ def diagnose_npm_issue() -> str:
                 "  • Reinstall Node.js and ensure 'Add to PATH' is checked"
             )
 
-        npm_rc, npm_out, npm_err = run_command([npm_exe, "--version"], check=False, capture_output=True)
+        npm_rc, npm_out, npm_err = run_command(
+            [npm_exe, "--version"], check=False, capture_output=True
+        )
         npm_version = (npm_out or npm_err).strip()
         if npm_rc != 0 or not npm_version:
             return (
@@ -812,7 +817,7 @@ def build_frontend() -> bool:
         print_info("  2. Run this launcher again")
         print_info("")
         print_info("Alternatively, you can use Council AI via CLI:")
-        print_info("  council consult \"Your question\"")
+        print_info('  council consult "Your question"')
         print_info("  council interactive")
         return False
 
@@ -887,6 +892,7 @@ def build_frontend() -> bool:
     except Exception as e:
         print_error(f"Build failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -926,7 +932,7 @@ def check_frontend_ready() -> bool:
             print_info("")
 
         print_info("💡 Alternative: Use Council AI via CLI (no npm required):")
-        print_info("   council consult \"Your question\"")
+        print_info('   council consult "Your question"')
         print_info("   council interactive")
         print_info("   Or use: launch-council-cli.bat")
         return False
@@ -1124,7 +1130,7 @@ def main():
             # Offer CLI mode as alternative
             print_info("")
             print_info("💡 You can use Council AI via CLI without Node.js:")
-            print_info("   council consult \"Your question\"")
+            print_info('   council consult "Your question"')
             print_info("   council interactive")
             print_info("")
             print_info("Or install Node.js and try again:")

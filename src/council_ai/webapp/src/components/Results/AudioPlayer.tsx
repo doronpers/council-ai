@@ -2,6 +2,7 @@
  * AudioPlayer Component - TTS audio playback
  */
 import React, { useState, useRef } from 'react';
+import './AudioPlayer.css';
 import { useApp } from '../../context/AppContext';
 import { generateTTSAudio } from '../../utils/api';
 
@@ -41,14 +42,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ synthesisText }) => {
   };
 
   return (
-    <div className="audio-player" style={{ marginTop: '16px' }}>
+    <div className="audio-player">
       {!audioUrl && (
         <button
           type="button"
-          className="btn-secondary"
+          className="btn-secondary audio-player-button"
           onClick={handleGenerateAudio}
           disabled={isLoading}
-          style={{ width: 'auto' }}
+          aria-label={isLoading ? 'Generating audio' : 'Generate audio from synthesis'}
         >
           {isLoading ? (
             <>
@@ -61,14 +62,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ synthesisText }) => {
       )}
 
       {error && (
-        <p className="error" style={{ marginTop: '8px' }}>
+        <p className="error audio-player-error" role="alert">
           {error}
         </p>
       )}
 
       {audioUrl && (
-        <div style={{ marginTop: '8px' }}>
-          <audio ref={audioRef} controls src={audioUrl} style={{ width: '100%' }}>
+        <div className="audio-player-controls">
+          <audio ref={audioRef} controls src={audioUrl} aria-label="Synthesis audio">
             Your browser does not support the audio element.
           </audio>
         </div>
