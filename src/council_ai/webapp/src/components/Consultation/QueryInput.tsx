@@ -1,14 +1,20 @@
 /**
  * QueryInput Component - Main query and context textareas
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useConsultation } from '../../context/ConsultationContext';
 
 const MAX_QUERY_LENGTH = 50000;
 const MAX_CONTEXT_LENGTH = 50000;
 
-const QueryInput: React.FC = () => {
+interface QueryInputProps {
+  showContext?: boolean;
+  compact?: boolean;
+}
+
+const QueryInput: React.FC<QueryInputProps> = ({ showContext = true, compact = false }) => {
   const { query, setQuery, context, setContext, isConsulting } = useConsultation();
+  const [showContextField, setShowContextField] = useState(false);
 
   const queryLength = query.length;
   const contextLength = context.length;
@@ -34,32 +40,65 @@ const QueryInput: React.FC = () => {
           onChange={(e) => setQuery(e.target.value)}
           disabled={isConsulting}
           maxLength={MAX_QUERY_LENGTH}
-          rows={4}
+          rows={compact ? 3 : 4}
           aria-describedby="query-counter"
         />
       </div>
 
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <label htmlFor="context">Context (Optional)</label>
-          <span
-            className={`character-counter ${contextNearLimit ? 'character-counter--warning' : ''}`}
-            aria-live="polite"
-          >
-            {contextLength.toLocaleString()} / {MAX_CONTEXT_LENGTH.toLocaleString()}
-          </span>
-        </div>
-        <textarea
-          id="context"
-          placeholder="Provide additional context, background, or constraints..."
-          value={context}
-          onChange={(e) => setContext(e.target.value)}
-          disabled={isConsulting}
-          maxLength={MAX_CONTEXT_LENGTH}
-          rows={3}
-          aria-describedby="context-counter"
-        />
-      </div>
+      {showContext && (
+        <>
+          {compact && !showContextField && (
+            <button
+              type="button"
+              className="btn-minimal btn-small"
+              onClick={() => setShowContextField(true)}
+              style={{ marginBottom: '8px' }}
+            >
+              + Add Context (Optional)
+            </button>
+          )}
+          {(showContextField || !compact) && (
+            <div>
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <label htmlFor="context">Context (Optional)</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span
+                    className={`character-counter ${contextNearLimit ? 'character-counter--warning' : ''}`}
+                    aria-live="polite"
+                  >
+                    {contextLength.toLocaleString()} / {MAX_CONTEXT_LENGTH.toLocaleString()}
+                  </span>
+                  {compact && (
+                    <button
+                      type="button"
+                      className="btn-minimal btn-small"
+                      onClick={() => {
+                        setShowContextField(false);
+                        if (!context) setContext('');
+                      }}
+                      title="Hide context field"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+              <textarea
+                id="context"
+                placeholder="Provide additional context, background, or constraints..."
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
+                disabled={isConsulting}
+                maxLength={MAX_CONTEXT_LENGTH}
+                rows={compact ? 2 : 3}
+                aria-describedby="context-counter"
+              />
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 };

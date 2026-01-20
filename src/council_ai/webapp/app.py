@@ -12,7 +12,6 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 
 from council_ai import Council
@@ -38,11 +37,27 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Council AI", version="1.0.0")
 
+
 # Handle favicon requests to prevent 404 errors
 @app.get("/favicon.ico")
 async def favicon():
     """Return 204 No Content for favicon requests to prevent 404 errors."""
     return Response(status_code=204)
+
+
+@app.get("/favicon.svg")
+async def favicon_svg():
+    """Serve SVG favicon or return 204 if not found."""
+    favicon_path = STATIC_DIR / "favicon.svg"
+    if favicon_path.exists():
+        return FileResponse(str(favicon_path), media_type="image/svg+xml")
+    # Return a simple SVG favicon if file doesn't exist
+    svg_content = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#EA5B0C"/>
+  <text x="50" y="70" font-size="60" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-weight="bold">CA</text>
+</svg>"""
+    return Response(content=svg_content, media_type="image/svg+xml")
+
 
 # Include reviewer API routes
 app.include_router(reviewer_router)
@@ -379,7 +394,26 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
                     }
                 elif "response" in update:
                     # Convert MemberResponse to dict
-                    update["response"] = update["response"].to_dict()
+                    # Handle both MemberResponse objects and already-converted dicts
+                    response = update["response"]
+                    if hasattr(response, "to_dict"):
+                        # It's a MemberResponse object
+                        update["response"] = response.to_dict()
+                    elif isinstance(response, dict):
+                        # Already a dict, ensure it has all required fields
+                        if "persona_emoji" not in response and "persona_id" in response:
+                            # Try to get persona info if missing
+                            from council_ai.core.persona import get_persona
+
+                            persona = get_persona(response.get("persona_id", ""))
+                            if persona:
+                                response["persona_emoji"] = persona.emoji
+                                response["persona_title"] = persona.title
+                        update["response"] = response
+                    else:
+                        # Unknown type, log and skip conversion
+                        logger.warning(f"Unexpected response type in stream: {type(response)}")
+                        continue
 
                 # Format as SSE
                 yield f"data: {json.dumps(update)}\n\n"

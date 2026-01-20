@@ -11,7 +11,6 @@ import TemperatureSlider from './TemperatureSlider';
 import MaxTokensSelect from './MaxTokensSelect';
 import ApiKeyInput from './ApiKeyInput';
 import BaseUrlInput from './BaseUrlInput';
-import MemberSelectionGrid from '../Members/MemberSelectionGrid';
 import TTSSettings from '../TTS/TTSSettings';
 import PersonalIntegrationSection from './PersonalIntegrationSection';
 import { useApp } from '../../context/AppContext';
@@ -156,12 +155,6 @@ const ConfigPanel: React.FC = () => {
             {/* API key source is handled differently */}
           </div>
         </div>
-      </div>
-
-      <div className="config-section">
-        <h3>Members</h3>
-        <p className="config-help">Select the council members who will respond to your query.</p>
-        <MemberSelectionGrid />
       </div>
 
       <details

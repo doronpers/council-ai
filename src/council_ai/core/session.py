@@ -25,6 +25,8 @@ class MemberResponse:
         return {
             "persona_id": self.persona.id,
             "persona_name": self.persona.name,
+            "persona_emoji": self.persona.emoji,
+            "persona_title": self.persona.title,
             "content": self.content,
             "timestamp": self.timestamp.isoformat(),
             "error": self.error,

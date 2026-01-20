@@ -8,9 +8,7 @@ import { NotificationProvider } from './components/Layout/NotificationContainer'
 import ErrorBoundary from './components/Layout/ErrorBoundary';
 import Header from './components/Layout/Header';
 import ConfigPanel from './components/Configuration/ConfigPanel';
-import MemberPreview from './components/Members/MemberPreview';
-import QueryInput from './components/Consultation/QueryInput';
-import SubmitButton from './components/Consultation/SubmitButton';
+import ConsultationBar from './components/Consultation/ConsultationBar';
 import ProgressDashboard from './components/Consultation/ProgressDashboard';
 import ResultsPanel from './components/Results/ResultsPanel';
 import HistoryPanel from './components/History/HistoryPanel';
@@ -23,29 +21,9 @@ const App: React.FC = () => {
           <div className="app">
             <Header />
             <main>
-              {/* Configuration Section */}
+              {/* Consultation Bar - Top of page with query, config, and member selection */}
               <ErrorBoundary>
-                <section className="panel" id="config-section">
-                  <h2>Configuration</h2>
-                  <ConfigPanel />
-                </section>
-              </ErrorBoundary>
-
-              {/* Member Preview Section */}
-              <ErrorBoundary>
-                <section className="panel" id="members-section">
-                  <h2>Council Members</h2>
-                  <MemberPreview />
-                </section>
-              </ErrorBoundary>
-
-              {/* Query Section */}
-              <ErrorBoundary>
-                <section className="panel" id="query-section">
-                  <h2>Your Query</h2>
-                  <QueryInput />
-                  <SubmitButton />
-                </section>
+                <ConsultationBar />
               </ErrorBoundary>
 
               {/* Progress Dashboard (shown during consultation) */}
@@ -56,6 +34,16 @@ const App: React.FC = () => {
               {/* Results Section */}
               <ErrorBoundary>
                 <ResultsPanel />
+              </ErrorBoundary>
+
+              {/* Configuration Section - Collapsible for advanced settings */}
+              <ErrorBoundary>
+                <details className="panel" id="config-section">
+                  <summary>
+                    <h2>⚙️ Advanced Configuration</h2>
+                  </summary>
+                  <ConfigPanel />
+                </details>
               </ErrorBoundary>
 
               {/* History Section */}

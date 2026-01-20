@@ -320,6 +320,37 @@
   color: var(--text-secondary);
 }
 
+/* Results Panel Section Styles */
+.results-section-synthesis {
+  margin-bottom: 24px;
+}
+
+.results-section-usage {
+  margin-bottom: 24px;
+}
+
+.results-section-responses {
+  margin-bottom: 24px;
+}
+
+.results-section-analysis {
+  margin-bottom: 24px;
+}
+
+.results-no-matches {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.results-no-matches p {
+  margin: 0;
+}
+
 /* Enhanced ResponseCard Styles */
 .response-card-enhanced {
   background: var(--bg-secondary);

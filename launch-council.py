@@ -22,7 +22,7 @@ from typing import Optional, Tuple
 def load_env_file(env_path: Optional[Path] = None) -> None:
     """Load environment variables from .env file if it exists."""
     if env_path is None:
-        env_path = Path(__file__).parent.parent / ".env"
+        env_path = Path(__file__).parent / ".env"
 
     if env_path.exists():
         try:
@@ -197,7 +197,7 @@ def check_council_installed() -> Tuple[bool, bool]:
             spec = importlib.util.find_spec("council_ai")
             if spec and spec.origin:
                 # Check if it's from the current directory (editable install)
-                current_dir = Path(__file__).parent.parent.resolve()
+                current_dir = Path(__file__).parent.resolve()
                 origin_path = Path(spec.origin).parent.parent
                 is_editable = (
                     current_dir in origin_path.parents or current_dir == origin_path.parent
@@ -270,7 +270,7 @@ def detect_personal_integration() -> Tuple[bool, Optional[str]]:
         pass
 
     # Fallback: check common locations
-    script_dir = Path(__file__).parent.parent.resolve()
+    script_dir = Path(__file__).parent.resolve()
     sibling_path = script_dir.parent / "council-ai-personal"
     if sibling_path.exists() and (sibling_path / "personal").exists():
         return (True, str(sibling_path))
@@ -370,7 +370,7 @@ def install_council(editable: bool = True) -> bool:
         print_warning("Could not upgrade pip (continuing anyway)")
 
     # Check for shared-ai-utils sibling directory (development mode)
-    script_dir = Path(__file__).parent.parent.resolve()
+    script_dir = Path(__file__).parent.resolve()
     shared_utils_dir = script_dir.parent / "shared-ai-utils"
 
     if shared_utils_dir.exists():
@@ -905,9 +905,9 @@ def check_frontend_ready() -> bool:
         bool: True if ready to launch, False otherwise.
     """
     # Check for built index.html
-    # Path logic: launch-council.py is in bin/ or root
+    # Path logic: launch-council.py is in root
     # Build output is in src/council_ai/webapp/static/index.html
-    script_dir = Path(__file__).parent.parent.resolve()
+    script_dir = Path(__file__).parent.resolve()
     static_index = script_dir / "src" / "council_ai" / "webapp" / "static" / "index.html"
 
     if static_index.exists():

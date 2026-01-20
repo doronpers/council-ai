@@ -41,7 +41,7 @@ const ResultsPanel: React.FC = () => {
   }, [result, searchTerm]);
 
   // Show empty state if no results and not consulting
-  if (!result && !isConsulting && streamingResponses.size === 0) {
+  if (!result && !isConsulting && streamingResponses.size === 0 && !streamingSynthesis) {
     return (
       <section className="panel" id="results-section">
         <h2>Results</h2>
@@ -75,42 +75,58 @@ const ResultsPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Synthesis Section */}
-      <div id="synthesis">
-        {showStreamingSynthesis && <SynthesisCard content={streamingSynthesis} isStreaming />}
-        {showFinalResults && result.synthesis && <SynthesisCard content={result.synthesis} />}
-      </div>
+      {/* Synthesis Section - Show prominently at top */}
+      {(showStreamingSynthesis || (showFinalResults && result.synthesis)) && (
+        <div id="synthesis" className="results-section-synthesis">
+          {showStreamingSynthesis && <SynthesisCard content={streamingSynthesis} isStreaming />}
+          {showFinalResults && result.synthesis && <SynthesisCard content={result.synthesis} />}
+        </div>
+      )}
 
       {/* Usage Summary Section */}
       {showFinalResults && result.usage_summary && (
-        <UsageSummary usageSummary={result.usage_summary} />
+        <div className="results-section-usage">
+          <UsageSummary usageSummary={result.usage_summary} />
+        </div>
       )}
 
       {/* Individual Responses Section */}
-      <div id="responses" className="responses">
-        {showStreamingResponses &&
-          Array.from(streamingResponses.entries()).map(([personaId, content]) => (
-            <ResponseCard key={personaId} personaId={personaId} content={content} isStreaming />
-          ))}
-        {showFinalResults &&
-          filteredResponses.map((response) => (
-            <ResponseCard
-              key={response.persona_id}
-              personaId={response.persona_id}
-              personaName={response.persona_name}
-              personaEmoji={response.persona_emoji}
-              personaTitle={response.persona_title}
-              content={response.content}
-              error={response.error}
-              provider={response.provider}
-              model={response.model}
-              usage={response.usage}
-            />
-          ))}
-      </div>
+      {(showStreamingResponses || showFinalResults) && (
+        <div id="responses" className="responses results-section-responses">
+          {showStreamingResponses &&
+            Array.from(streamingResponses.entries()).map(([personaId, content]) => (
+              <ResponseCard key={personaId} personaId={personaId} content={content} isStreaming />
+            ))}
+          {showFinalResults &&
+            filteredResponses.length > 0 &&
+            filteredResponses.map((response) => (
+              <ResponseCard
+                key={response.persona_id}
+                personaId={response.persona_id}
+                personaName={response.persona_name}
+                personaEmoji={response.persona_emoji}
+                personaTitle={response.persona_title}
+                content={response.content}
+                error={response.error}
+                provider={response.provider}
+                model={response.model}
+                usage={response.usage}
+              />
+            ))}
+          {showFinalResults && filteredResponses.length === 0 && searchTerm && (
+            <div className="results-no-matches">
+              <p>No responses match your search term "{searchTerm}"</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Analysis Section */}
-      {showFinalResults && result.analysis && <AnalysisCard analysis={result.analysis} />}
+      {showFinalResults && result.analysis && (
+        <div className="results-section-analysis">
+          <AnalysisCard analysis={result.analysis} />
+        </div>
+      )}
     </section>
   );
 };
