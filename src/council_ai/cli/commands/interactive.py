@@ -116,8 +116,6 @@ def interactive(ctx, domain, provider, api_key, session_id):
                                 if Confirm.ask("\n[cyan]Save session report?[/cyan]", default=True):
                                     from pathlib import Path
 
-                                    from rich.prompt import Prompt
-
                                     default_path = f"session_report_{session_id[:8]}.md"
                                     save_path = Prompt.ask("Output file path", default=default_path)
                                     try:

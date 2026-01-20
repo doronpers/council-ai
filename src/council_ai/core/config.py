@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
-import requests
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import requests
 import yaml
 from pydantic import BaseModel, Field
 
@@ -296,13 +296,32 @@ def save_config(config: Config, path: Optional[str] = None) -> None:
 
 def is_lmstudio_available() -> bool:
     """
-    Check if LM Studio is running locally and accessible.
+    Check if LM Studio is running and accessible.
+
+    Checks the configured base URL from config, or defaults to localhost:1234.
 
     Returns:
         True if LM Studio is running and responding, False otherwise
     """
     try:
-        response = requests.get("http://localhost:1234/v1/models", timeout=2)
+        # Check if base_url is configured in config
+        config = load_config()
+        base_url = config.api.base_url
+
+        # If base_url is configured, use it (it should already include /v1)
+        if base_url:
+            # Ensure we're checking the /models endpoint
+            if base_url.endswith("/v1"):
+                check_url = f"{base_url}/models"
+            elif base_url.endswith("/v1/models"):
+                check_url = base_url
+            else:
+                check_url = f"{base_url.rstrip('/')}/v1/models"
+        else:
+            # Default to localhost
+            check_url = "http://localhost:1234/v1/models"
+
+        response = requests.get(check_url, timeout=2)
         return response.status_code == 200
     except Exception:
         return False

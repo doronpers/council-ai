@@ -1,23 +1,17 @@
-"""
-Shared utilities for the Council AI CLI.
-"""
+"""Shared utilities for the Council AI CLI."""
 
-import os
-import sys
 import socket
+import sys
 import threading
 import time
 import webbrowser
 from functools import wraps
-from typing import Optional
 
-import click
 from rich.console import Console
 from rich.table import Table
 
 from ..core.config import get_api_key, is_placeholder_key
 from ..core.council import Council
-from ..providers import list_providers
 
 # Reconfigure stdout/stderr for Windows to support UTF-8 (emojis etc)
 if sys.platform == "win32":
@@ -41,6 +35,13 @@ def require_api_key(func):
         api_key = kwargs.get("api_key")
 
         requested_provider = provider or config_manager.get("api.provider", DEFAULT_PROVIDER)
+
+        # LM Studio doesn't require an API key - it uses a dummy key
+        if requested_provider == "lmstudio":
+            if not api_key:
+                api_key = "lm-studio"  # pragma: allowlist secret  # Dummy key for LM Studio
+            kwargs["api_key"] = api_key
+            return func(ctx, *args, **kwargs)
 
         if is_placeholder_key(api_key):
             api_key = None
@@ -140,7 +141,9 @@ def run_web(host: str, port: int, reload: bool, no_open: bool):
         port += 1
 
     if port != original_port:
-        console.print(f"[yellow]⚠️[/yellow] Port {original_port} is busy, using [bold]{port}[/bold]")
+        console.print(
+            f"[yellow]⚠️[/yellow] Port {original_port} is busy, using [bold]{port}[/bold]"
+        )
 
     # Resolve display host for helpful feedback
     display_host = host

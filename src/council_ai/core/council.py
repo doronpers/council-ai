@@ -226,6 +226,22 @@ class Council:
             manager = self._get_llm_manager()
             self._provider = manager.get_provider(self._provider_name)
 
+            # For LM Studio, try creating provider directly with configured base_url if manager didn't return one
+            if self._provider is None and self._provider_name == "lmstudio":
+                try:
+                    from ..providers import get_provider
+
+                    self._provider = get_provider(
+                        "lmstudio",
+                        api_key=self._api_key or "lm-studio",
+                        model=self._model,
+                        base_url=self._base_url,
+                    )
+                    if self._provider:
+                        logger.debug(f"Created LM Studio provider with base_url: {self._base_url}")
+                except Exception as e:
+                    logger.debug(f"Failed to create LM Studio provider directly: {e}")
+
             if self._provider is None and fallback:
                 # Try LLMManager's preferred provider first
                 preferred_provider = manager.preferred_provider
@@ -543,6 +559,7 @@ class Council:
         context: Optional[str] = None,
         mode: Optional[ConsultationMode] = None,
         members: Optional[List[str]] = None,
+        session_id: Optional[str] = None,
     ) -> ConsultationResult:
         """
         Consult the council on a query.
@@ -552,6 +569,7 @@ class Council:
             context: Additional context for the consultation
             mode: Override the default consultation mode
             members: Specific member IDs to consult (None = all enabled)
+            session_id: Optional session ID to resume or continue a session
 
         Returns:
             ConsultationResult with individual responses and synthesis
@@ -561,12 +579,14 @@ class Council:
             # If we're in an async context, we need to run in a thread
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(
-                    lambda: asyncio.run(self.consult_async(query, context, mode, members))
+                    lambda: asyncio.run(
+                        self.consult_async(query, context, mode, members, session_id)
+                    )
                 )
                 return future.result()
         except RuntimeError:
             # No running event loop, we can create one
-            return asyncio.run(self.consult_async(query, context, mode, members))
+            return asyncio.run(self.consult_async(query, context, mode, members, session_id))
 
     async def consult_async(
         self,
