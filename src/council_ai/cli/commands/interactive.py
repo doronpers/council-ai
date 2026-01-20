@@ -29,6 +29,31 @@ def interactive(ctx, domain, provider, api_key, session_id):
 
     from ...core.council import Council
 
+    # #region agent log
+    with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+        import json
+
+        f.write(
+            json.dumps(
+                {
+                    "sessionId": "debug-session",
+                    "runId": "run1",
+                    "hypothesisId": "E",
+                    "location": "interactive.py:32",
+                    "message": "Creating Council.for_domain",
+                    "data": {
+                        "domain": domain,
+                        "provider": provider,
+                        "model": model,
+                        "base_url": base_url,
+                        "api_key_set": api_key is not None,
+                    },
+                    "timestamp": int(__import__("time").time() * 1000),
+                }
+            )
+            + "\n"
+        )
+    # #endregion
     council = Council.for_domain(
         domain,
         api_key=api_key,
