@@ -616,11 +616,11 @@ const ReviewerApp: React.FC = () => {
                               {assessment.overall_score.toFixed(1)}/10
                             </div>
                           </div>
-                          {Object.entries(assessment.scores).map(([criterion, score]) => (
+                          {Object.entries(assessment.scores || {}).map(([criterion, score]) => (
                             <div key={`${assessment.response_id}-${criterion}`}>
                               <div className="score-label">
-                                <span>{criterion.replace(/_/g, ' ')}</span>
-                                <span>{score.toFixed(1)}/10</span>
+                                <span>{(criterion || '').replace(/_/g, ' ')}</span>
+                                <span>{typeof score === 'number' ? score.toFixed(1) : '0.0'}/10</span>
                               </div>
                               <div className="score-bar">
                                 <div className="score-fill" style={{ width: `${score * 10}%` }} />

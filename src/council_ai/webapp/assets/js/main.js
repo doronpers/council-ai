@@ -1,6 +1,10 @@
 /**
  * Main application entry point
+ * Version: 2024-12-20-fix-null-checks
  */
+
+// Verify this version is loaded
+console.log('%c[COUNCIL AI] main.js loaded - Version: 2024-12-20-fix-null-checks', 'color: green; font-weight: bold; font-size: 14px;');
 
 // Import main CSS - Vite will process this
 import '../css/main.css';
@@ -9,7 +13,7 @@ import '../css/selection.css';
 import { escapeHtml } from './core/utils.js';
 import { loadInfo, submitConsultation } from './core/api.js';
 
-// DOM element references
+// DOM element references - will be null if elements don't exist
 const providerEl = document.getElementById('provider');
 const modelEl = document.getElementById('model');
 const baseUrlEl = document.getElementById('base_url');
@@ -30,6 +34,17 @@ const resetSettingsEl = document.getElementById('reset-settings');
 const temperatureEl = document.getElementById('temperature');
 const temperatureValueEl = document.getElementById('temperature-value');
 const maxTokensEl = document.getElementById('max_tokens');
+
+// #region agent log
+// Log missing critical elements at module load
+const criticalElements = { queryEl, submitEl, statusEl };
+const missingCritical = Object.entries(criticalElements)
+  .filter(([_, el]) => !el)
+  .map(([name, _]) => name);
+if (missingCritical.length > 0) {
+  console.warn('[DEBUG] Critical DOM elements missing at module load:', missingCritical);
+}
+// #endregion
 
 // TTS DOM elements
 const enableTtsEl = document.getElementById('enable_tts');
@@ -93,6 +108,10 @@ function saveSettings(settings) {
 // Update model dropdown based on selected provider
 function updateModelDropdown(provider) {
   if (!provider || modelCapabilities.length === 0) return;
+  if (!modelEl) {
+    console.error('[DEBUG] modelEl is null in updateModelDropdown');
+    return;
+  }
 
   const providerInfo = modelCapabilities.find((cap) => cap.provider === provider);
   if (!providerInfo) return;
@@ -146,7 +165,7 @@ function applySavedSettings(savedSettings) {
   }
   if (savedSettings.temperature !== undefined && temperatureEl) {
     temperatureEl.value = savedSettings.temperature;
-    temperatureValueEl.textContent = savedSettings.temperature;
+    if (temperatureValueEl) temperatureValueEl.textContent = savedSettings.temperature;
   }
   if (savedSettings.max_tokens && maxTokensEl) {
     maxTokensEl.value = savedSettings.max_tokens;
@@ -208,18 +227,33 @@ function renderMemberCards(selectedMemberIds, allPersonas) {
 
 // Get currently selected member IDs
 function getSelectedMemberIds() {
-  const customMembers = membersEl.value
-    .split(',')
-    .map((x) => x.trim())
-    .filter(Boolean);
-  if (customMembers.length > 0) {
-    return customMembers;
+  // #region agent log
+  if (!membersEl) {
+    console.error('[DEBUG] membersEl is null in getSelectedMemberIds');
+    fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:221',message:'membersEl is null in getSelectedMemberIds',data:{membersElNull:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  }
+  if (!domainEl) {
+    console.error('[DEBUG] domainEl is null in getSelectedMemberIds');
+    fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:221',message:'domainEl is null in getSelectedMemberIds',data:{domainElNull:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  }
+  // #endregion
+
+  if (membersEl && membersEl.value) {
+    const customMembers = membersEl.value
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean);
+    if (customMembers.length > 0) {
+      return customMembers;
+    }
   }
 
   // Get from domain
-  const selectedDomain = allDomains.find((d) => d.id === domainEl.value);
-  if (selectedDomain && selectedDomain.default_personas) {
-    return selectedDomain.default_personas;
+  if (domainEl && domainEl.value) {
+    const selectedDomain = allDomains.find((d) => d.id === domainEl.value);
+    if (selectedDomain && selectedDomain.default_personas) {
+      return selectedDomain.default_personas;
+    }
   }
 
   return [];
@@ -260,6 +294,10 @@ function renderMemberSelection() {
 function updateHiddenMembersInput() {
   const container = document.getElementById('members-container');
   if (!container) return;
+  if (!membersEl) {
+    console.error('[DEBUG] membersEl is null in updateHiddenMembersInput');
+    return;
+  }
 
   const checked = Array.from(container.querySelectorAll('input:checked')).map((cb) => cb.value);
   membersEl.value = checked.join(',');
@@ -270,6 +308,10 @@ function updateHiddenMembersInput() {
 function syncCheckboxesToInput() {
   const container = document.getElementById('members-container');
   if (!container) return;
+  if (!membersEl) {
+    console.error('[DEBUG] membersEl is null in syncCheckboxesToInput');
+    return;
+  }
 
   const currentIds = membersEl.value
     .split(',')
@@ -295,6 +337,17 @@ async function initForm() {
     // Make available globally for render.js
     window.allPersonas = allPersonas;
 
+    if (!providerEl || !modeEl || !domainEl) {
+      console.error('[DEBUG] Missing critical DOM elements in initForm', {
+        providerEl: !!providerEl,
+        modeEl: !!modeEl,
+        domainEl: !!domainEl,
+      });
+      statusEl.textContent = 'Failed to initialize form: missing DOM elements.';
+      statusEl.className = 'error';
+      return;
+    }
+
     providerEl.innerHTML = data.providers
       .map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`)
       .join('');
@@ -309,7 +362,7 @@ async function initForm() {
       })
       .join('');
     providerEl.value = data.defaults.provider || 'openai';
-    baseUrlEl.value = data.defaults.base_url || '';
+    if (baseUrlEl) baseUrlEl.value = data.defaults.base_url || '';
     modeEl.value = data.defaults.mode || 'synthesis';
     domainEl.value = data.defaults.domain || 'general';
 
@@ -374,14 +427,14 @@ async function initForm() {
       applySavedSettings(savedSettings);
     } else {
       // Apply server defaults
-      providerEl.value = data.defaults.provider || 'openai';
-      updateModelDropdown(providerEl.value);
-      baseUrlEl.value = data.defaults.base_url || '';
-      modeEl.value = data.defaults.mode || 'synthesis';
-      domainEl.value = data.defaults.domain || 'general';
-      temperatureEl.value = 0.7;
-      temperatureValueEl.textContent = '0.7';
-      maxTokensEl.value = '1000';
+      if (providerEl) providerEl.value = data.defaults.provider || 'openai';
+      if (providerEl) updateModelDropdown(providerEl.value);
+      if (baseUrlEl) baseUrlEl.value = data.defaults.base_url || '';
+      if (modeEl) modeEl.value = data.defaults.mode || 'synthesis';
+      if (domainEl) domainEl.value = data.defaults.domain || 'general';
+      if (temperatureEl) temperatureEl.value = 0.7;
+      if (temperatureValueEl) temperatureValueEl.textContent = '0.7';
+      if (maxTokensEl) maxTokensEl.value = '1000';
     }
 
     // Initialize member preview
@@ -484,6 +537,19 @@ async function generateSynthesisTTS(synthesisText) {
 
 // Handle save settings button
 function handleSaveSettings() {
+  if (!providerEl || !modelEl || !baseUrlEl || !domainEl || !modeEl || !temperatureEl || !maxTokensEl) {
+    console.error('[DEBUG] Missing DOM elements in handleSaveSettings', {
+      providerEl: !!providerEl,
+      modelEl: !!modelEl,
+      baseUrlEl: !!baseUrlEl,
+      domainEl: !!domainEl,
+      modeEl: !!modeEl,
+      temperatureEl: !!temperatureEl,
+      maxTokensEl: !!maxTokensEl,
+    });
+    return;
+  }
+
   const settings = {
     provider: providerEl.value,
     model: modelEl.value,
@@ -672,9 +738,46 @@ window.allPersonas = allPersonas;
 
 // Handle consultation submission (with streaming support)
 async function handleSubmit(useStreaming = true) {
-  if (!queryEl.value.trim()) {
-    statusEl.textContent = 'Please enter a query.';
-    statusEl.className = 'error';
+  console.log('[DEBUG] handleSubmit called - version 2024-12-20-fix-null-checks');
+  try {
+  // #region agent log
+  const missingElements = [];
+  if (!queryEl) missingElements.push('queryEl');
+  if (!contextEl) missingElements.push('contextEl');
+  if (!domainEl) missingElements.push('domainEl');
+  if (!membersEl) missingElements.push('membersEl');
+  if (!modeEl) missingElements.push('modeEl');
+  if (!providerEl) missingElements.push('providerEl');
+  if (!modelEl) missingElements.push('modelEl');
+  if (!baseUrlEl) missingElements.push('baseUrlEl');
+  if (!apiKeyEl) missingElements.push('apiKeyEl');
+  if (!enableTtsEl) missingElements.push('enableTtsEl');
+  if (!temperatureEl) missingElements.push('temperatureEl');
+  if (!maxTokensEl) missingElements.push('maxTokensEl');
+  if (!statusEl) missingElements.push('statusEl');
+  if (!submitEl) missingElements.push('submitEl');
+  if (missingElements.length > 0) {
+    console.error('[DEBUG] Missing DOM elements:', missingElements);
+    fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:674',message:'Missing DOM elements detected',data:{missingElements},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
+  }
+  // #endregion
+
+  if (!queryEl || !queryEl.value || !queryEl.value.trim()) {
+    if (statusEl) {
+      statusEl.textContent = 'Please enter a query.';
+      statusEl.className = 'error';
+    }
+    return;
+  }
+
+  // Validate critical DOM elements before proceeding
+  if (!submitEl || !statusEl || !synthesisEl || !responsesEl) {
+    console.error('[DEBUG] Missing critical DOM elements in handleSubmit', {
+      submitEl: !!submitEl,
+      statusEl: !!statusEl,
+      synthesisEl: !!synthesisEl,
+      responsesEl: !!responsesEl,
+    });
     return;
   }
 
@@ -682,7 +785,7 @@ async function handleSubmit(useStreaming = true) {
   activeController = new AbortController();
 
   submitEl.disabled = true;
-  cancelEl.style.display = 'block';
+  if (cancelEl) cancelEl.style.display = 'block';
 
   // Show skeleton loader with progress
   const loadingSkeleton = document.getElementById('loading-skeleton');
@@ -696,29 +799,101 @@ async function handleSubmit(useStreaming = true) {
   responsesEl.innerHTML = '';
 
   // Hide audio player
-  synthesisAudioPlayerEl.style.display = 'none';
-  synthesisAudioEl.src = '';
+  if (synthesisAudioPlayerEl) synthesisAudioPlayerEl.style.display = 'none';
+  if (synthesisAudioEl) synthesisAudioEl.src = '';
 
   // Initialize progress dashboard
   const selectedMemberIds = getSelectedMemberIds();
   initializeProgressDashboard(selectedMemberIds);
 
-  const payload = {
-    query: queryEl.value.trim(),
-    context: contextEl.value.trim() || null,
-    domain: domainEl.value,
-    members: membersEl.value
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:706',message:'Checking DOM elements before payload construction',data:{queryEl:!!queryEl,contextEl:!!contextEl,domainEl:!!domainEl,membersEl:!!membersEl,modeEl:!!modeEl,providerEl:!!providerEl,modelEl:!!modelEl,baseUrlEl:!!baseUrlEl,apiKeyEl:!!apiKeyEl,enableTtsEl:!!enableTtsEl,temperatureEl:!!temperatureEl,maxTokensEl:!!maxTokensEl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:707',message:'Accessing queryEl.value',data:{queryElNull:queryEl===null,queryElUndefined:queryEl===undefined,queryElValueNull:queryEl&&queryEl.value===null,queryElValueUndefined:queryEl&&queryEl.value===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  if (!queryEl || !queryEl.value) {
+    console.error('[DEBUG] queryEl or queryEl.value is null/undefined at payload construction');
+    if (statusEl) {
+      statusEl.textContent = 'Error: Query element not found.';
+      statusEl.className = 'error';
+    }
+    return;
+  }
+  const queryValue = queryEl.value.trim();
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:708',message:'Accessing contextEl.value',data:{contextElNull:contextEl===null,contextElUndefined:contextEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  const contextValue = contextEl ? contextEl.value.trim() || null : null;
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:709',message:'Accessing domainEl.value',data:{domainElNull:domainEl===null,domainElUndefined:domainEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  const domainValue = domainEl ? domainEl.value : '';
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:710',message:'Accessing membersEl.value',data:{membersElNull:membersEl===null,membersElUndefined:membersEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+  const membersValue = membersEl ? membersEl.value
       .split(',')
       .map((x) => x.trim())
-      .filter(Boolean),
-    mode: modeEl.value,
-    provider: providerEl.value,
-    model: modelEl.value.trim() || null,
-    base_url: baseUrlEl.value.trim() || null,
-    api_key: apiKeyEl.value.trim() || null,
-    enable_tts: enableTtsEl.checked,
-    temperature: parseFloat(temperatureEl.value),
-    max_tokens: parseInt(maxTokensEl.value),
+      .filter(Boolean) : [];
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:714',message:'Accessing modeEl.value',data:{modeElNull:modeEl===null,modeElUndefined:modeEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  const modeValue = modeEl ? modeEl.value : '';
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:715',message:'Accessing providerEl.value',data:{providerElNull:providerEl===null,providerElUndefined:providerEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  const providerValue = providerEl ? providerEl.value : '';
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:716',message:'Accessing modelEl.value',data:{modelElNull:modelEl===null,modelElUndefined:modelEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
+  const modelValue = modelEl ? modelEl.value.trim() || null : null;
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:717',message:'Accessing baseUrlEl.value',data:{baseUrlElNull:baseUrlEl===null,baseUrlElUndefined:baseUrlEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  const baseUrlValue = baseUrlEl ? baseUrlEl.value.trim() || null : null;
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:718',message:'Accessing apiKeyEl.value',data:{apiKeyElNull:apiKeyEl===null,apiKeyElUndefined:apiKeyEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
+  const apiKeyValue = apiKeyEl ? apiKeyEl.value.trim() || null : null;
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:719',message:'Accessing enableTtsEl.checked',data:{enableTtsElNull:enableTtsEl===null,enableTtsElUndefined:enableTtsEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+  // #endregion
+  const enableTtsValue = enableTtsEl ? enableTtsEl.checked : false;
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:720',message:'Accessing temperatureEl.value',data:{temperatureElNull:temperatureEl===null,temperatureElUndefined:temperatureEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+  // #endregion
+  const temperatureValue = temperatureEl ? parseFloat(temperatureEl.value) : 0.7;
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/0a386429-06d9-4e71-8f3b-df941c2f1de1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.js:721',message:'Accessing maxTokensEl.value',data:{maxTokensElNull:maxTokensEl===null,maxTokensElUndefined:maxTokensEl===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+  // #endregion
+  const maxTokensValue = maxTokensEl ? parseInt(maxTokensEl.value) : 1000;
+
+  const payload = {
+    query: queryValue,
+    context: contextValue,
+    domain: domainValue,
+    members: membersValue,
+    mode: modeValue,
+    provider: providerValue,
+    model: modelValue,
+    base_url: baseUrlValue,
+    api_key: apiKeyValue,
+    enable_tts: enableTtsValue,
+    temperature: temperatureValue,
+    max_tokens: maxTokensValue,
   };
 
   try {
@@ -782,22 +957,41 @@ async function handleSubmit(useStreaming = true) {
     // Refresh history after successful consultation
     loadHistory();
   } catch (err) {
+    console.error('[DEBUG] Error in handleSubmit:', err);
     if (err.name === 'AbortError') {
-      statusEl.textContent = 'Consultation cancelled.';
-      statusEl.className = 'muted';
+      if (statusEl) {
+        statusEl.textContent = 'Consultation cancelled.';
+        statusEl.className = 'muted';
+      }
     } else {
-      statusEl.textContent = err.message || 'Network error. Please check your connection.';
-      statusEl.className = 'error';
-      synthesisEl.innerHTML = `<div class="error">${escapeHtml(err.message || 'Network error.')}</div>`;
+      const errorMsg = err.message || 'Network error. Please check your connection.';
+      if (statusEl) {
+        statusEl.textContent = errorMsg;
+        statusEl.className = 'error';
+      }
+      if (synthesisEl) {
+        synthesisEl.innerHTML = `<div class="error">${escapeHtml(errorMsg)}</div>`;
+      }
     }
   } finally {
-    submitEl.disabled = false;
-    cancelEl.style.display = 'none';
+    if (submitEl) submitEl.disabled = false;
+    if (cancelEl) cancelEl.style.display = 'none';
     activeController = null;
 
     // Hide skeleton loader
     const loadingSkeleton = document.getElementById('loading-skeleton');
     if (loadingSkeleton) loadingSkeleton.style.display = 'none';
+  }
+  } catch (outerErr) {
+    // Catch any errors that occur before the inner try-catch (e.g., null reference errors)
+    console.error('[DEBUG] Outer error in handleSubmit (likely null reference):', outerErr);
+    console.error('[DEBUG] Error stack:', outerErr.stack);
+    if (statusEl) {
+      statusEl.textContent = `Error: ${outerErr.message || 'Unknown error'}. Check console for details.`;
+      statusEl.className = 'error';
+    }
+    if (submitEl) submitEl.disabled = false;
+    if (cancelEl) cancelEl.style.display = 'none';
   }
 }
 
@@ -842,6 +1036,10 @@ async function loadHistory() {
 // Initialize application
 async function initApp() {
   // Set up event listeners
+  if (!submitEl) {
+    console.error('[DEBUG] submitEl is null in initApp - cannot attach event listener');
+    return;
+  }
   submitEl.addEventListener('click', () => handleSubmit());
 
   // Cancel button listener

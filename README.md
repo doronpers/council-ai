@@ -88,6 +88,17 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 
 ---
 
+## 📁 Repository Structure
+
+**Important**: If you have both `council-ai` and `council-ai-personal` repositories:
+
+- **`council-ai`** = Main repository (use this for running the app)
+- **`council-ai-personal`** = Your personal customizations (personas, configs)
+
+**Always run Council AI from the `council-ai` directory.** It will automatically detect and use your personal configs from `council-ai-personal` if it exists as a sibling directory.
+
+See [WHICH_REPO.md](WHICH_REPO.md](WHICH_REPO.md) for more details.
+
 ## Installation
 
 **From PyPI (when published):**
@@ -110,6 +121,38 @@ pip install "council-ai[all]"
 ```
 
 **Development Installation (from this repo):**
+
+### Quick Setup with Virtual Environment (Recommended)
+
+The easiest way to get started is using the setup script that creates a virtual environment and configures your API keys:
+
+**Windows (PowerShell):**
+```powershell
+.\setup-venv.ps1
+```
+
+**Windows (Command Prompt):**
+```cmd
+setup-venv.bat
+```
+
+**macOS/Linux:**
+```bash
+chmod +x setup-venv.sh
+./setup-venv.sh
+```
+
+This will:
+- Create a virtual environment (`venv/`)
+- Install all dependencies
+- Create a `.env` file template for your API keys
+- Set up activation scripts that automatically load your secrets
+
+After setup, activate the environment:
+- **Windows**: `.\venv\Scripts\activate-env.ps1` or `venv\Scripts\activate-env.bat`
+- **macOS/Linux**: `source venv/bin/activate-env`
+
+### Manual Installation
 
 ```bash
 # Clone the repository
@@ -147,19 +190,30 @@ This script ensures that the latest changes adhere to our coding standards and s
 
 **Option 1: Using a `.env` file (Recommended)**
 
-Create a `.env` file in your project root:
+If you used the `setup-venv` script, a `.env` file was already created. Just edit it and add your API keys:
 
 ```bash
-# Copy the example file
-cp .env.example .env
-
 # Edit .env and add your API keys
 ANTHROPIC_API_KEY=your-anthropic-key-here
 OPENAI_API_KEY=your-openai-key-here
 GEMINI_API_KEY=your-gemini-key-here
 ```
 
-The `.env` file is automatically loaded when you import `council_ai`. It's already in `.gitignore`, so it won't be committed.
+Or create it manually:
+
+```bash
+# Copy the example file (if available)
+cp .env.example .env
+
+# Edit .env and add your API keys
+```
+
+The `.env` file is automatically loaded when you:
+- Use the `launch-council.py` script
+- Activate the virtual environment with `activate-env` (created by setup script)
+- Import `council_ai` (it uses `python-dotenv`)
+
+The `.env` file is already in `.gitignore`, so it won't be committed.
 
 ### Option 2: Environment Variables
 
@@ -698,9 +752,13 @@ The web app is the primary user-testing surface. It features a modern, Dieter Ra
 
 For the easiest experience, we provide specialized 1-click launchers in the project root. **Double-click** any of these to start:
 
-- 🚀 **`launch-council-web.command` (Mac)** / **`launch-council.bat` (Windows)**: Standard 1-click launch. Handles setup and opens in your browser.
+- 🚀 **`launch-council-web.command` (Mac)** / **`launch-council.bat` (Windows)**: Standard 1-click launch. Handles setup and opens in your browser. **Requires Node.js for web interface.**
+- 💻 **`launch-council-cli.bat` (Windows)**: **CLI Mode** - No Node.js required! Perfect if you just want to use the command-line interface (`council consult`, `council interactive`, etc.)
 - 🌐 **`launch-council-lan.command` (Mac)** / **`launch-council-lan.bat` (Windows)**: **Network Access Mode**. Use this if you want to access the UI from another PC, phone, or tablet on your network. It displays a local IP (e.g., `http://192.168.1.15:8000`) for remote access.
 - 🔄 **`launch-council-persistent.command` (Mac)** / **`launch-council-persistent.bat` (Windows)**: **"Always Up" Mode**. Optimizes for personal use by automatically restarting the server if it crashes or encounters a network error.
+
+> [!TIP]
+> **Don't have Node.js installed?** Use `launch-council-cli.bat` for CLI mode, or run `install-nodejs.bat` to get installation help.
 
 ### 💻 Satellite Access (From Other Devices)
 
