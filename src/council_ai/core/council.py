@@ -74,6 +74,17 @@ class CouncilConfig(BaseModel):
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
     reasoning_mode: Optional[str] = None  # "chain_of_thought", "tree_of_thought", etc.
 
+    # Timeout configurations (in seconds)
+    member_timeout: float = 120.0  # Timeout for individual member responses
+    synthesis_timeout: float = 180.0  # Timeout for synthesis generation
+    total_consultation_timeout: Optional[float] = None  # Overall consultation timeout (optional)
+
+    # Retry configurations
+    max_retries: int = 3  # Maximum retry attempts for transient failures
+    retry_base_delay: float = 1.0  # Initial delay between retries in seconds
+    retry_max_delay: float = 60.0  # Maximum delay between retries in seconds
+    retry_exponential_factor: float = 2.0  # Backoff multiplier
+
 
 class Council:
     """
