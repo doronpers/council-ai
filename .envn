@@ -1,0 +1,15 @@
+# Providers:
+
+# Vercel AI Gateway
+AI_GATEWAY_API_KEY=
+
+# Anthropic Claude
+ANTHROPIC_API_KEY=
+
+# OpenAI GPT
+OPENAI_API_KEY=
+# Google Gemini
+GEMINI_API_KEY=
+
+# ElevenLabs (audio generation and transcription)
+ELEVENLABS_API_KEY=

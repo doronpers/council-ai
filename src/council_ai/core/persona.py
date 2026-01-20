@@ -27,6 +27,7 @@ class PersonaCategory(str, Enum):
     ANALYTICAL = "analytical"  # Deep analysis
     STRATEGIC = "strategic"  # Long-term thinking
     OPERATIONAL = "operational"  # Day-to-day execution
+    SPECIALIST = "specialist"  # Deep domain expertise
     RED_TEAM = "red_team"  # Think like an attacker/fraudster
     CUSTOM = "custom"  # User-defined
 
@@ -251,6 +252,20 @@ class PersonaManager:
         )
         return config_dir / "personas"
 
+    def _get_personal_path(self) -> Optional[Path]:
+        """Get path to personal personas from council-ai-personal if available."""
+        try:
+            from .personal_integration import detect_personal_repo
+
+            repo_path = detect_personal_repo()
+            if repo_path:
+                personal_personas = repo_path / "personal" / "personas"
+                if personal_personas.exists():
+                    return personal_personas
+        except Exception:
+            pass
+        return None
+
     def _load_builtin_personas(self) -> None:
         """Load all built-in personas."""
         builtin_path = self._get_builtin_path()
@@ -265,14 +280,23 @@ class PersonaManager:
                     print(f"Warning: Failed to load {yaml_file}: {e}", file=sys.stderr)
 
     def _load_custom_personas(self) -> None:
-        """Load personas from custom paths and user directory."""
-        paths = self._custom_paths + [self._get_user_path()]
+        """Load personas from custom paths, personal repo, and user directory."""
+        paths = list(self._custom_paths)
+
+        # Add personal personas path (loaded before user path; user loads last)
+        personal_path = self._get_personal_path()
+        if personal_path:
+            paths.append(personal_path)
+
+        # Add user path (highest priority, loaded last)
+        paths.append(self._get_user_path())
 
         for path in paths:
-            if path.exists():
+            if path and path.exists():
                 for yaml_file in path.glob("*.yaml"):
                     try:
                         persona = Persona.from_yaml_file(yaml_file)
+                        # Later paths overwrite earlier ones (user configs take priority)
                         self._personas[persona.id] = persona
                     except Exception as e:
                         import sys

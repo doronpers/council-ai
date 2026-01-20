@@ -15,25 +15,13 @@ import json
 import logging
 from typing import Any, AsyncIterator, Dict, Optional, Type
 
-from shared_ai_utils.llm import (
-    AnthropicProvider as _BaseAnthropicProvider,
-)
-from shared_ai_utils.llm import (
-    GeminiProvider as _BaseGeminiProvider,
-)
-from shared_ai_utils.llm import (
-    HTTPProvider as _BaseHTTPProvider,
-)
-from shared_ai_utils.llm import (
-    LLMManager,
-    LLMProvider,
-    LLMResponse,
-    ModelInfo,
-    ModelParameterSpec,
-)
-from shared_ai_utils.llm import (
-    OpenAIProvider as _BaseOpenAIProvider,
-)
+from shared_ai_utils.llm import AnthropicProvider as _BaseAnthropicProvider
+from shared_ai_utils.llm import GeminiProvider as _BaseGeminiProvider
+from shared_ai_utils.llm import HTTPProvider as _BaseHTTPProvider
+from shared_ai_utils.llm import LLMManager, LLMProvider, LLMResponse, ModelInfo, ModelParameterSpec
+from shared_ai_utils.llm import OpenAIProvider as _BaseOpenAIProvider
+
+from .resilience import RateLimiter, ResilienceConfig, ResilientProvider
 
 logger = logging.getLogger(__name__)
 
@@ -575,6 +563,9 @@ __all__ = [
     "HTTPProvider",
     "ModelInfo",
     "ModelParameterSpec",
+    "ResilientProvider",
+    "ResilienceConfig",
+    "RateLimiter",
     "register_provider",
     "get_provider",
     "get_llm_manager",

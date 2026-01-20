@@ -1,0 +1,21 @@
+/* Audio Player Component Styles */
+.audio-player {
+  margin-top: 16px;
+}
+
+.audio-player-button {
+  width: auto;
+}
+
+.audio-player-error {
+  margin-top: 8px;
+}
+
+.audio-player-controls {
+  margin-top: 8px;
+}
+
+.audio-player-controls audio {
+  width: 100%;
+  max-width: 100%;
+}

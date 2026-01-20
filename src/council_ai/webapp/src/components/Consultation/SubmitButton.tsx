@@ -9,7 +9,7 @@ import { parseSSELine, getDefaultPersonasForDomain } from '../../utils/helpers';
 import type { ConsultationRequest, StreamEvent, MemberStatusInfo, MemberStatus } from '../../types';
 
 const SubmitButton: React.FC = () => {
-  const { personas, domains, settings, selectedMembers, apiKey } = useApp();
+  const { personas, domains, settings, selectedMembers, apiKey, sessionId, autoRecall } = useApp();
   const {
     query,
     context,
@@ -73,6 +73,8 @@ const SubmitButton: React.FC = () => {
       enable_tts: settings.enable_tts || false,
       temperature: settings.temperature || 0.7,
       max_tokens: settings.max_tokens || 1000,
+      session_id: sessionId || undefined,
+      auto_recall: autoRecall,
     };
 
     try {
@@ -118,6 +120,8 @@ const SubmitButton: React.FC = () => {
     domains,
     personas,
     apiKey,
+    sessionId,
+    autoRecall,
     clearStreamingState,
     initializeMemberStatuses,
     setIsConsulting,

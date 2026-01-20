@@ -10,6 +10,16 @@ from functools import wraps
 from pathlib import Path
 from typing import Optional
 
+# Reconfigure stdout/stderr for Windows to support UTF-8 (emojis etc)
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 import click
 from rich.console import Console
 from rich.markdown import Markdown
@@ -262,7 +272,38 @@ def init(ctx):
     )
     config_manager.set("default_domain", default_domain)
 
-    # Step 4: Save
+    # Step 4: Personal Integration (optional)
+    console.print("\n[bold]Step 4: Personal Integration (Optional)[/bold]")
+    try:
+        from .core.personal_integration import detect_personal_repo, is_personal_configured
+
+        repo_path = detect_personal_repo()
+        if repo_path:
+            console.print(f"[green]✓[/green] Found council-ai-personal at: {repo_path}")
+            if not is_personal_configured():
+                if Confirm.ask("Would you like to integrate it now?", default=True):
+                    from .core.personal_integration import integrate_personal
+
+                    console.print("Integrating...")
+                    if integrate_personal(repo_path):
+                        console.print("[green]✓[/green] Personal integration completed!")
+                    else:
+                        console.print("[yellow]⚠[/yellow] Integration failed, but continuing...")
+                else:
+                    console.print(
+                        "[dim]You can integrate later with: council personal integrate[/dim]"
+                    )
+            else:
+                console.print("[green]✓[/green] Personal integration already configured")
+        else:
+            console.print(
+                "[dim]No council-ai-personal repository detected. "
+                "You can set it up later if needed.[/dim]"
+            )
+    except Exception as e:
+        console.print(f"[dim]Could not check personal integration: {e}[/dim]")
+
+    # Step 5: Save
     config_manager.save()
 
     # Build summary with fallback info
@@ -800,6 +841,14 @@ def _show_members(council):
 main.add_command(persona)
 main.add_command(domain)
 main.add_command(config)
+
+# Add personal integration commands
+try:
+    from .cli_personal import personal
+
+    main.add_command(personal)
+except ImportError:
+    pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1554,3 +1603,7 @@ def doctor():
             console.print(f"• {rec}")
     else:
         console.print("• System appears healthy.")
+
+
+if __name__ == "__main__":
+    main()

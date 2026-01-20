@@ -1,0 +1,42 @@
+/**
+ * Design Tokens for Council AI
+ */
+
+:root {
+  /* Shared Design Tokens */
+  --font-stack: 'Inter', 'Helvetica Neue', 'Arial', sans-serif;
+  --font-stack-serif: 'Playfair Display', serif;
+  --radius: 4px;
+  --radius-sm: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+  /* Shared Color Tokens - Main App (light) */
+  --bg-primary: #f4f4f4;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #ffffff;
+  --text-primary: #121212;
+  --text-secondary: #555555;
+  --text-muted: #999999;
+  --border: #e0e0e0;
+  --primary: #ea5b0c;
+  --primary-hover: #d14900;
+
+  /* Accent colors for error states and special UI elements */
+  --accent-red: #ef4444;
+  --accent-blue: #0066cc;
+  --accent-green: #10b981;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #111111;
+    --bg-secondary: #1a1a1a;
+    --bg-tertiary: #222222;
+    --text-primary: #f0f0f0;
+    --text-secondary: #a0a0a0;
+    --text-muted: #666666;
+    --border: #333333;
+  }
+}

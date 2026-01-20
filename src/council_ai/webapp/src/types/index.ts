@@ -14,7 +14,16 @@ export interface Persona {
   name: string;
   title: string;
   emoji: string;
-  category: 'advisory' | 'adversarial' | 'specialist' | 'custom';
+  category:
+    | 'advisory'
+    | 'adversarial'
+    | 'creative'
+    | 'analytical'
+    | 'strategic'
+    | 'operational'
+    | 'specialist'
+    | 'red_team'
+    | 'custom';
   core_question: string;
   razor: string;
   traits: PersonaTrait[];
@@ -61,6 +70,13 @@ export interface ModelCapability {
   models: string[];
 }
 
+// Token usage types
+export interface TokenUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+}
+
 // Settings types (localStorage)
 export interface UserSettings {
   provider?: string;
@@ -72,6 +88,9 @@ export interface UserSettings {
   max_tokens?: number;
   enable_tts?: boolean;
   tts_voice?: string;
+  members?: string[];
+  api_key?: string;
+  query?: string;
 }
 
 // Consultation types
@@ -88,6 +107,8 @@ export interface ConsultationRequest {
   enable_tts: boolean;
   temperature: number;
   max_tokens: number;
+  session_id?: string;
+  auto_recall?: boolean;
 }
 
 export interface MemberResponse {
@@ -98,6 +119,9 @@ export interface MemberResponse {
   content: string;
   timestamp: string;
   error?: string;
+  provider?: string;
+  model?: string;
+  usage?: TokenUsage;
 }
 
 export interface ConsultationResult {
@@ -108,6 +132,14 @@ export interface ConsultationResult {
   mode: string;
   timestamp: string;
   analysis?: ConsultationAnalysis;
+  usage_summary?: {
+    total_input_tokens: number;
+    total_output_tokens: number;
+    total_tokens: number;
+    estimated_cost?: number;
+  };
+  tags?: string[];
+  session_id?: string;
 }
 
 export interface ConsultationAnalysis {
@@ -142,6 +174,9 @@ export interface StreamEvent {
   result?: ConsultationResult;
   data?: ConsultationAnalysis;
   error?: string;
+  provider?: string;
+  model?: string;
+  usage?: TokenUsage;
 }
 
 // History types
@@ -153,6 +188,7 @@ export interface HistoryEntry {
   member_count: number;
   tags?: string[];
   notes?: string;
+  metadata?: Record<string, unknown>;
 }
 
 // TTS types
@@ -164,6 +200,25 @@ export interface TTSVoice {
 
 // Member status during consultation
 export type MemberStatus = 'pending' | 'responding' | 'completed' | 'error';
+
+// Configuration Diagnostics types
+export interface ConfigSourceInfo {
+  value: unknown;
+  source: 'cli' | 'env' | 'file' | 'default';
+  overridden: boolean;
+}
+
+export interface ConfigIssue {
+  type: string;
+  message: string;
+  severity: 'warning' | 'error';
+}
+
+export interface ConfigDiagnosticsResponse {
+  config_sources: Record<string, ConfigSourceInfo>;
+  warnings: ConfigIssue[];
+  errors: ConfigIssue[];
+}
 
 export interface MemberStatusInfo {
   id: string;

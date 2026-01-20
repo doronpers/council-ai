@@ -35,7 +35,7 @@ class ConsultationHistory:
             options = [
                 os.environ.get("COUNCIL_CONFIG_DIR"),
                 Path.home() / ".config" / "council-ai",
-                Path("/tmp/council-ai"),
+                Path("/tmp/council-ai"),  # nosec B108
             ]
 
             for option in options:
@@ -229,6 +229,7 @@ class ConsultationHistory:
         result: ConsultationResult,
         tags: Optional[List[str]] = None,
         notes: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Save a consultation result.
@@ -258,7 +259,7 @@ class ConsultationHistory:
             "tags": tags or [],
             "notes": notes,
             "session_id": getattr(result, "session_id", None),
-            "metadata": {},
+            "metadata": metadata or {},
         }
 
         if self.use_sqlite:
@@ -344,6 +345,77 @@ class ConsultationHistory:
 
         threading.Thread(target=_run_memu, daemon=True).start()
 
+    def get_memu_context(self, query: str, session_id: str, k: int = 5) -> str:
+        """
+        Retrieve relevant context from MemU for the given query.
+
+        Args:
+            query: The query to find relevant context for
+            session_id: Current session ID for context
+            k: Maximum number of items to retrieve
+
+        Returns:
+            Formatted context string suitable for prompt injection, or empty string if MemU unavailable
+        """
+        if not self.memu_service:
+            return ""
+
+        try:
+            import asyncio
+
+            # Try to get the current event loop
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # We're in an async context, can't use run_until_complete
+                    # Return empty for now - could use asyncio.create_task in future
+                    logger.debug("MemU context retrieval skipped: already in async context")
+                    return ""
+            except RuntimeError:
+                # No event loop running, create a new one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            async def _retrieve_context():
+                try:
+                    # Use MemU's retrieve method to get relevant context
+                    results = await self.memu_service.retrieve(
+                        queries=[{"role": "user", "content": {"text": query}}],
+                        method="rag",
+                        k=k,
+                    )
+
+                    context_parts = []
+                    if results and "items" in results:
+                        for item in results["items"]:
+                            # Extract content and format for prompt injection
+                            content = item.get("content", "")
+                            if content:
+                                # Add a header to indicate this is from memory
+                                context_parts.append(f"[Memory Context]: {content}")
+
+                    return "\n\n".join(context_parts)
+
+                except Exception as e:
+                    logger.debug(f"MemU context retrieval failed: {e}")
+                    return ""
+
+            try:
+                result = loop.run_until_complete(_retrieve_context())
+                return result
+            finally:
+                # Only close if we created a new loop
+                try:
+                    current_loop = asyncio.get_event_loop()
+                    if current_loop is loop and not current_loop.is_running():
+                        loop.close()
+                except Exception:
+                    pass
+
+        except Exception as e:
+            logger.debug(f"Failed to retrieve MemU context: {e}")
+            return ""
+
     def load(self, consultation_id: str) -> Optional[Dict[str, Any]]:
         """
         Load a consultation by ID.
@@ -390,6 +462,10 @@ class ConsultationHistory:
         offset: int = 0,
         order_by: str = "timestamp",
         reverse: bool = True,
+        domain: Optional[str] = None,
+        mode: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         List consultations.
@@ -399,10 +475,45 @@ class ConsultationHistory:
             offset: Skip N results
             order_by: Field to sort by (timestamp, query)
             reverse: If True, sort descending
+            domain: Optional domain filter (matches metadata["domain"])
+            mode: Optional consultation mode filter
+            date_from: ISO timestamp string to filter after
+            date_to: ISO timestamp string to filter before
 
         Returns:
             List of consultation summaries
         """
+        date_from_dt = None
+        date_to_dt = None
+        if date_from:
+            try:
+                date_from_dt = datetime.fromisoformat(date_from)
+            except ValueError as exc:
+                raise ValueError(f"Invalid date_from format: {date_from}") from exc
+        if date_to:
+            try:
+                date_to_dt = datetime.fromisoformat(date_to)
+            except ValueError as exc:
+                raise ValueError(f"Invalid date_to format: {date_to}") from exc
+
+        def _matches_filters(entry: Dict[str, Any]) -> bool:
+            if mode and entry.get("mode") != mode:
+                return False
+            if domain:
+                metadata = entry.get("metadata") or {}
+                if metadata.get("domain") != domain:
+                    return False
+            if date_from_dt or date_to_dt:
+                try:
+                    ts = datetime.fromisoformat(entry.get("timestamp", ""))
+                except ValueError:
+                    return False
+                if date_from_dt and ts < date_from_dt:
+                    return False
+                if date_to_dt and ts > date_to_dt:
+                    return False
+            return True
+
         if self.use_sqlite:
             # Validate order_by to prevent SQL injection
             allowed_order_by = ["timestamp", "query", "mode", "id"]
@@ -414,25 +525,46 @@ class ConsultationHistory:
             conn = sqlite3.connect(self.db_path)
             order = "DESC" if reverse else "ASC"
             query = (
-                "SELECT id, query, mode, timestamp, synthesis FROM consultations "
-                f"ORDER BY {order_by} {order}"
+                "SELECT id, query, mode, timestamp, synthesis, responses, tags, notes, metadata "
+                "FROM consultations "
+                f"ORDER BY {order_by} {order}"  # nosec B608
             )
-            if limit:
-                query += f" LIMIT {limit} OFFSET {offset}"
             cursor = conn.execute(query)
             rows = cursor.fetchall()
             conn.close()
-
-            return [
-                {
-                    "id": row[0],
-                    "query": row[1],
-                    "mode": row[2],
-                    "timestamp": row[3],
-                    "synthesis": row[4],
-                }
-                for row in rows
-            ]
+            results: List[Dict[str, Any]] = []
+            for row in rows:
+                try:
+                    responses = json.loads(row[5]) if row[5] else []
+                except json.JSONDecodeError:
+                    responses = []
+                try:
+                    tags = json.loads(row[6]) if row[6] else []
+                except json.JSONDecodeError:
+                    tags = []
+                try:
+                    metadata = json.loads(row[8]) if row[8] else {}
+                except json.JSONDecodeError:
+                    metadata = {}
+                results.append(
+                    {
+                        "id": row[0],
+                        "query": row[1],
+                        "mode": row[2],
+                        "timestamp": row[3],
+                        "synthesis": row[4],
+                        "member_count": len(responses) if isinstance(responses, list) else 0,
+                        "tags": tags,
+                        "notes": row[7],
+                        "metadata": metadata,
+                    }
+                )
+            filtered = [entry for entry in results if _matches_filters(entry)]
+            if offset:
+                filtered = filtered[offset:]
+            if limit:
+                filtered = filtered[:limit]
+            return filtered
         else:
             # List JSON files
             files = sorted(
@@ -441,16 +573,13 @@ class ConsultationHistory:
                 reverse=reverse,
             )
 
-            if offset:
-                files = files[offset:]
-            if limit:
-                files = files[:limit]
-
             results = []
             for json_path in files:
                 try:
                     with open(json_path, "r", encoding="utf-8") as f:
                         data = json.load(f)
+                        responses = data.get("responses", [])
+                        metadata = data.get("metadata", {})
                         results.append(
                             {
                                 "id": data.get("id", json_path.stem),
@@ -458,13 +587,23 @@ class ConsultationHistory:
                                 "mode": data.get("mode", ""),
                                 "timestamp": data.get("timestamp", ""),
                                 "synthesis": data.get("synthesis"),
+                                "member_count": (
+                                    len(responses) if isinstance(responses, list) else 0
+                                ),
+                                "tags": data.get("tags", []),
+                                "notes": data.get("notes"),
+                                "metadata": metadata,
                             }
                         )
                 except Exception as e:
                     logger.debug(f"Failed to read consultation file {json_path}: {e}")
                     continue
-
-            return results
+            filtered = [entry for entry in results if _matches_filters(entry)]
+            if offset:
+                filtered = filtered[offset:]
+            if limit:
+                filtered = filtered[:limit]
+            return filtered
 
     def search(self, query: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """

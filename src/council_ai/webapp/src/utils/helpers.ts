@@ -5,8 +5,11 @@
 /**
  * Escape HTML to prevent XSS
  */
-export function escapeHtml(unsafe: string): string {
-  return unsafe
+export function escapeHtml(unsafe: string | undefined | null): string {
+  if (unsafe == null || unsafe === undefined) {
+    return '';
+  }
+  return String(unsafe)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

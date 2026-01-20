@@ -50,7 +50,7 @@ council = Council(
 council.add_member("rams")
 
 result = council.consult(
-    "What are the latest trends in API design in 2024?",
+    "What are the latest trends in API design in 2026?",
     # Web search will automatically be used
 )
 ```
@@ -59,7 +59,7 @@ result = council.consult(
 
 ```python
 from council_ai import Council
-from council_ai.core.persona import get_persona
+from council_ai import get_persona
 
 council = Council(api_key="your-key", provider="anthropic")
 
@@ -84,19 +84,10 @@ result = council.consult(
 4. LLMs receive both your original context and web search results
 5. Responses incorporate information from web search
 
-### Example Output
+### What Gets Added to Context
 
-```
-Web Search Results for: What are the latest trends in API design in 2024?
-
-1. API Design Trends 2024
-   URL: https://example.com/api-trends
-   GraphQL adoption is increasing, REST remains dominant...
-
-2. Modern API Design Patterns
-   URL: https://example.com/patterns
-   OpenAPI 3.1, async-first designs, and event-driven architectures...
-```
+Search results are formatted as plain text and appended to the existing `context` for the
+member(s) that have web search enabled (council-level or persona-level).
 
 ---
 
@@ -159,7 +150,7 @@ result = council.consult(
 
 ```python
 from council_ai import Council
-from council_ai.core.persona import get_persona
+from council_ai import get_persona
 
 council = Council(api_key="your-key", provider="anthropic")
 
@@ -183,53 +174,11 @@ result = council.consult(
 )
 ```
 
-### Reasoning Mode Examples
+### Notes on Output Format
 
-#### Chain-of-Thought Output
-
-```
-Step 1: Identify the key question
-The question is whether to migrate from REST to GraphQL.
-
-Step 2: Analyze REST advantages
-- Simple, well-understood
-- Caching is straightforward
-- Wide tooling support
-
-Step 3: Analyze GraphQL advantages
-- Single endpoint reduces complexity
-- Client specifies exact data needs
-- Strong typing with schema
-
-Step 4: Consider migration costs
-- Team learning curve
-- Infrastructure changes
-- Client updates required
-
-Step 5: Synthesize conclusion
-Based on the analysis, I recommend...
-```
-
-#### Tree-of-Thought Output
-
-```
-Approach 1: Technical Perspective
-- Performance considerations
-- Scalability implications
-- Developer experience
-
-Approach 2: Business Perspective
-- Time to market
-- Resource requirements
-- Risk assessment
-
-Approach 3: User Experience Perspective
-- API usability
-- Client integration complexity
-- Long-term maintainability
-
-Synthesis: Comparing all three approaches, the optimal solution...
-```
+Reasoning modes work by **augmenting the system and user prompts** (see
+`src/council_ai/core/reasoning.py`). The library requests certain formats (steps, sections,
+multiple approaches), but exact formatting is still model-dependent.
 
 ---
 
@@ -254,7 +203,7 @@ export ANTHROPIC_API_KEY="your-anthropic-key"
 
 ```python
 from council_ai import Council, CouncilConfig
-from council_ai.core.persona import get_persona
+from council_ai import get_persona
 
 # Council-level configuration
 config = CouncilConfig(
@@ -292,7 +241,7 @@ council.add_member("rams")
 council.add_member("kahneman")
 
 result = council.consult(
-    "What are the latest security best practices for REST APIs in 2024?",
+    "What are the latest security best practices for REST APIs in 2026?",
     # Automatically searches web for current information
 )
 
@@ -323,7 +272,7 @@ for response in result.responses:
 
 ```python
 from council_ai import Council, CouncilConfig
-from council_ai.core.persona import get_persona
+from council_ai import get_persona
 
 config = CouncilConfig(
     enable_web_search=True,
@@ -358,7 +307,7 @@ result = council.consult(
 
 ```python
 from council_ai import Council
-from council_ai.core.persona import get_persona
+from council_ai import get_persona
 
 council = Council(api_key="your-key", provider="anthropic")
 

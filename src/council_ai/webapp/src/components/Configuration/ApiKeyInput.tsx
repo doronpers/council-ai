@@ -10,14 +10,16 @@ const ApiKeyInput: React.FC = () => {
   return (
     <div>
       <label htmlFor="api_key">API Key</label>
-      <input
-        type="password"
-        id="api_key"
-        placeholder="Uses environment variable if empty"
-        value={apiKey}
-        onChange={(e) => setApiKey(e.target.value)}
-        autoComplete="off"
-      />
+      <form onSubmit={(e) => e.preventDefault()}>
+        <input
+          type="password"
+          id="api_key"
+          placeholder="Uses environment variable if empty"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          autoComplete="off"
+        />
+      </form>
       <p className="field-hint">Session only - never saved</p>
     </div>
   );

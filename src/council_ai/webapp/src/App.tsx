@@ -4,6 +4,8 @@
 import React from 'react';
 import { AppProvider } from './context/AppContext';
 import { ConsultationProvider } from './context/ConsultationContext';
+import { NotificationProvider } from './components/Layout/NotificationContainer';
+import ErrorBoundary from './components/Layout/ErrorBoundary';
 import Header from './components/Layout/Header';
 import ConfigPanel from './components/Configuration/ConfigPanel';
 import MemberPreview from './components/Members/MemberPreview';
@@ -16,40 +18,54 @@ import HistoryPanel from './components/History/HistoryPanel';
 const App: React.FC = () => {
   return (
     <AppProvider>
-      <ConsultationProvider>
-        <div className="app">
-          <Header />
-          <main>
-            {/* Configuration Section */}
-            <section className="panel" id="config-section">
-              <h2>Configuration</h2>
-              <ConfigPanel />
-            </section>
+      <NotificationProvider>
+        <ConsultationProvider>
+          <div className="app">
+            <Header />
+            <main>
+              {/* Configuration Section */}
+              <ErrorBoundary>
+                <section className="panel" id="config-section">
+                  <h2>Configuration</h2>
+                  <ConfigPanel />
+                </section>
+              </ErrorBoundary>
 
-            {/* Member Preview Section */}
-            <section className="panel" id="members-section">
-              <h2>Council Members</h2>
-              <MemberPreview />
-            </section>
+              {/* Member Preview Section */}
+              <ErrorBoundary>
+                <section className="panel" id="members-section">
+                  <h2>Council Members</h2>
+                  <MemberPreview />
+                </section>
+              </ErrorBoundary>
 
-            {/* Query Section */}
-            <section className="panel" id="query-section">
-              <h2>Your Query</h2>
-              <QueryInput />
-              <SubmitButton />
-            </section>
+              {/* Query Section */}
+              <ErrorBoundary>
+                <section className="panel" id="query-section">
+                  <h2>Your Query</h2>
+                  <QueryInput />
+                  <SubmitButton />
+                </section>
+              </ErrorBoundary>
 
-            {/* Progress Dashboard (shown during consultation) */}
-            <ProgressDashboard />
+              {/* Progress Dashboard (shown during consultation) */}
+              <ErrorBoundary>
+                <ProgressDashboard />
+              </ErrorBoundary>
 
-            {/* Results Section */}
-            <ResultsPanel />
+              {/* Results Section */}
+              <ErrorBoundary>
+                <ResultsPanel />
+              </ErrorBoundary>
 
-            {/* History Section */}
-            <HistoryPanel />
-          </main>
-        </div>
-      </ConsultationProvider>
+              {/* History Section */}
+              <ErrorBoundary>
+                <HistoryPanel />
+              </ErrorBoundary>
+            </main>
+          </div>
+        </ConsultationProvider>
+      </NotificationProvider>
     </AppProvider>
   );
 };

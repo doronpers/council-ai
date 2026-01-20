@@ -8,7 +8,7 @@ from council_ai import DomainCategory, get_domain, list_domains
 def test_all_domains_exist():
     """Test that all expected domains exist."""
     domains = list_domains()
-    assert len(domains) == 14, f"Expected 14 domains, got {len(domains)}"
+    assert len(domains) == 15, f"Expected 15 domains, got {len(domains)}"
 
     expected_ids = [
         "coding",
@@ -18,6 +18,7 @@ def test_all_domains_exist():
         "leadership",
         "creative",
         "writing",
+        "audio_post",
         "career",
         "decisions",
         "devops",
@@ -159,12 +160,15 @@ def test_personal_domains():
 
 def test_creative_domains():
     """Test creative domains."""
-    creative_domains = ["creative", "writing"]
+    creative_domains = ["creative", "writing", "audio_post"]
 
     for domain_id in creative_domains:
         domain = get_domain(domain_id)
         assert domain.category == DomainCategory.CREATIVE
-        assert "treasure" in domain.default_personas or "rams" in domain.default_personas
+        if domain_id == "audio_post":
+            assert "sound_designer" in domain.default_personas
+        else:
+            assert "treasure" in domain.default_personas or "rams" in domain.default_personas
 
 
 def test_general_domain():

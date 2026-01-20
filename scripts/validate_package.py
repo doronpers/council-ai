@@ -36,8 +36,8 @@ def test_personas():
         from council_ai import get_persona, list_personas
 
         personas = list_personas()
-        if len(personas) < 9:
-            print(f"✗ Expected at least 9 personas, got {len(personas)}")
+        if len(personas) < 14:
+            print(f"✗ Expected at least 14 personas, got {len(personas)}")
             return False
 
         # Test getting specific personas
@@ -51,6 +51,11 @@ def test_personas():
             "treasure",
             "signal_analyst",
             "compliance_auditor",
+            "fraud_examiner",
+            "sound_designer",
+            "dialogue_editor",
+            "rerecording_mixer",
+            "adr_supervisor",
         ]
         for pid in required_personas:
             persona = get_persona(pid)
@@ -72,8 +77,8 @@ def test_domains():
         from council_ai import get_domain, list_domains
 
         domains = list_domains()
-        if len(domains) < 14:
-            print(f"✗ Expected at least 14 domains, got {len(domains)}")
+        if len(domains) < 15:
+            print(f"✗ Expected at least 15 domains, got {len(domains)}")
             return False
 
         # Test getting specific domains
@@ -85,6 +90,7 @@ def test_domains():
             "leadership",
             "creative",
             "writing",
+            "audio_post",
             "career",
             "decisions",
             "devops",

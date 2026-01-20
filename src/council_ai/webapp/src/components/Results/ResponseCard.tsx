@@ -1,8 +1,9 @@
 /**
  * ResponseCard Component - Display individual persona response
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useNotifications } from '../Layout/NotificationContainer';
 import { escapeHtml, copyToClipboard } from '../../utils/helpers';
 
 interface ResponseCardProps {
@@ -13,6 +14,15 @@ interface ResponseCardProps {
   content: string;
   error?: string;
   isStreaming?: boolean;
+  provider?: string;
+  model?: string;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+  };
+  onFollowUp?: (personaId: string, personaName: string) => void;
+  onShare?: (personaId: string, content: string) => void;
 }
 
 const ResponseCard: React.FC<ResponseCardProps> = ({
@@ -23,10 +33,54 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
   content,
   error,
   isStreaming = false,
+  provider,
+  model,
+  usage,
+  onFollowUp,
+  onShare,
 }) => {
   const { personas } = useApp();
   const [showDetails, setShowDetails] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { showNotification } = useNotifications();
+
+  // Storage keys - simple string templates, no need to memoize
+  const likeKey = `like-response-${personaId}`;
+  const bookmarkKey = `bookmark-response-${personaId}`;
+  const favoriteKey = `favorite-response-${personaId}`;
+
+  const [isLiked, setIsLiked] = useState(() => {
+    try {
+      return localStorage.getItem(likeKey) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [isBookmarked, setIsBookmarked] = useState(() => {
+    try {
+      return localStorage.getItem(bookmarkKey) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [isFavorited, setIsFavorited] = useState(() => {
+    try {
+      return localStorage.getItem(favoriteKey) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const contentPreviewLimit = 500;
+  const isTruncated = content.length > contentPreviewLimit;
+
+  const contentPreview = useMemo(() => {
+    if (!isTruncated) return content;
+    return `${content.slice(0, contentPreviewLimit).trim()}…`;
+  }, [content, isTruncated]);
 
   // Get persona data from context if not provided
   const persona = personas.find((p) => p.id === personaId);
@@ -39,7 +93,65 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
     const success = await copyToClipboard(content);
     if (success) {
       setCopied(true);
+      showNotification('Response copied to clipboard', 'success');
       setTimeout(() => setCopied(false), 2000);
+    } else {
+      showNotification('Failed to copy response', 'error');
+    }
+  };
+
+  const handleFavorite = () => {
+    const nextValue = !isFavorited;
+    setIsFavorited(nextValue);
+    try {
+      localStorage.setItem(favoriteKey, nextValue ? 'true' : 'false');
+    } catch {
+      // ignore storage errors
+    }
+    showNotification(nextValue ? 'Response favorited' : 'Response removed from favorites', 'info');
+  };
+
+  const handleLike = () => {
+    const nextValue = !isLiked;
+    setIsLiked(nextValue);
+    try {
+      localStorage.setItem(likeKey, nextValue ? 'true' : 'false');
+    } catch {
+      // ignore storage errors
+    }
+    showNotification(nextValue ? 'Response liked' : 'Response unliked', 'info');
+  };
+
+  const handleBookmark = () => {
+    const nextValue = !isBookmarked;
+    setIsBookmarked(nextValue);
+    try {
+      localStorage.setItem(bookmarkKey, nextValue ? 'true' : 'false');
+    } catch {
+      // ignore storage errors
+    }
+    showNotification(nextValue ? 'Response bookmarked' : 'Bookmark removed', 'info');
+  };
+
+  const handleShare = () => {
+    if (onShare) {
+      onShare(personaId, content);
+    } else {
+      // Fallback: copy shareable link to clipboard
+      const shareText = `${name}: ${content.slice(0, 200)}${content.length > 200 ? '...' : ''}`;
+      copyToClipboard(shareText).then((success) => {
+        if (success) {
+          showNotification('Response copied for sharing', 'success');
+        } else {
+          showNotification('Failed to copy response', 'error');
+        }
+      });
+    }
+  };
+
+  const handleFollowUp = () => {
+    if (onFollowUp) {
+      onFollowUp(personaId, name);
     }
   };
 
@@ -55,15 +167,71 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
           </div>
         </div>
         <div className="response-actions">
-          <button className="response-action-btn" onClick={handleCopy} title="Copy response">
-            {copied ? '✓' : '📋'}
+          <button
+            type="button"
+            className={`response-action-btn ${isLiked ? 'liked' : ''}`}
+            onClick={handleLike}
+            aria-label={isLiked ? 'Unlike response' : 'Like response'}
+            title={isLiked ? 'Unlike' : 'Like response'}
+          >
+            <span aria-hidden="true">{isLiked ? '❤️' : '🤍'}</span>
           </button>
           <button
+            type="button"
+            className={`response-action-btn ${isFavorited ? 'favorited' : ''}`}
+            onClick={handleFavorite}
+            aria-label={isFavorited ? 'Unfavorite response' : 'Favorite response'}
+            title={isFavorited ? 'Unfavorite' : 'Favorite response'}
+          >
+            <span aria-hidden="true">★</span>
+          </button>
+          <button
+            type="button"
+            className={`response-action-btn ${isBookmarked ? 'bookmarked' : ''}`}
+            onClick={handleBookmark}
+            aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark response'}
+            title={isBookmarked ? 'Remove bookmark' : 'Bookmark response'}
+          >
+            <span aria-hidden="true">📖</span>
+          </button>
+          <button
+            type="button"
             className="response-action-btn"
+            onClick={handleCopy}
+            aria-label={copied ? 'Copied to clipboard' : 'Copy response to clipboard'}
+            title="Copy response"
+          >
+            <span aria-hidden="true">{copied ? '✓' : '📋'}</span>
+          </button>
+          <button
+            type="button"
+            className="response-action-btn"
+            onClick={handleShare}
+            aria-label="Share response"
+            title="Share response"
+          >
+            <span aria-hidden="true">🔗</span>
+          </button>
+          {onFollowUp && (
+            <button
+              type="button"
+              className="response-action-btn"
+              onClick={handleFollowUp}
+              aria-label="Ask follow-up question"
+              title="Ask follow-up question"
+            >
+              <span aria-hidden="true">💬</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className={`response-action-btn ${showDetails ? 'active' : ''}`}
             onClick={() => setShowDetails(!showDetails)}
+            aria-label={showDetails ? 'Hide details' : 'Show details'}
+            aria-expanded={showDetails}
             title="Toggle details"
           >
-            ℹ️
+            <span aria-hidden="true">ℹ️</span>
           </button>
         </div>
       </div>
@@ -84,22 +252,55 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
         {error ? (
           <p className="error">{escapeHtml(error)}</p>
         ) : (
-          <p className={isStreaming ? 'streaming-content' : ''} style={{ whiteSpace: 'pre-wrap' }}>
-            {content}
+          <p
+            className={`${isStreaming ? 'streaming-content' : ''} ${!isExpanded && isTruncated ? 'response-content-truncated' : ''}`}
+            style={{ whiteSpace: 'pre-wrap' }}
+          >
+            {isExpanded ? content : contentPreview}
             {isStreaming && <span className="loading"></span>}
           </p>
         )}
       </div>
 
+      {isTruncated && !error && (
+        <div className="response-expand-controls">
+          <button
+            type="button"
+            className="response-expand-btn"
+            onClick={() => setIsExpanded((prev) => !prev)}
+          >
+            {isExpanded ? 'Show less' : 'Show more'}
+          </button>
+        </div>
+      )}
+
       {/* Details (toggle) */}
-      {showDetails && persona && (
+      {showDetails && (
         <div id={`response-details-${personaId}`} className="response-details">
-          <div className="response-category">
-            <strong>Category:</strong> {escapeHtml(persona.category)}
-          </div>
-          <div className="response-all-focus">
-            <strong>Focus Areas:</strong> {focusAreas.join(', ')}
-          </div>
+          {persona && (
+            <>
+              <div className="response-category">
+                <strong>Category:</strong> {escapeHtml(persona.category)}
+              </div>
+              <div className="response-all-focus">
+                <strong>Focus Areas:</strong> {focusAreas.join(', ')}
+              </div>
+            </>
+          )}
+          {(provider || model) && (
+            <div className="response-model-info">
+              <strong>Model:</strong>{' '}
+              {provider && model ? `${provider}/${model}` : provider || model || 'Unknown'}
+            </div>
+          )}
+          {usage && (
+            <div className="response-usage">
+              <strong>Tokens:</strong>
+              {usage.input_tokens !== undefined && ` Input: ${usage.input_tokens}`}
+              {usage.output_tokens !== undefined && ` Output: ${usage.output_tokens}`}
+              {usage.total_tokens !== undefined && ` Total: ${usage.total_tokens}`}
+            </div>
+          )}
         </div>
       )}
     </div>

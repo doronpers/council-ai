@@ -41,11 +41,13 @@ def test_persona_provider_field():
     assert persona.model == "claude-3"
 
 
-def test_council_member_provider_resolution(mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys):
+def test_council_member_provider_resolution(
+    mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
+):
     """Test that Council correctly resolves per-persona providers."""
     # Create council with fallback disabled for cleaner test
     council = Council(provider="openai", model="gpt-4", api_key="openai-key")
-    
+
     # Force the provider to be set directly (bypassing fallback logic for test clarity)
     council._provider = mock_get_provider.side_effect("openai", api_key="openai-key", model="gpt-4")
 

@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-launch_council_path = Path(__file__).parent.parent / "launch-council.py"
+launch_council_path = Path(__file__).parent.parent / "bin" / "launch-council.py"
 
 # Only import if file exists (for CI/CD environments where it might not be present)
 launch_council: Any = None

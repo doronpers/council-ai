@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, List, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -17,6 +18,7 @@ from council_ai import Council
 from council_ai.core.config import (
     ConfigManager,
     get_api_key,
+    get_available_providers,
     get_tts_api_key,
     is_placeholder_key,
     sanitize_api_key,
@@ -34,6 +36,14 @@ from council_ai.webapp.reviewer import router as reviewer_router
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Council AI", version="1.0.0")
+
+
+# Handle favicon requests to prevent 404 errors
+@app.get("/favicon.ico")
+async def favicon():
+    """Return 204 No Content for favicon requests to prevent 404 errors."""
+    return Response(status_code=204)
+
 
 # Include reviewer API routes
 app.include_router(reviewer_router)
@@ -83,13 +93,14 @@ class ConsultRequest(BaseModel):
     temperature: Optional[float] = 0.7  # Sampling temperature
     max_tokens: Optional[int] = 1000  # Max tokens per response
     session_id: Optional[str] = None
-    auto_recall: bool = False
+    auto_recall: Optional[bool] = None
 
 
 class ConsultResponse(BaseModel):
     synthesis: Optional[str]
     responses: list[dict]
     mode: str
+    session_id: Optional[str] = None
 
 
 def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
@@ -327,7 +338,7 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
             context=payload.context,
             mode=mode,
             session_id=payload.session_id,
-            auto_recall=payload.auto_recall,
+            auto_recall=payload.auto_recall if payload.auto_recall is not None else True,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -336,6 +347,7 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
         synthesis=result.synthesis,
         responses=[r.to_dict() for r in result.responses],
         mode=result.mode,
+        session_id=getattr(result, "session_id", None),
     )
 
 
@@ -351,7 +363,7 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
                 context=payload.context,
                 mode=mode,
                 session_id=payload.session_id,
-                auto_recall=payload.auto_recall,
+                auto_recall=payload.auto_recall if payload.auto_recall is not None else True,
             ):
                 # Convert update to SSE format
                 if "result" in update:
@@ -364,6 +376,7 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
                         "timestamp": result.timestamp.isoformat(),
                         "responses": [r.to_dict() for r in result.responses],
                         "synthesis": result.synthesis,
+                        "session_id": getattr(result, "session_id", None),
                     }
                 elif "response" in update:
                     # Convert MemberResponse to dict
@@ -390,9 +403,26 @@ async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
 
 
 @app.get("/api/history")
-async def history_list(limit: Optional[int] = None, offset: int = 0) -> dict:
-    """List saved consultations."""
-    consultations = _history.list(limit=limit, offset=offset)
+async def history_list(
+    limit: Optional[int] = None,
+    offset: int = 0,
+    domain: Optional[str] = None,
+    mode: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+) -> dict:
+    """List saved consultations with optional filters."""
+    try:
+        consultations = _history.list(
+            limit=limit,
+            offset=offset,
+            domain=domain,
+            mode=mode,
+            date_from=date_from,
+            date_to=date_to,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"consultations": consultations, "total": len(consultations)}
 
 
@@ -605,3 +635,283 @@ async def tts_voices() -> dict:
         "provider": config.tts.provider,
         "fallback_provider": config.tts.fallback_provider,
     }
+
+
+# Personal Integration API Endpoints
+@app.get("/api/personal/status")
+def get_personal_status_endpoint():
+    """Get personal integration status."""
+    try:
+        from council_ai.core.personal_integration import get_personal_status
+
+        status = get_personal_status()
+        return status
+    except Exception as e:
+        logger.error(f"Failed to get personal status: {e}")
+        return {
+            "detected": False,
+            "configured": False,
+            "repo_path": None,
+            "config_dir": None,
+        }
+
+
+@app.post("/api/personal/integrate")
+def integrate_personal_endpoint():
+    """Trigger personal integration."""
+    try:
+        from pathlib import Path
+
+        from council_ai.core.personal_integration import detect_personal_repo, integrate_personal
+
+        repo_path = detect_personal_repo()
+        if not repo_path:
+            raise HTTPException(
+                status_code=404, detail="council-ai-personal repository not detected"
+            )
+
+        success = integrate_personal(Path(repo_path))
+        if success:
+            return {"success": True, "message": "Integration completed successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Integration failed")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to integrate personal: {e}")
+        raise HTTPException(status_code=500, detail=f"Integration error: {str(e)}")
+
+
+@app.get("/api/personal/verify")
+def verify_personal_integration_endpoint():
+    """Verify personal integration."""
+    try:
+        from council_ai.core.personal_integration import verify_personal_integration
+
+        verification = verify_personal_integration()
+        return verification
+    except Exception as e:
+        logger.error(f"Failed to verify personal integration: {e}")
+        return {
+            "detected": False,
+            "configured": False,
+            "configs_loaded": False,
+            "personas_available": False,
+            "issues": [f"Verification error: {str(e)}"],
+        }
+
+
+@app.get("/api/config/diagnostics")
+async def config_diagnostics() -> dict:
+    """Get configuration diagnostics including sources, API keys, and issues."""
+    from datetime import datetime
+
+    config = ConfigManager().config
+    diagnostics: dict[str, Any] = {
+        "timestamp": datetime.now().isoformat(),
+        "config_sources": {},
+        "api_keys": {},
+        "providers": {},
+        "recommendations": [],
+        "warnings": [],
+        "errors": [],
+    }
+
+    # Determine config sources (simplified - in reality would track CLI/env/file/default)
+    # For now, we'll check environment variables vs config file
+    config_sources = diagnostics["config_sources"]
+
+    # Check API provider source
+    if os.environ.get("COUNCIL_API_PROVIDER"):
+        config_sources["api.provider"] = {
+            "value": os.environ.get("COUNCIL_API_PROVIDER"),
+            "source": "env",
+            "overridden": False,
+        }
+    elif config.api.provider:
+        config_sources["api.provider"] = {
+            "value": config.api.provider,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["api.provider"] = {
+            "value": "anthropic",
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check model source
+    if config.api.model:
+        config_sources["api.model"] = {
+            "value": config.api.model,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["api.model"] = {
+            "value": None,
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check base_url source
+    if os.environ.get("COUNCIL_API_BASE_URL"):
+        config_sources["api.base_url"] = {
+            "value": os.environ.get("COUNCIL_API_BASE_URL"),
+            "source": "env",
+            "overridden": False,
+        }
+    elif config.api.base_url:
+        config_sources["api.base_url"] = {
+            "value": config.api.base_url,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["api.base_url"] = {
+            "value": None,
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check default_domain source
+    if os.environ.get("COUNCIL_DEFAULT_DOMAIN"):
+        config_sources["default_domain"] = {
+            "value": os.environ.get("COUNCIL_DEFAULT_DOMAIN"),
+            "source": "env",
+            "overridden": False,
+        }
+    elif config.default_domain:
+        config_sources["default_domain"] = {
+            "value": config.default_domain,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["default_domain"] = {
+            "value": "general",
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check mode source
+    if config.default_mode:
+        config_sources["mode"] = {
+            "value": config.default_mode,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["mode"] = {
+            "value": "synthesis",
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check temperature source
+    if config.temperature:
+        config_sources["temperature"] = {
+            "value": config.temperature,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["temperature"] = {
+            "value": 0.7,
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check max_tokens_per_response source
+    if config.max_tokens_per_response:
+        config_sources["max_tokens_per_response"] = {
+            "value": config.max_tokens_per_response,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["max_tokens_per_response"] = {
+            "value": 1000,
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check API keys for each provider
+    api_keys = diagnostics["api_keys"]
+    providers_to_check = ["openai", "anthropic", "gemini", "vercel", "elevenlabs"]
+
+    for provider in providers_to_check:
+        if provider == "elevenlabs":
+            key = get_tts_api_key("elevenlabs")
+            source = "env" if os.environ.get("ELEVENLABS_API_KEY") else "file"
+        else:
+            key = get_api_key(provider)
+            env_var = f"{provider.upper()}_API_KEY"
+            if provider == "vercel":
+                env_var = "AI_GATEWAY_API_KEY"
+            source = "env" if os.environ.get(env_var) else "file"
+
+        api_keys[provider] = {
+            "configured": bool(key) and not is_placeholder_key(key),
+            "placeholder": bool(key) and is_placeholder_key(key),
+            "source": source if key else "none",
+        }
+
+    # Check provider availability
+    providers_status = diagnostics["providers"]
+    available_providers = get_available_providers()
+
+    for provider in providers_to_check:
+        if provider == "elevenlabs":
+            # TTS provider - check separately
+            key = get_tts_api_key("elevenlabs")
+            providers_status[provider] = {
+                "available": bool(key) and not is_placeholder_key(key),
+                "tested": False,
+            }
+        else:
+            has_key = any(p[0] == provider and p[1] for p in available_providers)
+            providers_status[provider] = {
+                "available": has_key,
+                "tested": False,
+            }
+
+    # Generate recommendations and warnings
+    recommendations = diagnostics["recommendations"]
+    warnings = diagnostics["warnings"]
+    errors = diagnostics["errors"]
+
+    # Check if any API key is configured
+    has_any_key = any(api_keys[p]["configured"] for p in providers_to_check if p != "elevenlabs")
+    if not has_any_key:
+        errors.append(
+            {
+                "type": "missing_api_key",
+                "message": "No API key configured. Please set an API key for at least one provider.",
+                "action": "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY environment variable, or configure in settings.",
+            }
+        )
+
+    # Check for placeholder keys
+    for provider, status in api_keys.items():
+        if status["placeholder"]:
+            warnings.append(
+                {
+                    "type": "placeholder_key",
+                    "message": f"{provider.upper()} API key appears to be a placeholder value.",
+                    "action": f"Replace the placeholder with a valid {provider.upper()} API key.",
+                }
+            )
+
+    # Recommendations
+    if not has_any_key:
+        recommendations.append(
+            {
+                "type": "configure_provider",
+                "message": "Configure at least one AI provider to start using Council AI.",
+                "action": "Set an API key in environment variables or configuration file.",
+            }
+        )
+
+    return diagnostics

@@ -7,9 +7,9 @@ from council_ai.core.persona import PersonaManager
 
 
 def test_all_builtin_personas_load():
-    """Test that all 9 built-in personas load correctly."""
+    """Test that all 14 built-in personas load correctly."""
     personas = list_personas()
-    assert len(personas) == 9, f"Expected 9 personas, got {len(personas)}"
+    assert len(personas) == 14, f"Expected 14 personas, got {len(personas)}"
 
     # Check each persona has required fields
     for persona in personas:
@@ -175,6 +175,50 @@ def test_persona_manager():
 
     with pytest.raises(ValueError):
         manager.get_or_raise("nonexistent")
+
+
+def test_persona_loading_user_overrides_personal(monkeypatch, tmp_path):
+    """Test that user personas override personal personas when IDs collide."""
+    personal_personas_dir = tmp_path / "personal_personas"
+    personal_personas_dir.mkdir(parents=True)
+
+    config_dir = tmp_path / ".config" / "council-ai"
+    user_personas_dir = config_dir / "personas"
+    user_personas_dir.mkdir(parents=True)
+
+    # Same persona ID exists in both places.
+    (personal_personas_dir / "override.yaml").write_text(
+        "\n".join(
+            [
+                "id: override",
+                "name: Personal Version",
+                "title: Personal",
+                "core_question: Personal?",
+                "razor: Personal razor.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (user_personas_dir / "override.yaml").write_text(
+        "\n".join(
+            [
+                "id: override",
+                "name: User Version",
+                "title: User",
+                "core_question: User?",
+                "razor: User razor.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("COUNCIL_CONFIG_DIR", str(config_dir))
+    monkeypatch.setattr(PersonaManager, "_get_personal_path", lambda self: personal_personas_dir)
+
+    manager = PersonaManager()
+    persona = manager.get("override")
+    assert persona is not None
+    assert persona.name == "User Version"
 
 
 def test_persona_manager_add_custom():

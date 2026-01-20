@@ -5,6 +5,10 @@
  * These will be processed by Vite and bundled appropriately.
  */
 
+/* Design Tokens and Base Styles */
+@import './tokens.css';
+@import './base.css';
+
 /* Main application styles - Dieter Rams Inspired */
 @import '../../assets/css/main.css';
 

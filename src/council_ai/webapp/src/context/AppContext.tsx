@@ -32,6 +32,12 @@ interface AppContextType {
   apiKey: string;
   setApiKey: React.Dispatch<React.SetStateAction<string>>;
 
+  // Session and memory management
+  sessionId: string | null;
+  setSessionId: React.Dispatch<React.SetStateAction<string | null>>;
+  autoRecall: boolean;
+  setAutoRecall: React.Dispatch<React.SetStateAction<boolean>>;
+
   // Refresh config
   refreshConfig: () => Promise<void>;
 }
@@ -39,6 +45,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const SETTINGS_KEY = 'council-ai-settings';
+const SESSION_KEY = 'council-ai-session-id';
+const AUTORECALL_KEY = 'council-ai-auto-recall';
 
 const defaultSettings: UserSettings = {
   provider: 'openai',
@@ -63,6 +71,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [apiKey, setApiKey] = useState('');
+
+  // Session and memory management
+  const [sessionId, setSessionId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(SESSION_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const [autoRecall, setAutoRecall] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(AUTORECALL_KEY);
+      return stored !== null ? stored === 'true' : true; // Default to true for personal mode
+    } catch {
+      return true;
+    }
+  });
 
   // Load initial configuration
   const refreshConfig = async () => {
@@ -110,6 +135,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.removeItem(SETTINGS_KEY);
   };
 
+  // Persist sessionId and autoRecall changes
+  useEffect(() => {
+    try {
+      if (sessionId) {
+        localStorage.setItem(SESSION_KEY, sessionId);
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
+    } catch (error) {
+      console.warn('Failed to persist sessionId:', error);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(AUTORECALL_KEY, autoRecall.toString());
+    } catch (error) {
+      console.warn('Failed to persist autoRecall:', error);
+    }
+  }, [autoRecall]);
+
   const value: AppContextType = {
     config,
     isLoading,
@@ -127,6 +173,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSelectedMembers,
     apiKey,
     setApiKey,
+    sessionId,
+    setSessionId,
+    autoRecall,
+    setAutoRecall,
     refreshConfig,
   };
 

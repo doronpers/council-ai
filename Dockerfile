@@ -35,4 +35,4 @@ ENV PORT=8000
 EXPOSE 8000
 
 # Start command
-CMD ["python", "launch-council.py"]
+CMD ["python", "launch-council.py", "--host", "0.0.0.0", "--port", "8000", "--no-reload"]
