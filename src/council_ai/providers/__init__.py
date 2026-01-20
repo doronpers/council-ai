@@ -467,6 +467,12 @@ _MODEL_CAPABILITIES: Dict[str, ModelInfo] = {
         models=[OpenAIProvider.DEFAULT_MODEL],
         parameters=_GENERATION_PARAM_SPECS,
     ),
+    "lmstudio": ModelInfo(
+        provider="lmstudio",
+        default_model="local-model",  # LM Studio uses whatever model is loaded
+        models=["local-model"],
+        parameters=_GENERATION_PARAM_SPECS,
+    ),
 }
 
 _PROVIDERS: Dict[str, Type[LLMProvider]] = {
@@ -475,6 +481,7 @@ _PROVIDERS: Dict[str, Type[LLMProvider]] = {
     "gemini": GeminiProvider,
     "http": HTTPProvider,
     "vercel": OpenAIProvider,
+    "lmstudio": OpenAIProvider,  # LM Studio uses OpenAI-compatible API
 }
 
 
@@ -497,6 +504,13 @@ def get_provider(name: str, **kwargs) -> LLMProvider:
     if name not in _PROVIDERS:
         available = ", ".join(_PROVIDERS.keys())
         raise ValueError(f"Provider '{name}' not found. Available: {available}")
+
+    # Set base_url for lmstudio if not provided
+    if name == "lmstudio" and "base_url" not in kwargs:
+        kwargs["base_url"] = "http://localhost:1234/v1"
+        # LM Studio doesn't require an API key
+        if "api_key" not in kwargs:
+            kwargs["api_key"] = "lm-studio"  # Dummy key for OpenAI client
 
     provider_kwargs = _filter_provider_kwargs(kwargs)
     return _PROVIDERS[name](**provider_kwargs)

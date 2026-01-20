@@ -114,7 +114,7 @@ class Council:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        provider: str = "anthropic",
+        provider: str = "lmstudio",  # Default to local for cost savings
         config: Optional[CouncilConfig] = None,
         persona_manager: Optional[PersonaManager] = None,
         model: Optional[str] = None,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import requests
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -291,6 +292,20 @@ def save_config(config: Config, path: Optional[str] = None) -> None:
     """Save configuration."""
     manager = ConfigManager(path)
     manager.save(config)
+
+
+def is_lmstudio_available() -> bool:
+    """
+    Check if LM Studio is running locally and accessible.
+
+    Returns:
+        True if LM Studio is running and responding, False otherwise
+    """
+    try:
+        response = requests.get("http://localhost:1234/v1/models", timeout=2)
+        return response.status_code == 200
+    except Exception:
+        return False
 
 
 def get_api_key(provider: str = "anthropic") -> Optional[str]:

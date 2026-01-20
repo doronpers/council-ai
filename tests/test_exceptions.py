@@ -29,7 +29,7 @@ class TestExceptions:
         error = APIKeyError("anthropic")
         assert error.provider == "anthropic"
         assert "anthropic" in str(error)
-        assert "API key" in str(error).lower()
+        assert "api key" in str(error).lower()
 
         custom_error = APIKeyError("openai", "Custom message")
         assert "Custom message" in str(custom_error)
