@@ -1,8 +1,7 @@
-"""
-Main CLI entry point.
-"""
+"""Main CLI entry point."""
 
 import click
+
 from ..core.config import ConfigManager
 
 
@@ -47,30 +46,29 @@ def main(ctx, config):
 
 def register_commands():
     # Import commands inside function to avoid circular imports and enable lazy loading effects
-    from .commands import (
-        init_command,
-        quickstart_command,
-        consult_command,
-        q_command,
-        interactive_command,
-        history_group,
-        review_command,
-        web_command,
-        ui_command,
-        cost_group,
-        doctor_command,
-        show_providers_command,
-        test_key_command,
-    )
-
     # Existing modular commands - we assume these are still in their original locations
     # or moved to the new structure. For now, we import them from original locations
     # if they haven't been moved, OR we will refactor them too.
     # The plan said "Extract config.py commands", so we should treat them as external subcommands.
-
     from ..cli_config import config as config_cmd
     from ..cli_domain import domain as domain_cmd
     from ..cli_persona import persona as persona_cmd
+    from .commands import (
+        consult_command,
+        cost_group,
+        doctor_command,
+        history_group,
+        init_command,
+        interactive_command,
+        q_command,
+        quickstart_command,
+        review_command,
+        show_providers_command,
+        test_key_command,
+        ui_command,
+        web_command,
+    )
+    from .commands.session_report import session as session_group
 
     # Core commands
     main.add_command(init_command)
@@ -88,6 +86,7 @@ def register_commands():
     main.add_command(doctor_command)
     main.add_command(show_providers_command)
     main.add_command(test_key_command)
+    main.add_command(session_group)
 
     # External modules
     main.add_command(config_cmd)

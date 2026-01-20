@@ -1,13 +1,11 @@
-"""
-Interactive session command.
-"""
+"""Interactive session command."""
 
 import click
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
-from rich.markdown import Markdown
 
-from ..utils import console, require_api_key, show_members, DEFAULT_PROVIDER
+from ..utils import DEFAULT_PROVIDER, console, require_api_key, show_members
 
 
 @click.command()
@@ -41,8 +39,22 @@ def interactive(ctx, domain, provider, api_key, session_id):
 
     # Enable history
     from ...core.history import ConsultationHistory
+    from ...core.user_memory import get_user_memory
 
     council._history = ConsultationHistory()
+    user_memory = get_user_memory()
+
+    # Show personalized greeting
+    greeting = user_memory.get_personalized_greeting()
+    console.print(f"[dim]{greeting}[/dim]\n")
+
+    # Show personalized insights
+    insights = user_memory.get_personalized_insights()
+    if insights:
+        console.print("[bold cyan]Insights from your history:[/bold cyan]")
+        for insight in insights[:2]:
+            console.print(f"  • {insight}")
+        console.print()
 
     # If resuming, load session metadata (not strictly needed as consult() handles it,
     # but good for display)
@@ -84,6 +96,45 @@ def interactive(ctx, domain, provider, api_key, session_id):
                 arg = parts[1] if len(parts) > 1 else None
 
                 if cmd == "quit" or cmd == "exit":
+                    # Offer to generate session report and save
+                    try:
+                        from rich.prompt import Confirm
+
+                        if session_id and Confirm.ask(
+                            "\n[cyan]Generate session report before exiting?[/cyan]", default=True
+                        ):
+                            from ...core.history import ConsultationHistory
+                            from ...core.session_reports import SessionReport
+
+                            history = ConsultationHistory()
+                            report_generator = SessionReport(history)
+
+                            try:
+                                report_data = report_generator.generate_session_report(session_id)
+                                report_generator.display_report(report_data)
+
+                                if Confirm.ask("\n[cyan]Save session report?[/cyan]", default=True):
+                                    from pathlib import Path
+
+                                    from rich.prompt import Prompt
+
+                                    default_path = f"session_report_{session_id[:8]}.md"
+                                    save_path = Prompt.ask("Output file path", default=default_path)
+                                    try:
+                                        output_path = Path(save_path)
+                                        report_generator.generate_session_report(
+                                            session_id, output_path
+                                        )
+                                        console.print(
+                                            f"[green]✓ Report saved to {save_path}[/green]"
+                                        )
+                                    except Exception as e:
+                                        console.print(f"[red]Error saving report: {e}[/red]")
+                            except Exception as e:
+                                console.print(f"[yellow]Could not generate report: {e}[/yellow]")
+                    except ImportError:
+                        pass  # rich.prompt not available
+
                     console.print("[green]✓[/green] Session ended. Goodbye!")
                     break
                 elif cmd == "help":
@@ -135,6 +186,13 @@ def interactive(ctx, domain, provider, api_key, session_id):
                 result = council.consult(query, session_id=session_id)
                 # Keep tracking session_id for next turns if we just started one
                 session_id = result.session_id
+
+                # Record in user memory
+                try:
+                    user_memory.record_consultation(result)
+                    user_memory.record_session(result.session_id, domain)
+                except Exception:
+                    pass  # User memory is optional
 
             console.print()
             console.print(Markdown(result.to_markdown()))

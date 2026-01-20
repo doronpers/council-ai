@@ -20,8 +20,9 @@ This file contains:
 2. **Style**: `snake_case` for functions, `PascalCase` for classes
 3. **Tests**: All new features require pytest tests
 4. **Security**: NEVER log API keys or commit `.env` files
-5. **Personas**: Don't modify built-in personas without approval
-6. **Code Quality**: ALWAYS check whitespace, black formatting, and lint issues (ruff) before reporting task completion
+5. **Reasoning Logs**: After significant tasks (complex, architectural, refactoring, non-obvious bug fixes), create log entry at `feedback-loop/agent_reasoning_logs/logs/YYYY-MM-DD_council-ai_task.md` (see template: `feedback-loop/agent_reasoning_logs/templates/reasoning_entry.md`)
+6. **Personas**: Don't modify built-in personas without approval
+7. **Code Quality**: ALWAYS check whitespace, black formatting, and lint issues (ruff) before reporting task completion
 
 ## Key Commands
 
@@ -35,7 +36,7 @@ council --help       # CLI
 ## Core Principles
 
 1. **Hippocratic**: "First, do no harm" — preserve functionality, avoid breaking changes
-2. **Document Reasoning**: Log significant decisions to `feedback-loop/agent_reasoning_logs/logs/`
+2. **Document Reasoning**: After completing significant tasks, create reasoning log entry (see Quick Rule #5 above)
 
 ## Project Structure
 

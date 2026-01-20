@@ -12,6 +12,8 @@ from .memory import (
 from .persona import Persona, PersonaCategory, Trait, get_persona, list_personas
 from .reasoning import ReasoningMode
 from .session import ConsultationResult, MemberResponse, Session
+from .session_reports import SessionReport
+from .user_memory import UserMemory, get_user_memory
 
 __all__ = [
     "Council",
@@ -32,4 +34,7 @@ __all__ = [
     "ConsultationResult",
     "MemberResponse",
     "Session",
+    "UserMemory",
+    "get_user_memory",
+    "SessionReport",
 ]

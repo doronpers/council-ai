@@ -1,15 +1,13 @@
-"""
-Consultation commands.
-"""
+"""Consultation commands."""
 
 import sys
 from pathlib import Path
 
 import click
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.markdown import Markdown
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from ..utils import console, require_api_key, assemble_council, DEFAULT_PROVIDER
+from ..utils import DEFAULT_PROVIDER, assemble_council, console, require_api_key
 
 
 @click.command()
@@ -188,6 +186,38 @@ def consult(
                 console.print(f"[red]Error:[/red] {e}")
                 sys.exit(1)
 
+    # Record consultation in user memory for personalization
+    try:
+        from ...core.user_memory import get_user_memory
+
+        user_memory = get_user_memory()
+        user_memory.record_consultation(result)
+        if result.session_id:
+            user_memory.record_session(result.session_id, domain)
+    except Exception as e:
+        # User memory is optional - don't fail if it doesn't work
+        import logging
+
+        logging.getLogger(__name__).debug(f"Failed to record in user memory: {e}")
+
+    # Show personalized greeting and insights
+    if not output_json:
+        try:
+            from ...core.user_memory import get_user_memory
+
+            user_memory = get_user_memory()
+            greeting = user_memory.get_personalized_greeting()
+            console.print(f"[dim]{greeting}[/dim]\n")
+
+            insights = user_memory.get_personalized_insights()
+            if insights:
+                console.print("[bold cyan]Insights from your history:[/bold cyan]")
+                for insight in insights[:2]:
+                    console.print(f"  • {insight}")
+                console.print()
+        except Exception:
+            pass  # Personalization is optional
+
     # Output
     if output_json:
         import json
@@ -202,6 +232,26 @@ def consult(
     else:
         console.print()
         console.print(Markdown(output_text))
+
+        # Offer to save if not already saved
+        if not output_json:
+            try:
+                from rich.prompt import Confirm
+
+                if Confirm.ask(
+                    "\n[cyan]Save consultation results to a file?[/cyan]", default=False
+                ):
+                    from rich.prompt import Prompt
+
+                    default_path = f"consultation_{result.id[:8]}.md"
+                    save_path = Prompt.ask("Output file path", default=default_path)
+                    try:
+                        Path(save_path).write_text(output_text, encoding="utf-8")
+                        console.print(f"[green]✓ Results saved to {save_path}[/green]")
+                    except Exception as e:
+                        console.print(f"[red]Error saving results: {e}[/red]")
+            except ImportError:
+                pass  # rich.prompt not available
 
     # Display cost if enabled
     if result and result.id:

@@ -718,6 +718,18 @@ class Council:
                 # Don't fail consultation if history save fails
                 logger.warning(f"Failed to save consultation to history: {e}")
 
+        # Record in user memory for personalization (optional, non-blocking)
+        try:
+            from .user_memory import get_user_memory
+
+            user_memory = get_user_memory()
+            user_memory.record_consultation(result)
+            if result.session_id:
+                user_memory.record_session(result.session_id, self._domain_id)
+        except Exception as e:
+            # User memory is optional - don't log as warning, just debug
+            logger.debug(f"Failed to record in user memory: {e}")
+
         return result
 
     async def consult_stream(
@@ -877,6 +889,18 @@ class Council:
             except Exception as e:
                 # Don't fail consultation if history save fails
                 logger.warning(f"Failed to save consultation to history: {e}")
+
+        # Record in user memory for personalization (optional, non-blocking)
+        try:
+            from .user_memory import get_user_memory
+
+            user_memory = get_user_memory()
+            user_memory.record_consultation(result)
+            if result.session_id:
+                user_memory.record_session(result.session_id, self._domain_id)
+        except Exception as e:
+            # User memory is optional - don't log as warning, just debug
+            logger.debug(f"Failed to record in user memory: {e}")
 
         yield {"type": "complete", "result": result}
 
