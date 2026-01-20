@@ -23,8 +23,8 @@ def diagnose_api_keys() -> Dict[str, Any]:
         "best_provider": None,
     }
 
-    # Check all providers including vercel and generic
-    providers_to_check = ["openai", "anthropic", "gemini", "vercel", "generic"]
+    # Check all providers including vercel, generic, and local LM Studio
+    providers_to_check = ["openai", "anthropic", "gemini", "lmstudio", "vercel", "generic"]
 
     try:
         config = load_config()
@@ -61,17 +61,24 @@ def diagnose_api_keys() -> Dict[str, Any]:
                 placeholder_sources.append("config.api.api_key")
             key = get_api_key(provider)
             env_var = f"{provider.upper()}_API_KEY"
+            key = get_api_key(provider)
 
-        has_valid_key = bool(key)
+        if provider == "lmstudio":
+            from .config import is_lmstudio_available
+
+            has_valid_key = is_lmstudio_available()
+            key = "lm-studio" if has_valid_key else None
+        else:
+            has_valid_key = bool(key)
 
         diagnostics["available_keys"][provider] = has_valid_key
 
         if has_valid_key and key:
             diagnostics["provider_status"][provider] = {
                 "has_key": True,
-                "key_length": len(key),
-                "key_prefix": key[:8] + "..." if len(key) > 8 else "***",
-                "env_var": env_var,
+                "key_length": len(key) if key else 0,
+                "key_prefix": key[:8] + "..." if key and len(key) > 8 else "***",
+                "env_var": env_var if provider != "lmstudio" else "Local Server",
             }
         else:
             if placeholder_sources:
@@ -192,7 +199,12 @@ async def check_provider_connectivity(provider: str) -> Tuple[bool, str, float]:
     """
     import time
 
-    if not get_api_key(provider):
+    if provider == "lmstudio":
+        from .config import is_lmstudio_available
+
+        if not is_lmstudio_available():
+            return False, "LM Studio not detected at http://localhost:1234", 0.0
+    elif not get_api_key(provider):
         return False, f"No API key for {provider}", 0.0
 
     try:

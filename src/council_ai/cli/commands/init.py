@@ -77,23 +77,38 @@ def init(ctx):
     default_provider = config_manager.get("api.provider", DEFAULT_PROVIDER)
     provider_availability = {}
 
+    from ...core.config import is_lmstudio_available
+
+    lmstudio_active = is_lmstudio_available()
+
     for provider_name in all_providers:
-        has_key = any(p == provider_name and k for p, k in available_providers)
+        if provider_name == "lmstudio":
+            has_key = lmstudio_active
+        else:
+            has_key = any(p == provider_name and k for p, k in available_providers)
+
         provider_availability[provider_name] = has_key
         if has_key:
             # Use first available as default if no config
             if not config_manager.get("api.provider") and default_provider == DEFAULT_PROVIDER:
                 default_provider = provider_name
 
-    # If we have a best provider, use it as default
-    best = get_best_available_provider()
-    if best and best[0] in all_providers:
-        default_provider = best[0]
+    # Prefer lmstudio as default if active, otherwise use best available
+    if lmstudio_active:
+        default_provider = "lmstudio"
+    else:
+        best = get_best_available_provider()
+        if best and best[0] in all_providers:
+            default_provider = best[0]
 
     console.print("\nAvailable options:")
     for provider_name in all_providers:
         has_key = provider_availability[provider_name]
-        if has_key:
+        if provider_name == "lmstudio":
+            status = "[green](Running locally)[/green]" if has_key else "[dim](Not running)[/dim]"
+            note = " [bold cyan](Free, Default)[/bold cyan]" if has_key else " (Free, Local)"
+            console.print(f"  • {provider_name}{note} {status}")
+        elif has_key:
             console.print(f"  • {provider_name} [green](API key available)[/green]")
         else:
             console.print(f"  • {provider_name} [dim](no API key)[/dim]")
@@ -106,45 +121,65 @@ def init(ctx):
     config_manager.set("api.provider", provider)
 
     # Step 2: API Key
-    console.print("\n[bold]Step 2: Configure API key[/bold]")
-    existing_key = get_api_key(provider)
-
-    # Also check for vercel/generic if using openai
-    if provider == "openai":
-        vercel_key = get_api_key("vercel")
-        if vercel_key:
-            existing_key = vercel_key
-            console.print("[cyan]ℹ[/cyan] Using AI_GATEWAY_API_KEY (Vercel AI Gateway)")
-
-    if existing_key and not is_placeholder_key(existing_key):
-        console.print(f"[green]✓[/green] Found existing {provider.upper()} API key")
-        if not Confirm.ask("Do you want to update it?", default=False):
-            existing_key = None  # Skip update
-    else:
-        existing_key = None
-
-    if not existing_key:
-        console.print("\n[dim]You can get an API key from:[/dim]")
-        if provider == "anthropic":
-            console.print("  https://console.anthropic.com/")
-        elif provider == "openai":
-            console.print("  https://platform.openai.com/api-keys")
-        elif provider == "gemini":
-            console.print("  https://ai.google.dev/")
-
-        console.print(
-            f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your env"
-        )
-        if provider == "openai":
+    if provider == "lmstudio":
+        console.print("\n[bold]Step 2: Local Setup[/bold]")
+        if lmstudio_active:
+            console.print("[green]✓[/green] LM Studio is running and ready!")
+        else:
+            console.print("[yellow]⚠[/yellow] LM Studio is not detected at http://localhost:1234")
             console.print(
-                "[dim]Or use AI_GATEWAY_API_KEY for Vercel AI Gateway (OpenAI-compatible)[/dim]"
+                "[dim]You can still proceed, but calls will fail until you start LM Studio.[/dim]"
             )
+            console.print("[dim]Download it from: https://lmstudio.ai/[/dim]")
 
-        if Confirm.ask("Do you have an API key to configure now?", default=True):
-            api_key = Prompt.ask(f"{provider.capitalize()} API key", password=True)
-            if api_key:
-                config_manager.set("api.api_key", api_key)
-                console.print("[green]✓[/green] API key saved to config")
+        # Still allow setting a key if they want (though not needed for LM Studio)
+        if Confirm.ask(
+            "Do you want to configure an API key for fallback providers?", default=False
+        ):
+            pass  # Continue to key config below
+        else:
+            existing_key = None  # Skip to domain config
+            # We don't need a key for LM Studio but we might need for fallbacks
+    else:
+        console.print("\n[bold]Step 2: Configure API key[/bold]")
+        existing_key = get_api_key(provider)
+
+        # Also check for vercel/generic if using openai
+        if provider == "openai":
+            vercel_key = get_api_key("vercel")
+            if vercel_key:
+                existing_key = vercel_key
+                console.print("[cyan]ℹ[/cyan] Using AI_GATEWAY_API_KEY (Vercel AI Gateway)")
+
+        if existing_key and not is_placeholder_key(existing_key):
+            console.print(f"[green]✓[/green] Found existing {provider.upper()} API key")
+            if not Confirm.ask("Do you want to update it?", default=False):
+                existing_key = None  # Skip update
+        else:
+            existing_key = None
+
+        if not existing_key:
+            console.print("\n[dim]You can get an API key from:[/dim]")
+            if provider == "anthropic":
+                console.print("  https://console.anthropic.com/")
+            elif provider == "openai":
+                console.print("  https://platform.openai.com/api-keys")
+            elif provider == "gemini":
+                console.print("  https://ai.google.dev/")
+
+            console.print(
+                f"\n[yellow]Note:[/yellow] You can also set {provider.upper()}_API_KEY in your env"
+            )
+            if provider == "openai":
+                console.print(
+                    "[dim]Or use AI_GATEWAY_API_KEY for Vercel AI Gateway (OpenAI-compatible)[/dim]"
+                )
+
+            if Confirm.ask("Do you have an API key to configure now?", default=True):
+                api_key = Prompt.ask(f"{provider.capitalize()} API key", password=True)
+                if api_key:
+                    config_manager.set("api.api_key", api_key)
+                    console.print("[green]✓[/green] API key saved to config")
         else:
             # Show fallback information
             if found_keys:

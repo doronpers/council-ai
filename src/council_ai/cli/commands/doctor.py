@@ -191,11 +191,20 @@ def doctor():
 
     for provider, status in key_diag["provider_status"].items():
         if status["has_key"]:
-            table.add_row(provider, "✅ Configured", f"Prefix: {status.get('key_prefix', '***')}")
-            if provider in ["openai", "anthropic", "gemini"]:
+            if provider == "lmstudio":
+                table.add_row(provider, "✅ Active", "Running locally at http://localhost:1234")
                 configured_providers.append(provider)
+            else:
+                table.add_row(
+                    provider, "✅ Configured", f"Prefix: {status.get('key_prefix', '***')}"
+                )
+                if provider in ["openai", "anthropic", "gemini"]:
+                    configured_providers.append(provider)
         else:
-            table.add_row(provider, "❌ Missing", f"Set {status.get('env_var', 'Env Var')}")
+            if provider == "lmstudio":
+                table.add_row(provider, "❌ Offline", "LM Studio not detected")
+            else:
+                table.add_row(provider, "❌ Missing", f"Set {status.get('env_var', 'Env Var')}")
 
     console.print(table)
     console.print()

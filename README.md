@@ -14,27 +14,26 @@ Get up and running immediately with a fully configured development environment i
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/doronpers/council-ai)
 
-## 🚀 Quickstart (No API Key Required)
+## 🚀 Quickstart (Zero Cost, No API Key Required)
 
-Want to explore Council AI before setting up an API key? Run:
+The best way to experience Council AI is by using **LM Studio** for local, private, and cost-free consulting.
 
-```bash
-# Run the interactive launcher (handles setup automatically)
-./bin/launcher.sh
-```
+1. **Download LM Studio**: [lmstudio.ai](https://lmstudio.ai/)
+2. **Load a Model**: Mistral, Llama 3, or any GGUF model
+3. **Start Server**: Turn on the "Local Server" inside LM Studio
+4. **Run Council**:
 
-Or manually:
-
-This interactive demo shows you:
-
-- All 14 built-in personas and their characteristics
-- 15 domain presets and what they're for
-- How to set up and use councils
-- Example usage patterns
+   ```bash
+   # Run the interactive setup (detects LM Studio automatically)
+   council init
+   
+   # Consult the council (uses your local model by default)
+   council consult "Should we redesign our API?"
+   ```
 
 ### First-Time Setup
 
-For first-time users, we provide a guided setup wizard:
+For users without local LLMs, we support all major cloud providers:
 
 ```bash
 # Run the interactive setup wizard
@@ -43,12 +42,12 @@ council init
 
 This will guide you through:
 
-- Choosing your LLM provider
-- Configuring your API key
+- Detecting **LM Studio** (cost-free, local)
+- Configuring **Anthropic**, **OpenAI**, or **Gemini** (cloud fallback)
 - Setting your default domain
 - Understanding next steps
 
-To actually consult the council (requires API key):
+To use cloud providers (requires API key):
 
 ```bash
 # Install with a provider (choose one)
@@ -127,28 +126,33 @@ pip install "council-ai[all]"
 The easiest way to get started is using the setup script that creates a virtual environment and configures your API keys:
 
 **Windows (PowerShell):**
+
 ```powershell
 .\setup-venv.ps1
 ```
 
 **Windows (Command Prompt):**
+
 ```cmd
 setup-venv.bat
 ```
 
 **macOS/Linux:**
+
 ```bash
 chmod +x setup-venv.sh
 ./setup-venv.sh
 ```
 
 This will:
+
 - Create a virtual environment (`venv/`)
 - Install all dependencies
 - Create a `.env` file template for your API keys
 - Set up activation scripts that automatically load your secrets
 
 After setup, activate the environment:
+
 - **Windows**: `.\venv\Scripts\activate-env.ps1` or `venv\Scripts\activate-env.bat`
 - **macOS/Linux**: `source venv/bin/activate-env`
 
@@ -209,6 +213,7 @@ cp .env.example .env
 ```
 
 The `.env` file is automatically loaded when you:
+
 - Use the `launch-council.py` script
 - Activate the virtual environment with `activate-env` (created by setup script)
 - Import `council_ai` (it uses `python-dotenv`)
