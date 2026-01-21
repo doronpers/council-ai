@@ -290,12 +290,11 @@ class GeminiProvider(_BaseGeminiProvider):
         self._client = None
         self._async_client = None
 
-    def _get_model(self):
+    def _get_client(self):
         if self._client is None:
-            import google.generativeai as genai
+            from google import genai
 
-            genai.configure(api_key=self.api_key)
-            self._client = genai.GenerativeModel(self.model or self.DEFAULT_MODEL)
+            self._client = genai.Client(api_key=self.api_key)
         return self._client
 
     async def complete(
@@ -308,11 +307,12 @@ class GeminiProvider(_BaseGeminiProvider):
         """Generate a completion using Google Gemini."""
 
         def _call() -> str:
-            model = self._get_model()
+            client = self._get_client()
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = model.generate_content(
-                full_prompt,
-                generation_config={
+            response = client.models.generate_content(
+                model=self.model or self.DEFAULT_MODEL,
+                contents=full_prompt,
+                config={
                     "temperature": temperature,
                     "max_output_tokens": max_tokens,
                 },
@@ -339,23 +339,39 @@ class GeminiProvider(_BaseGeminiProvider):
         """Stream a completion using Google Gemini."""
 
         def _stream():
-            model = self._get_model()
+            client = self._get_client()
             full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = model.generate_content(
-                full_prompt,
-                generation_config={
-                    "temperature": temperature,
-                    "max_output_tokens": max_tokens,
-                },
-                stream=True,
+            from google.genai import types
+
+            response = client.models.generate_content_stream(
+                model=self.model or self.DEFAULT_MODEL,
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    temperature=temperature,
+                    max_output_tokens=max_tokens,
+                ),
             )
             return response
 
         response = await asyncio.to_thread(_stream)
 
         for chunk in response:
-            if chunk.text:
-                yield chunk.text
+            # Extract text from chunk - structure may vary
+            chunk_text = None
+            if hasattr(chunk, "text") and chunk.text:
+                chunk_text = chunk.text
+            elif hasattr(chunk, "candidates") and chunk.candidates:
+                # Some chunk formats have candidates
+                for candidate in chunk.candidates:
+                    if hasattr(candidate, "content") and hasattr(candidate.content, "parts"):
+                        for part in candidate.content.parts:
+                            if hasattr(part, "text"):
+                                chunk_text = part.text
+                                break
+                    if chunk_text:
+                        break
+            if chunk_text:
+                yield chunk_text
 
 
 class HTTPProvider(_BaseHTTPProvider):

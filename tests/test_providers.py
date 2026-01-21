@@ -150,7 +150,7 @@ def test_provider_with_api_key():
         provider = get_provider("gemini", api_key="test-key")
         assert provider.api_key == "test-key"
     except ImportError:
-        pytest.skip("google-generativeai package not installed")
+        pytest.skip("google-genai package not installed")
 
 
 def test_provider_base_class():
