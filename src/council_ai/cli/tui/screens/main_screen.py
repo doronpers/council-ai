@@ -42,6 +42,7 @@ class MainScreen(Screen):
         self.members = members or []
         self.session_id = session_id
         self._consulting = False
+        self._consultation_tasks = []  # Track async tasks to prevent garbage collection
 
     def compose(self) -> ComposeResult:
         """Compose the screen layout."""
