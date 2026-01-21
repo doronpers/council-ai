@@ -143,12 +143,43 @@ which python3
 
 ## Troubleshooting
 
-### If `deactivate` doesn't work:
+### If `deactivate` doesn't work (command not found):
+This usually means the venv was activated via a custom function, not the standard activation script.
+
+**Solution 1: Manually unset environment variables**
 ```bash
-# Manually unset environment variables:
+# Unset venv-related variables:
 unset VIRTUAL_ENV
 unset VIRTUAL_ENV_PROMPT
-# Or start a new shell session
+
+# Remove venv paths from PATH:
+export PATH=$(echo $PATH | tr ':' '\n' | grep -v venv | tr '\n' ':' | sed 's/:$//')
+```
+
+**Solution 2: Start a new shell session**
+```bash
+# Open a new terminal window/tab
+# Or:
+exec zsh  # Restart zsh (or exec bash for bash)
+```
+
+**Solution 3: Check for auto-activation in shell config**
+```bash
+# Check for auto-activation functions:
+grep -n "venv\|virtualenv" ~/.zshrc ~/.bashrc
+
+# Common culprits:
+# - Functions that auto-activate venv when entering directories
+# - direnv configuration
+# - Custom activation scripts
+```
+
+**Solution 4: Disable auto-activation temporarily**
+```bash
+# If you find an auto-activation function, comment it out:
+# Edit ~/.zshrc or ~/.bashrc
+# Comment out lines that auto-activate venv
+# Then: source ~/.zshrc  (or source ~/.bashrc)
 ```
 
 ### If packages are missing after cleanup:
