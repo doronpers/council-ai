@@ -202,10 +202,77 @@ def consult(
             progress.update(progress.task_ids[0], description="Consulting council...")
 
             try:
-                result = council.consult(query, context=context, mode=mode_enum)
-            except Exception as e:
-                console.print(f"[red]Error:[/red] {e}")
-                sys.exit(1)
+                # Use streaming to show thinking process
+                import asyncio
+
+                # Track thinking and responses per persona
+                persona_thinking = {}
+                persona_responses = {}
+                persona_names = {}
+                result = None
+
+                async def stream_and_display():
+                    nonlocal result
+                    console.print()  # Add spacing after progress
+                    async for event in council.consult_stream(
+                        query, context=context, mode=mode_enum
+                    ):
+                        event_type = event.get("type")
+                        persona_id = event.get("persona_id")
+                        persona_name = event.get("persona_name", persona_id)
+                        persona_emoji = event.get("persona_emoji", "")
+
+                        if persona_id:
+                            if persona_id not in persona_names:
+                                persona_names[persona_id] = f"{persona_emoji} {persona_name}"
+
+                        if event_type == "thinking_chunk":
+                            content = event.get("content", "")
+                            accumulated = event.get("accumulated_thinking", "")
+                            if persona_id:
+                                persona_thinking[persona_id] = accumulated
+                                # Display thinking in real-time
+                                name = persona_names.get(persona_id, persona_id)
+                                # Only show if this is a new chunk (not just updating)
+                                if content:
+                                    console.print(f"[dim cyan]💭 {name} (thinking...)[/dim cyan]")
+                                    console.print(f"[dim]{content}[/dim]")
+                        elif event_type == "response_chunk":
+                            content = event.get("content", "")
+                            accumulated = event.get("accumulated_response", "")
+                            if persona_id:
+                                # Clear thinking display when response starts
+                                if persona_id in persona_thinking:
+                                    persona_thinking[persona_id] = ""
+                                persona_responses[persona_id] = accumulated
+                                # Display response chunks
+                                name = persona_names.get(persona_id, persona_id)
+                                if content:
+                                    console.print(f"[bold]{name}:[/bold] {content}", end="")
+                        elif event_type == "response_complete":
+                            if persona_id:
+                                # Clear thinking when response is complete
+                                if persona_id in persona_thinking:
+                                    del persona_thinking[persona_id]
+                                # Add newline after response
+                                console.print()  # Newline after response
+                        elif event_type == "complete":
+                            result = event.get("result")
+                            break
+
+                # Run the async stream and display
+                asyncio.run(stream_and_display())
+
+                # Fallback to non-streaming if result is None
+                if not result:
+                    result = council.consult(query, context=context, mode=mode_enum)
+            except Exception:
+                # Fallback to non-streaming on error
+                try:
+                    result = council.consult(query, context=context, mode=mode_enum)
+                except Exception as e2:
+                    console.print(f"[red]Error:[/red] {e2}")
+                    sys.exit(1)
 
     # Record consultation in user memory for personalization
     try:
