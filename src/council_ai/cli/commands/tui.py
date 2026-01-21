@@ -29,7 +29,7 @@ def tui(ctx, domain, members, provider, api_key, session_id):
       council tui --session abc123
     """
     try:
-        from ...cli.tui.app import CouncilTUI
+        from ..tui.app import CouncilTUI
     except ImportError:
         click.echo(
             "[red]Error:[/red] Textual is not installed. Install with: [cyan]pip install -e '.[tui]'[/cyan]"
