@@ -219,24 +219,13 @@ class MainScreen(Screen):
                                     last_entry["synthesis"] = result.synthesis
                                     self.history_panel.update_display()
 
-            except Exception as e:
-                self.response_panel.update(f"[red]Error: {e}[/red]")
-            finally:
-                self._consulting = False
-                # Clear member statuses
-                self.status_panel.member_statuses = {}
-                self.input_panel.focus()
-
-        # Schedule async consultation - use Textual's background task support
-        # Textual apps run in an async context, so we can use call_from_thread
-        # For now, use a simple approach: run in a thread
-        import threading
-
-        def run_in_thread():
-            asyncio.run(run_consultation())
-
-        thread = threading.Thread(target=run_in_thread, daemon=True)
-        thread.start()
+        except Exception as e:
+            self.response_panel.update(f"[red]Error: {e}[/red]")
+        finally:
+            self._consulting = False
+            # Clear member statuses
+            self.status_panel.member_statuses = {}
+            self.input_panel.focus()
 
     def action_exit(self) -> None:
         """Handle exit action."""
