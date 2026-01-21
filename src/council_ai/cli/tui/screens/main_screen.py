@@ -155,6 +155,7 @@ class MainScreen(Screen):
         self.status_panel.member_statuses = member_statuses
 
         try:
+            # Import ConsultationMode using relative import (works when package is installed)
             from ...core.council import ConsultationMode
 
             mode = ConsultationMode(self.council.config.mode.value)
@@ -215,8 +216,25 @@ class MainScreen(Screen):
                                 last_entry["synthesis"] = result.synthesis
                                 self.history_panel.update_display()
 
+        except ImportError as e:
+            error_msg = (
+                f"Module import error: {e}\n\n"
+                "This usually means council-ai is not installed properly.\n"
+                "Try: pip install -e '.[tui]'"
+            )
+            self.response_panel.update(f"[red]{error_msg}[/red]")
         except Exception as e:
-            self.response_panel.update(f"[red]Error: {e}[/red]")
+            # Show full error with traceback for debugging
+            import traceback
+            error_type = type(e).__name__
+            error_details = (
+                f"Error ({error_type}): {str(e)}\n\n"
+                f"Full traceback:\n{traceback.format_exc()}"
+            )
+            # Truncate very long errors for display
+            if len(error_details) > 1000:
+                error_details = error_details[:1000] + "\n... (truncated)"
+            self.response_panel.update(f"[red]{error_details}[/red]")
         finally:
             self._consulting = False
             # Clear member statuses
