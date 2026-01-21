@@ -42,6 +42,7 @@ dependencies = [
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.18.0"]
 openai = ["openai>=1.0.0"]
+lmstudio = ["openai>=1.0.0"]
 gemini = ["google-generativeai>=0.3.0"]
 web = [
     "fastapi>=0.109.0",
