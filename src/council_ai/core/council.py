@@ -72,7 +72,9 @@ class CouncilConfig(BaseModel):
     # Web search and reasoning capabilities
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
-    reasoning_mode: Optional[str] = None  # "chain_of_thought", "tree_of_thought", etc.
+    reasoning_mode: Optional[
+        str
+    ] = "chain_of_thought"  # Default to chain_of_thought to show thinking process
     # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
     progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
@@ -1650,6 +1652,93 @@ class Council:
                 error=error_msg,
             )
 
+    def _parse_thinking_chunk(
+        self, text: str, accumulated: str
+    ) -> tuple[Optional[str], Optional[str]]:
+        """
+        Parse text to detect thinking/reasoning sections vs final answer.
+
+        This helps display the thought process in real-time, making the wait
+        feel shorter and more engaging by showing how personas are reasoning.
+
+        Returns:
+            (thinking_chunk, response_chunk) - one may be None, or both if ambiguous
+        """
+        if not text.strip():
+            return (None, None)
+
+        # Common reasoning/thinking markers
+        thinking_markers = [
+            "step 1:",
+            "step 2:",
+            "step 3:",
+            "step 4:",
+            "step 5:",
+            "thinking:",
+            "reasoning:",
+            "analysis:",
+            "considering:",
+            "first,",
+            "second,",
+            "third,",
+            "next,",
+            "then,",
+            "initial analysis:",
+            "reflection:",
+            "refinement:",
+            "approach 1:",
+            "approach 2:",
+            "perspective 1:",
+            "let me think",
+            "i need to",
+            "i should consider",
+            "to analyze",
+            "to understand",
+            "let's break down",
+            "examining",
+            "evaluating",
+            "considering",
+        ]
+
+        text_lower = text.lower()
+        accumulated_lower = accumulated.lower()
+
+        # Check if we're in a thinking context (recent thinking markers)
+        recent_thinking = any(marker in accumulated_lower[-500:] for marker in thinking_markers)
+
+        # Check if current chunk contains thinking markers
+        chunk_has_thinking = any(marker in text_lower for marker in thinking_markers)
+
+        # Check for structured reasoning patterns (numbered steps, bullets in reasoning context)
+        structured_thinking = False
+        if recent_thinking or chunk_has_thinking:
+            # Look for numbered/bulleted items in reasoning context
+            if text_lower.strip().startswith(("1.", "2.", "3.", "4.", "5.", "- ", "* ", "• ")):
+                structured_thinking = True
+
+        # If we detect thinking, classify as thinking chunk
+        is_thinking = chunk_has_thinking or (recent_thinking and structured_thinking)
+
+        # If it's clearly thinking, return as thinking
+        if is_thinking:
+            return (text, None)
+
+        # If we're clearly past thinking (see conclusion markers), return as response
+        conclusion_markers = [
+            "in conclusion",
+            "to summarize",
+            "therefore",
+            "thus",
+            "final",
+            "summary",
+        ]
+        is_conclusion = any(marker in text_lower for marker in conclusion_markers)
+        if is_conclusion or (len(accumulated) > 500 and not recent_thinking):
+            return (None, text)
+
+        # Default: show as response but allow UI to decide
+        return (None, text)
+
     async def _get_member_response_stream(
         self,
         provider: LLMProvider,
@@ -1657,7 +1746,7 @@ class Council:
         query: str,
         context: Optional[str],
     ) -> AsyncIterator[Dict[str, Any]]:
-        """Stream a single member's response."""
+        """Stream a single member's response with thinking process display."""
         yield {
             "type": "response_start",
             "persona_id": member.id,
@@ -1670,8 +1759,25 @@ class Council:
         if enhanced_context:
             context = enhanced_context
 
+        # Apply reasoning mode to enable thinking display
+        reasoning_mode_str = member.reasoning_mode or self.config.reasoning_mode
+        reasoning_mode = None
+        if reasoning_mode_str:
+            try:
+                normalized = str(reasoning_mode_str).lower().replace("-", "_")
+                reasoning_mode = ReasoningMode(normalized)
+            except ValueError:
+                logger.debug(f"Invalid reasoning mode: {reasoning_mode_str}")
+
         system_prompt = member.get_system_prompt()
+        if reasoning_mode:
+            system_prompt = get_reasoning_prompt(reasoning_mode, system_prompt)
+
         user_prompt = member.format_response_prompt(query, context)
+        if reasoning_mode:
+            suffix = get_reasoning_suffix(reasoning_mode)
+            if suffix:
+                user_prompt = f"{user_prompt}{suffix}"
 
         try:
             member_provider = self._get_member_provider(member, provider)
@@ -1742,13 +1848,47 @@ class Council:
             ]:
                 if key in params:
                     stream_kwargs[key] = params[key]
+            # Accumulate content for thinking detection
+            accumulated_content = ""
+            thinking_parts: List[str] = []
+            response_parts: List[str] = []
+
             async for chunk in member_provider.stream_complete(**stream_kwargs):
                 content_parts.append(chunk)
-                yield {
-                    "type": "response_chunk",
-                    "persona_id": member.id,
-                    "content": chunk,
-                }
+                accumulated_content += chunk
+
+                # Parse chunk to detect thinking vs response
+                thinking_chunk, response_chunk = self._parse_thinking_chunk(
+                    chunk, accumulated_content
+                )
+
+                if thinking_chunk:
+                    thinking_parts.append(thinking_chunk)
+                    yield {
+                        "type": "thinking_chunk",
+                        "persona_id": member.id,
+                        "content": thinking_chunk,
+                        "accumulated_thinking": "".join(thinking_parts),
+                    }
+
+                if response_chunk:
+                    response_parts.append(response_chunk)
+                    yield {
+                        "type": "response_chunk",
+                        "persona_id": member.id,
+                        "content": response_chunk,
+                        "accumulated_response": "".join(response_parts),
+                    }
+
+                # If we can't determine, show as response (default)
+                if not thinking_chunk and not response_chunk:
+                    response_parts.append(chunk)
+                    yield {
+                        "type": "response_chunk",
+                        "persona_id": member.id,
+                        "content": chunk,
+                        "accumulated_response": "".join(response_parts),
+                    }
 
             content = "".join(content_parts)
 
