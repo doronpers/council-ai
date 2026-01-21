@@ -1726,12 +1726,23 @@ class Council:
                 )
             # #endregion
             content_parts: List[str] = []
-            async for chunk in member_provider.stream_complete(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                max_tokens=params["max_tokens"],
-                temperature=params["temperature"],
-            ):
+            stream_kwargs = {
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt,
+                "max_tokens": params["max_tokens"],
+                "temperature": params["temperature"],
+            }
+            # Add optional parameters if present
+            for key in [
+                "top_p",
+                "top_k",
+                "repetition_penalty",
+                "frequency_penalty",
+                "presence_penalty",
+            ]:
+                if key in params:
+                    stream_kwargs[key] = params[key]
+            async for chunk in member_provider.stream_complete(**stream_kwargs):
                 content_parts.append(chunk)
                 yield {
                     "type": "response_chunk",
@@ -2054,12 +2065,13 @@ Please provide a comprehensive synthesis."""
                 if self.config.synthesis_max_tokens is not None
                 else self.config.max_tokens_per_response * 2
             )
-            async for chunk in provider.stream_complete(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                max_tokens=max_tokens,
-                temperature=self.config.temperature,
-            ):
+            stream_kwargs = {
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt,
+                "max_tokens": max_tokens,
+                "temperature": self.config.temperature,
+            }
+            async for chunk in provider.stream_complete(**stream_kwargs):
                 yield chunk
         except Exception as e:
             logger.error(f"Failed to stream synthesis: {e}")

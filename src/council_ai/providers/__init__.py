@@ -168,17 +168,21 @@ class OpenAIProvider(_BaseOpenAIProvider):
                     {"role": "user", "content": user_prompt},
                 ],
             }
-            # Add optional LM Studio/OpenAI-compatible parameters
+            # Add optional parameters
+            # Standard OpenAI API parameters
             if top_p is not None:
                 create_params["top_p"] = top_p
-            if top_k is not None:
-                create_params["top_k"] = top_k
-            if repetition_penalty is not None:
-                create_params["repetition_penalty"] = repetition_penalty
             if frequency_penalty is not None:
                 create_params["frequency_penalty"] = frequency_penalty
             if presence_penalty is not None:
                 create_params["presence_penalty"] = presence_penalty
+
+            # LM Studio/extended OpenAI-compatible parameters (only if using custom base_url)
+            if self.base_url:
+                if top_k is not None:
+                    create_params["top_k"] = top_k
+                if repetition_penalty is not None:
+                    create_params["repetition_penalty"] = repetition_penalty
 
             response = client.chat.completions.create(**create_params)
             text = response.choices[0].message.content
@@ -207,19 +211,41 @@ class OpenAIProvider(_BaseOpenAIProvider):
         user_prompt: str,
         max_tokens: int = 1000,
         temperature: float = 0.7,
+        top_p: Optional[float] = None,
+        top_k: Optional[int] = None,
+        repetition_penalty: Optional[float] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
     ) -> AsyncIterator[str]:
-        """Stream a completion using OpenAI."""
+        """Stream a completion using OpenAI (supports LM Studio extensions)."""
         client = self._get_async_client()
-        stream = await client.chat.completions.create(
-            model=self.model or self.DEFAULT_MODEL,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            messages=[
+        create_params = {
+            "model": self.model or self.DEFAULT_MODEL,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            stream=True,
-        )
+            "stream": True,
+        }
+        # Add optional parameters
+        # Standard OpenAI API parameters
+        if top_p is not None:
+            create_params["top_p"] = top_p
+        if frequency_penalty is not None:
+            create_params["frequency_penalty"] = frequency_penalty
+        if presence_penalty is not None:
+            create_params["presence_penalty"] = presence_penalty
+
+        # LM Studio/extended OpenAI-compatible parameters (only if using custom base_url)
+        if self.base_url:
+            if top_k is not None:
+                create_params["top_k"] = top_k
+            if repetition_penalty is not None:
+                create_params["repetition_penalty"] = repetition_penalty
+
+        stream = await client.chat.completions.create(**create_params)
         async for chunk in stream:
             if chunk.choices and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
