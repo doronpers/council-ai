@@ -101,9 +101,9 @@ class Council:
 
     Example:
         council = Council(api_key="your-key", provider="anthropic")
-        council.add_member("rams")  # Uses Claude Opus (if available)
-        council.add_member("kahneman")  # Uses GPT-4 Turbo (if available)
-        council.add_member("grove")  # Uses council default provider
+        council.add_member("DR")  # Uses Claude Opus (if available)
+        council.add_member("DK")  # Uses GPT-4 Turbo (if available)
+        council.add_member("AG")  # Uses council default provider
 
         result = council.consult("Should we redesign our API?")
         print(result.synthesis)
@@ -746,14 +746,24 @@ class Council:
 
         self._members[persona.id] = persona
 
+    def _find_member_key(self, persona_id: str) -> Optional[str]:
+        """Find the actual key for a persona ID (case-insensitive lookup)."""
+        persona_id_lower = persona_id.lower()
+        for key in self._members.keys():
+            if key.lower() == persona_id_lower:
+                return key
+        return None
+
     def remove_member(self, persona_id: str) -> None:
-        """Remove a member from the council."""
-        if persona_id in self._members:
-            del self._members[persona_id]
+        """Remove a member from the council (case-insensitive)."""
+        key = self._find_member_key(persona_id)
+        if key:
+            del self._members[key]
 
     def get_member(self, persona_id: str) -> Optional[Persona]:
-        """Get a council member by ID."""
-        return self._members.get(persona_id)
+        """Get a council member by ID (case-insensitive)."""
+        key = self._find_member_key(persona_id)
+        return self._members.get(key) if key else None
 
     def list_members(self) -> List[Persona]:
         """List all council members."""
@@ -764,20 +774,23 @@ class Council:
         self._members.clear()
 
     def set_member_weight(self, persona_id: str, weight: float) -> None:
-        """Update a member's influence weight."""
-        if persona_id not in self._members:
+        """Update a member's influence weight (case-insensitive)."""
+        key = self._find_member_key(persona_id)
+        if not key:
             raise ValueError(f"Member '{persona_id}' not in council")
-        self._members[persona_id].weight = weight
+        self._members[key].weight = weight
 
     def enable_member(self, persona_id: str) -> None:
-        """Enable a member."""
-        if persona_id in self._members:
-            self._members[persona_id].enabled = True
+        """Enable a member (case-insensitive)."""
+        key = self._find_member_key(persona_id)
+        if key:
+            self._members[key].enabled = True
 
     def disable_member(self, persona_id: str) -> None:
-        """Disable a member (they won't respond but stay in council)."""
-        if persona_id in self._members:
-            self._members[persona_id].enabled = False
+        """Disable a member (they won't respond but stay in council) (case-insensitive)."""
+        key = self._find_member_key(persona_id)
+        if key:
+            self._members[key].enabled = False
 
     def _get_active_members(self, member_ids: Optional[List[str]] = None) -> List[Persona]:
         """
@@ -1282,7 +1295,13 @@ class Council:
                     + "\n"
                 )
             # #endregion
-            if member_provider is provider:
+            # Special handling for LM Studio: bypass LLMManager to avoid strict API key validation.
+            # LLMManager.generate() enforces API key checks that fail for local providers,
+            # whereas using the provider instance directly (fallback path) works because
+            # we've already injected a dummy key in _get_provider().
+            use_manager = member_provider is provider and self._provider_name != "lmstudio"
+
+            if use_manager:
                 manager = self._get_llm_manager()
                 response = await asyncio.wait_for(
                     manager.generate(
