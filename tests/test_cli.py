@@ -79,7 +79,8 @@ class TestConsultCommand:
         mock_council.consult.return_value = mock_result
         mock_council_class.for_domain.return_value = mock_council
 
-        result = runner.invoke(main, ["consult", "Test question?"])
+        # Provide "n" input to decline saving results to file
+        result = runner.invoke(main, ["consult", "Test question?"], input="n\n")
         assert result.exit_code == 0
         assert "Result" in result.output
 
@@ -94,7 +95,8 @@ class TestConsultCommand:
         mock_council.consult.return_value = mock_result
         mock_council_class.for_domain.return_value = mock_council
 
-        result = runner.invoke(main, ["consult", "--domain", "business", "Test question?"])
+        # Provide "n" input to decline saving results to file
+        result = runner.invoke(main, ["consult", "--domain", "business", "Test question?"], input="n\n")
         assert result.exit_code == 0
         mock_council_class.for_domain.assert_called_once()
 
@@ -109,7 +111,8 @@ class TestConsultCommand:
         mock_council.consult.return_value = mock_result
         mock_council_class.return_value = mock_council
 
-        result = runner.invoke(main, ["consult", "--members", "DR", "--members", "NT", "Test?"])
+        # Provide "n" input to decline saving results to file
+        result = runner.invoke(main, ["consult", "--members", "DR", "--members", "NT", "Test?"], input="n\n")
         assert result.exit_code == 0
         assert mock_council.add_member.called
 
@@ -176,7 +179,8 @@ class TestConsultCommand:
         mock_council_class.for_domain.return_value = mock_council
 
         for mode in ["individual", "sequential", "synthesis", "debate", "vote"]:
-            result = runner.invoke(main, ["consult", "--mode", mode, "Test?"])
+            # Provide "n" input to decline saving results to file
+            result = runner.invoke(main, ["consult", "--mode", mode, "Test?"], input="n\n")
             assert result.exit_code == 0
 
 

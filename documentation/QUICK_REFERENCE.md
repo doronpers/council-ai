@@ -9,7 +9,7 @@ from council_ai import Council
 from council_ai.utils.context import load_markdown_files, load_code_files
 
 council = Council(api_key="key", provider="anthropic")
-council.add_member("rams")
+council.add_member("DR")
 
 # Load files
 context = load_markdown_files(["README.md"])
@@ -27,7 +27,7 @@ from council_ai import Council, CouncilConfig
 # Enable web search
 config = CouncilConfig(enable_web_search=True)
 council = Council(api_key="key", provider="anthropic", config=config)
-council.add_member("rams")
+council.add_member("DR")
 
 result = council.consult("What are latest API trends?")
 ```
@@ -40,7 +40,7 @@ from council_ai import Council, CouncilConfig
 # Enable reasoning mode
 config = CouncilConfig(reasoning_mode="chain_of_thought")
 council = Council(api_key="key", provider="anthropic", config=config)
-council.add_member("rams")
+council.add_member("DR")
 
 result = council.consult("Should we use REST or GraphQL?")
 ```
@@ -53,7 +53,7 @@ from council_ai import Council, get_persona
 council = Council(api_key="key", provider="anthropic")
 
 # Custom persona with web search and reasoning
-persona = get_persona("rams").clone(
+persona = get_persona("DR").clone(
     enable_web_search=True,
     reasoning_mode="analytical"
 )
@@ -75,8 +75,8 @@ config = CouncilConfig(
 )
 
 council = Council(api_key="key", provider="anthropic", config=config)
-council.add_member("rams")
-council.add_member("kahneman")
+council.add_member("DR")
+council.add_member("DK")
 
 # Load context + web search + reasoning
 context = load_context_from_files(["README.md", "src/main.py"])

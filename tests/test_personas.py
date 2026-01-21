@@ -117,11 +117,11 @@ def test_persona_dict_export():
 
 def test_persona_cloning():
     """Test cloning personas with modifications."""
-    original = get_persona("rams")
+    original = get_persona("DR")  # Dieter Rams
 
-    clone = original.clone(new_id="rams_v2", weight=1.5)
+    clone = original.clone(new_id="dr_v2", weight=1.5)
 
-    assert clone.id == "rams_v2"
+    assert clone.id == "dr_v2"
     assert clone.name == original.name
     assert clone.weight == 1.5
     assert clone.id != original.id

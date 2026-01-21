@@ -22,7 +22,7 @@ The simplest way to inject context is using the `context` parameter in `council.
 from council_ai import Council
 
 council = Council(api_key="your-key", provider="anthropic")
-council.add_member("rams")
+council.add_member("DR")
 
 # Simple string context
 context = """
@@ -49,7 +49,7 @@ from pathlib import Path
 from council_ai import Council
 
 council = Council(api_key="your-key", provider="anthropic")
-council.add_member("rams")
+council.add_member("DR")
 
 # Read markdown file
 readme_path = Path("README.md")
@@ -68,7 +68,7 @@ from council_ai import Council
 from council_ai.utils.context import load_markdown_files
 
 council = Council(api_key="your-key", provider="anthropic")
-council.add_member("rams")
+council.add_member("DR")
 
 # Load one or more markdown files
 context = load_markdown_files([
@@ -94,7 +94,7 @@ from pathlib import Path
 from council_ai import Council
 
 council = Council(api_key="your-key", provider="anthropic")
-council.add_member("rams")
+council.add_member("DR")
 
 # Read code file
 code_path = Path("src/main.py")
@@ -124,7 +124,7 @@ from council_ai import Council
 from council_ai.utils.context import load_code_files
 
 council = Council(api_key="your-key", provider="anthropic")
-council.add_member("rams")
+council.add_member("DR")
 
 # Load code files with automatic language detection
 context = load_code_files([
@@ -153,7 +153,7 @@ from pathlib import Path
 from council_ai import Council
 
 council = Council(api_key="your-key", provider="anthropic")
-council.add_member("rams")
+council.add_member("DR")
 
 # Encode image to base64
 image_path = Path("diagrams/architecture.png")
@@ -180,7 +180,7 @@ from council_ai import Council
 from council_ai.utils.context import load_images
 
 council = Council(api_key="your-key", provider="anthropic")
-council.add_member("rams")
+council.add_member("DR")
 
 # Load and encode images
 image_context = load_images([
@@ -207,7 +207,7 @@ from council_ai import Council
 from council_ai.utils.context import load_context_from_files
 
 council = Council(api_key="your-key", provider="anthropic")
-council.add_member("rams")
+council.add_member("DR")
 
 # Load multiple files of different types
 context = load_context_from_files([
@@ -269,7 +269,7 @@ from council_ai import Council, get_persona
 council = Council(api_key="your-key", provider="anthropic")
 
 # Get a persona and clone it with custom context
-base_persona = get_persona("rams")
+base_persona = get_persona("DR")
 custom_persona = base_persona.clone(
     new_id="rams_with_context",
     prompt_prefix="""
@@ -293,7 +293,7 @@ from council_ai import Council, get_persona
 council = Council(api_key="your-key", provider="anthropic")
 
 # Override entire system prompt with context
-base_persona = get_persona("rams")
+base_persona = get_persona("DR")
 custom_persona = base_persona.clone(
     new_id="rams_custom",
     system_prompt_override=f"""
@@ -342,8 +342,8 @@ from council_ai import Council
 from council_ai.utils.context import load_context_from_files
 
 council = Council(api_key="your-key", provider="anthropic")
-council.add_member("rams")
-council.add_member("kahneman")
+council.add_member("DR")
+council.add_member("DK")
 
 # Load comprehensive context
 context = load_context_from_files([

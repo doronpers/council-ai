@@ -47,7 +47,7 @@ council = Council(
     provider="anthropic",
     config=config
 )
-council.add_member("rams")
+council.add_member("DR")
 
 result = council.consult(
     "What are the latest trends in API design in 2026?",
@@ -64,7 +64,7 @@ from council_ai import get_persona
 council = Council(api_key="your-key", provider="anthropic")
 
 # Enable web search for a specific persona
-persona = get_persona("rams").clone(
+persona = get_persona("DR").clone(
     new_id="rams_with_search",
     enable_web_search=True
 )
@@ -137,8 +137,8 @@ council = Council(
     provider="anthropic",
     config=config
 )
-council.add_member("rams")
-council.add_member("kahneman")
+council.add_member("DR")
+council.add_member("DK")
 
 result = council.consult(
     "Should we migrate from REST to GraphQL?",
@@ -155,12 +155,12 @@ from council_ai import get_persona
 council = Council(api_key="your-key", provider="anthropic")
 
 # Different reasoning modes for different personas
-rams = get_persona("rams").clone(
+rams = get_persona("DR").clone(
     new_id="rams_analytical",
     reasoning_mode="analytical"
 )
 
-kahneman = get_persona("kahneman").clone(
+kahneman = get_persona("DK").clone(
     new_id="kahneman_reflective",
     reasoning_mode="reflective"
 )
@@ -219,7 +219,7 @@ council = Council(
 )
 
 # Persona-level overrides
-persona = get_persona("rams").clone(
+persona = get_persona("DR").clone(
     enable_web_search=True,  # Override council setting
     reasoning_mode="analytical"  # Override council setting
 )
@@ -237,8 +237,8 @@ from council_ai import Council, CouncilConfig
 
 config = CouncilConfig(enable_web_search=True)
 council = Council(api_key="your-key", provider="anthropic", config=config)
-council.add_member("rams")
-council.add_member("kahneman")
+council.add_member("DR")
+council.add_member("DK")
 
 result = council.consult(
     "What are the latest security best practices for REST APIs in 2026?",
@@ -255,7 +255,7 @@ from council_ai import Council, CouncilConfig
 
 config = CouncilConfig(reasoning_mode="chain_of_thought")
 council = Council(api_key="your-key", provider="anthropic", config=config)
-council.add_member("rams")
+council.add_member("DR")
 
 result = council.consult(
     "Should we implement rate limiting at the API gateway or application level?",
@@ -282,12 +282,12 @@ config = CouncilConfig(
 council = Council(api_key="your-key", provider="anthropic", config=config)
 
 # Different personas with different capabilities
-rams = get_persona("rams").clone(
+rams = get_persona("DR").clone(
     reasoning_mode="analytical",
     enable_web_search=True
 )
 
-kahneman = get_persona("kahneman").clone(
+kahneman = get_persona("DK").clone(
     reasoning_mode="reflective",
     enable_web_search=False  # This persona doesn't need web search
 )
@@ -312,7 +312,7 @@ from council_ai import get_persona
 council = Council(api_key="your-key", provider="anthropic")
 
 # Research-focused persona with web search
-researcher = get_persona("rams").clone(
+researcher = get_persona("DR").clone(
     new_id="researcher",
     enable_web_search=True,
     reasoning_mode="analytical",
@@ -320,7 +320,7 @@ researcher = get_persona("rams").clone(
 )
 
 # Strategic persona with reflective reasoning
-strategist = get_persona("kahneman").clone(
+strategist = get_persona("DK").clone(
     new_id="strategist",
     enable_web_search=False,
     reasoning_mode="reflective",

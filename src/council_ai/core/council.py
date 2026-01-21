@@ -118,7 +118,7 @@ class Council:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        provider: str = "lmstudio",  # Default to local for cost savings
+        provider: str = "anthropic",
         config: Optional[CouncilConfig] = None,
         persona_manager: Optional[PersonaManager] = None,
         model: Optional[str] = None,
@@ -151,30 +151,6 @@ class Council:
         self._api_key = api_key
         self._model = model
         self._base_url = base_url
-        # #region agent log
-        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-            import json
-
-            f.write(
-                json.dumps(
-                    {
-                        "sessionId": "debug-session",
-                        "runId": "run1",
-                        "hypothesisId": "E",
-                        "location": "council.py:149",
-                        "message": "Council __init__",
-                        "data": {
-                            "provider": provider,
-                            "base_url": base_url,
-                            "model": model,
-                            "api_key_set": api_key is not None,
-                        },
-                        "timestamp": int(__import__("time").time() * 1000),
-                    }
-                )
-                + "\n"
-            )
-        # #endregion
         self._provider_cache: Dict[tuple[str, Optional[str], Optional[str]], LLMProvider] = {}
         self._sessions: List[Session] = []
         self._current_session: Optional[Session] = None
@@ -267,57 +243,9 @@ class Council:
         if self._provider is None:
             manager = self._get_llm_manager()
             self._provider = manager.get_provider(self._provider_name)
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                import json
-
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "A",
-                            "location": "council.py:227",
-                            "message": "manager.get_provider result",
-                            "data": {
-                                "provider_name": self._provider_name,
-                                "provider_returned": self._provider is not None,
-                                "provider_type": type(self._provider).__name__
-                                if self._provider
-                                else None,
-                            },
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
 
             # For LM Studio, try creating provider directly with configured base_url if manager didn't return one
             if self._provider is None and self._provider_name == "lmstudio":
-                # #region agent log
-                with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                    import json
-
-                    f.write(
-                        json.dumps(
-                            {
-                                "sessionId": "debug-session",
-                                "runId": "run1",
-                                "hypothesisId": "B",
-                                "location": "council.py:240",
-                                "message": "Attempting direct LM Studio creation",
-                                "data": {
-                                    "api_key": self._api_key or "lm-studio",
-                                    "model": self._model,
-                                    "base_url": self._base_url,
-                                },
-                                "timestamp": int(__import__("time").time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-                # #endregion
                 try:
                     from ..providers import get_provider
 
@@ -327,55 +255,9 @@ class Council:
                         model=self._model,
                         base_url=self._base_url,
                     )
-                    # #region agent log
-                    with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                        import json
-
-                        f.write(
-                            json.dumps(
-                                {
-                                    "sessionId": "debug-session",
-                                    "runId": "run1",
-                                    "hypothesisId": "B",
-                                    "location": "council.py:252",
-                                    "message": "Direct LM Studio creation result",
-                                    "data": {
-                                        "success": self._provider is not None,
-                                        "provider_type": type(self._provider).__name__
-                                        if self._provider
-                                        else None,
-                                    },
-                                    "timestamp": int(__import__("time").time() * 1000),
-                                }
-                            )
-                            + "\n"
-                        )
-                    # #endregion
                     if self._provider:
                         logger.debug(f"Created LM Studio provider with base_url: {self._base_url}")
                 except Exception as e:
-                    # #region agent log
-                    with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                        import json
-
-                        f.write(
-                            json.dumps(
-                                {
-                                    "sessionId": "debug-session",
-                                    "runId": "run1",
-                                    "hypothesisId": "D",
-                                    "location": "council.py:256",
-                                    "message": "Direct LM Studio creation exception",
-                                    "data": {
-                                        "exception_type": type(e).__name__,
-                                        "exception_msg": str(e),
-                                    },
-                                    "timestamp": int(__import__("time").time() * 1000),
-                                }
-                            )
-                            + "\n"
-                        )
-                    # #endregion
                     logger.debug(f"Failed to create LM Studio provider directly: {e}")
 
             # Don't fall back if LM Studio was explicitly configured (has custom base_url or provider is lmstudio)
@@ -470,33 +352,6 @@ class Council:
         """
         provider_name = member.provider or self._provider_name
         model_name = member.model or self._model
-        # #region agent log
-        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-            import json
-
-            f.write(
-                json.dumps(
-                    {
-                        "sessionId": "debug-session",
-                        "runId": "run1",
-                        "hypothesisId": "F",
-                        "location": "council.py:355",
-                        "message": "_get_member_provider entry",
-                        "data": {
-                            "member_id": member.id,
-                            "member_provider": member.provider,
-                            "provider_name": provider_name,
-                            "default_provider_name": self._provider_name,
-                            "default_provider_type": type(default_provider).__name__
-                            if default_provider
-                            else None,
-                        },
-                        "timestamp": int(__import__("time").time() * 1000),
-                    }
-                )
-                + "\n"
-            )
-        # #endregion
 
         # When using LM Studio, force all personas to use the default provider/model
         # LM Studio only supports OpenAI-compatible models, so persona-specific providers/models won't work
@@ -506,30 +361,6 @@ class Council:
                     f"Persona '{member.id}' requested provider '{provider_name}' model '{model_name}' "
                     f"but using LM Studio; forcing default provider 'lmstudio' with model '{self._model}'"
                 )
-                # #region agent log
-                with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                    import json
-
-                    f.write(
-                        json.dumps(
-                            {
-                                "sessionId": "debug-session",
-                                "runId": "run1",
-                                "hypothesisId": "G",
-                                "location": "council.py:365",
-                                "message": "Forcing LM Studio for persona",
-                                "data": {
-                                    "member_id": member.id,
-                                    "requested_provider": provider_name,
-                                    "requested_model": model_name,
-                                    "forced_model": self._model,
-                                },
-                                "timestamp": int(__import__("time").time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-                # #endregion
                 return default_provider
             else:
                 # Same provider and model, reuse default
@@ -546,31 +377,6 @@ class Council:
                 if provider_name != self._provider_name
                 else self._api_key
             )
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                import json
-
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "F",
-                            "location": "council.py:370",
-                            "message": "Attempting persona-specific provider",
-                            "data": {
-                                "member_id": member.id,
-                                "provider_name": provider_name,
-                                "api_key_set": api_key is not None,
-                                "model": model_name,
-                                "base_url": self._base_url,
-                            },
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
 
             # Try to create provider for persona's specific model/provider
             try:
@@ -580,53 +386,7 @@ class Council:
                     model=model_name,
                     base_url=self._base_url,
                 )
-                # #region agent log
-                with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                    import json
-
-                    f.write(
-                        json.dumps(
-                            {
-                                "sessionId": "debug-session",
-                                "runId": "run1",
-                                "hypothesisId": "F",
-                                "location": "council.py:377",
-                                "message": "Persona provider created",
-                                "data": {
-                                    "member_id": member.id,
-                                    "provider_type": type(self._provider_cache[cache_key]).__name__,
-                                },
-                                "timestamp": int(__import__("time").time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-                # #endregion
             except ImportError as e:
-                # #region agent log
-                with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                    import json
-
-                    f.write(
-                        json.dumps(
-                            {
-                                "sessionId": "debug-session",
-                                "runId": "run1",
-                                "hypothesisId": "F",
-                                "location": "council.py:379",
-                                "message": "Persona provider missing module, falling back",
-                                "data": {
-                                    "member_id": member.id,
-                                    "provider_name": provider_name,
-                                    "exception_type": type(e).__name__,
-                                    "exception_msg": str(e),
-                                },
-                                "timestamp": int(__import__("time").time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-                # #endregion
                 # If persona's provider requires missing module, fall back to default
                 logger.warning(
                     f"Persona '{member.id}' requested provider '{provider_name}' unavailable (missing module); "
@@ -634,30 +394,6 @@ class Council:
                 )
                 return default_provider
             except Exception as e:
-                # #region agent log
-                with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                    import json
-
-                    f.write(
-                        json.dumps(
-                            {
-                                "sessionId": "debug-session",
-                                "runId": "run1",
-                                "hypothesisId": "F",
-                                "location": "council.py:390",
-                                "message": "Persona provider creation failed, falling back",
-                                "data": {
-                                    "member_id": member.id,
-                                    "provider_name": provider_name,
-                                    "exception_type": type(e).__name__,
-                                    "exception_msg": str(e),
-                                },
-                                "timestamp": int(__import__("time").time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-                # #endregion
                 # If persona's provider is unavailable, fall back to default
                 logger.warning(
                     f"Persona '{member.id}' requested provider '{provider_name}' unavailable; "
@@ -957,12 +693,15 @@ class Council:
         self,
         query: str,
         context: Optional[str] = None,
-        mode: Optional[ConsultationMode] = None,
+        mode: Optional[Union[ConsultationMode, str]] = None,
         members: Optional[List[str]] = None,
         session_id: Optional[str] = None,
         auto_recall: bool = True,
     ) -> ConsultationResult:
         """Async version of consult."""
+        # Convert string mode to enum if needed
+        if isinstance(mode, str):
+            mode = ConsultationMode(mode)
         mode = mode or self.config.mode
         provider = self._get_provider(fallback=True)
 
@@ -1426,30 +1165,6 @@ class Council:
         try:
             member_provider = self._get_member_provider(member, provider)
             params = self._resolve_member_generation_params(member)
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                import json
-
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "H",
-                            "location": "council.py:1053",
-                            "message": "About to call API",
-                            "data": {
-                                "member_id": member.id,
-                                "using_manager": member_provider is provider,
-                                "provider_type": type(member_provider).__name__,
-                                "model": getattr(member_provider, "model", None),
-                            },
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
             # Special handling for LM Studio: bypass LLMManager to avoid strict API key validation.
             # LLMManager.generate() enforces API key checks that fail for local providers,
             # whereas using the provider instance directly (fallback path) works because
@@ -1508,30 +1223,6 @@ class Council:
                     member_provider.complete(**complete_kwargs),
                     timeout=timeout,
                 )
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                import json
-
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "H",
-                            "location": "council.py:1076",
-                            "message": "API call succeeded",
-                            "data": {
-                                "member_id": member.id,
-                                "response_length": len(response.text)
-                                if hasattr(response, "text")
-                                else 0,
-                            },
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
             content = response.text
 
             # Track cost if history is available
@@ -1573,30 +1264,6 @@ class Council:
                 timestamp=datetime.now(),
             )
         except ImportError as e:
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                import json
-
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "C",
-                            "location": "council.py:1035",
-                            "message": "Missing module in _get_member_response",
-                            "data": {
-                                "member_id": member.id,
-                                "exception_type": type(e).__name__,
-                                "exception_msg": str(e),
-                                "provider_name": self._provider_name,
-                            },
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
             # Extract module name from error message (e.g., "No module named 'openai'")
             module_name = str(e).replace("No module named ", "").strip("'\"")
             error_msg = (
@@ -1610,30 +1277,6 @@ class Council:
                 error=error_msg,
             )
         except Exception as e:
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                import json
-
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "C",
-                            "location": "council.py:1050",
-                            "message": "Exception in _get_member_response",
-                            "data": {
-                                "member_id": member.id,
-                                "exception_type": type(e).__name__,
-                                "exception_msg": str(e),
-                                "provider_name": self._provider_name,
-                            },
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
             error_msg = str(e)
             # Provide more helpful error messages
             if "API key" in error_msg or "authentication" in error_msg.lower():
@@ -1781,56 +1424,7 @@ class Council:
 
         try:
             member_provider = self._get_member_provider(member, provider)
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                import json
-
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "C",
-                            "location": "council.py:1000",
-                            "message": "Using provider for member",
-                            "data": {
-                                "member_id": member.id,
-                                "provider_type": type(member_provider).__name__,
-                                "provider_has_base_url": hasattr(member_provider, "base_url"),
-                                "base_url": getattr(member_provider, "base_url", None),
-                                "model": getattr(member_provider, "model", None),
-                            },
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
             params = self._resolve_member_generation_params(member)
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                import json
-
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "C",
-                            "location": "council.py:1005",
-                            "message": "About to call stream_complete",
-                            "data": {
-                                "member_id": member.id,
-                                "model": getattr(member_provider, "model", None),
-                                "max_tokens": params["max_tokens"],
-                                "temperature": params["temperature"],
-                            },
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
             content_parts: List[str] = []
             stream_kwargs = {
                 "system_prompt": system_prompt,

@@ -188,8 +188,8 @@ council = Council.for_domain("business", api_key="key")
 
 # Custom members
 council = Council(api_key="key")
-council.add_member("rams")
-council.add_member("taleb")
+council.add_member("DR")
+council.add_member("NT")
 
 # Consult
 result = council.consult("Your question")

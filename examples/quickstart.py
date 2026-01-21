@@ -52,7 +52,7 @@ def demo_persona_details():
     """Show detailed persona information."""
     print_section("Persona Deep Dive: Dieter Rams")
 
-    rams = get_persona("rams")
+    rams = get_persona("DR")  # DR = Dieter Rams
     print(f"\n{rams.emoji} {rams.name} - {rams.title}\n")
     print(f"Category: {rams.category.value}")
     print(f'Core Question: "{rams.core_question}"')

@@ -48,9 +48,12 @@ def test_persona_system_prompt():
 def test_council_creation():
     """Test creating a council."""
     council = Council(api_key="test-key", provider="anthropic")
-    assert len(council.list_members()) == 0
+    # Council now has 4 default members (MD, DK, JT, PH)
+    assert len(council.list_members()) == 4
+    default_member_ids = {m.id for m in council.list_members()}
+    assert default_member_ids == {"MD", "DK", "JT", "PH"}
 
-    # Add a persona
+    # Add a custom persona
     persona = Persona(
         id="test",
         name="Test",
@@ -59,7 +62,7 @@ def test_council_creation():
         razor=".",
     )
     council.add_member(persona)
-    assert len(council.list_members()) == 1
+    assert len(council.list_members()) == 5
 
 
 def test_council_for_domain():

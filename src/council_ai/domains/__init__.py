@@ -182,7 +182,7 @@ DOMAINS: Dict[str, Domain] = {
         name="General Purpose",
         description="General consultation on any topic with all council members",
         category=DomainCategory.GENERAL,
-        default_personas=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove"],
+        default_personas=["MD", "DK", "DR", "JT", "PH", "NT", "AG"],
         example_queries=[
             "Help me think through this problem",
             "What am I missing here?",
@@ -196,7 +196,7 @@ DOMAINS: Dict[str, Domain] = {
             "Supreme Court-style review of multiple LLM responses with scoring and synthesis"
         ),
         category=DomainCategory.TECHNICAL,
-        default_personas=["dempsey", "kahneman", "rams", "treasure", "holman", "taleb", "grove"],
+        default_personas=["MD", "DK", "DR", "JT", "PH", "NT", "AG"],
         optional_personas=["signal_analyst", "compliance_auditor"],
         recommended_mode="synthesis",
         example_queries=[
