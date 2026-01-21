@@ -116,8 +116,9 @@ class MainScreen(Screen):
                     pass
             self._update_status()
 
-        # Start consultation
-        self._consult(query)
+        # Start consultation - Textual apps run in async context
+        import asyncio
+        asyncio.create_task(self._consult(query))
 
     def _parse_bracket_notation(self, text: str) -> Optional[list]:
         """Parse bracket notation for persona IDs."""
