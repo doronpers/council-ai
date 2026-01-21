@@ -168,7 +168,8 @@ def test_creative_domains():
         if domain_id == "audio_post":
             assert "sound_designer" in domain.default_personas
         else:
-            assert "treasure" in domain.default_personas or "rams" in domain.default_personas
+            # JT = Julian Treasure, DR = Dieter Rams
+            assert "JT" in domain.default_personas or "DR" in domain.default_personas
 
 
 def test_general_domain():

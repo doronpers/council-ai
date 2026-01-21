@@ -123,7 +123,7 @@ The codebase follows a modular, provider-abstraction pattern:
 
 3. **Domain Presets** (`domains/__init__.py`)
    - Domain configurations map use cases to recommended persona sets
-   - Examples: coding (Rams, Kahneman, Holman, Taleb), business (Grove, Taleb, Dempsey, Kahneman)
+   - Examples: coding (DR, DK, PH, NT), business (AG, NT, MD, DK)
    - Registered in `DOMAINS` dictionary with default_personas and example_queries
 
 4. **Provider Abstraction** (`providers/__init__.py`)
@@ -301,9 +301,9 @@ council = Council.for_domain("business", api_key="key")
 
 # Custom configuration
 council = Council(api_key="key", provider="anthropic")
-council.add_member("rams")
-council.add_member("taleb")
-council.set_member_weight("grove", 1.5)
+council.add_member("DR")
+council.add_member("NT")
+council.set_member_weight("AG", 1.5)
 
 # Consult with context
 result = council.consult(

@@ -328,18 +328,18 @@ for response in result.responses:
 
 | Persona (ID)                        | Focus                     | Core Question                                 |
 | ----------------------------------- | ------------------------- | --------------------------------------------- |
-| 🎨 **Dieter Rams** (`rams`)         | Simplification, Design    | "Is this as simple as possible?"              |
-| 🎖️ **Martin Dempsey** (`dempsey`)   | Mission Clarity, Autonomy | "Can this operate without asking permission?" |
-| 🧠 **Daniel Kahneman** (`kahneman`) | Cognitive Load, UX        | "Does this work with human cognition?"        |
-| 🔊 **Julian Treasure** (`treasure`) | Communication, Listening  | "Are we listening with integrity?"            |
+| 🎨 **Dieter Rams** (`DR`)         | Simplification, Design    | "Is this as simple as possible?"              |
+| 🎖️ **Martin Dempsey** (`MD`)   | Mission Clarity, Autonomy | "Can this operate without asking permission?" |
+| 🧠 **Daniel Kahneman** (`DK`) | Cognitive Load, UX        | "Does this work with human cognition?"        |
+| 🔊 **Julian Treasure** (`JT`) | Communication, Listening  | "Are we listening with integrity?"            |
 
 ### Red Team Council (Break & Survive)
 
 | Persona (ID)                                       | Focus                   | Core Question                                       |
 | -------------------------------------------------- | ----------------------- | --------------------------------------------------- |
-| 🔓 **Pablos Holman** (`holman`)                    | Security, Exploits      | "How would I break this?"                           |
-| 🦢 **Nassim Taleb** (`taleb`)                      | Risk, Antifragility     | "What's the hidden risk?"                           |
-| 🎯 **Andy Grove** (`grove`)                        | Strategy, Competition   | "What 10X force could make us irrelevant?"          |
+| 🔓 **Pablos Holman** (`PH`)                    | Security, Exploits      | "How would I break this?"                           |
+| 🦢 **Nassim Taleb** (`NT`)                      | Risk, Antifragility     | "What's the hidden risk?"                           |
+| 🎯 **Andy Grove** (`AG`)                        | Strategy, Competition   | "What 10X force could make us irrelevant?"          |
 | 🔍 **Detective Ray Castellano** (`fraud_examiner`) | Fraud tactics, evidence | "How would a sophisticated fraudster exploit this?" |
 
 ### Specialist Council (Deep Domain Expertise)
@@ -371,21 +371,21 @@ council domain list
 
 | Domain       | Description             | Default Personas                                                   |
 | ------------ | ----------------------- | ------------------------------------------------------------------ |
-| `coding`     | Software development    | Rams, Kahneman, Holman, Taleb                                      |
-| `business`   | Business strategy       | Grove, Taleb, Dempsey, Kahneman                                    |
-| `startup`    | Early-stage decisions   | Grove, Taleb, Kahneman, Rams                                       |
-| `product`    | Product management      | Kahneman, Rams, Treasure, Grove                                    |
-| `leadership` | Team & org leadership   | Dempsey, Kahneman, Grove                                           |
-| `creative`   | Creative projects       | Treasure, Rams, Kahneman                                           |
-| `writing`    | Written content         | Treasure, Kahneman, Rams                                           |
+| `coding`     | Software development    | DR, DK, PH, NT                                      |
+| `business`   | Business strategy       | AG, NT, MD, DK                                    |
+| `startup`    | Early-stage decisions   | AG, NT, DK, DR                                       |
+| `product`    | Product management      | DK, DR, JT, AG                                    |
+| `leadership` | Team & org leadership   | MD, DK, AG                                           |
+| `creative`   | Creative projects       | JT, DR, DK                                           |
+| `writing`    | Written content         | JT, DK, DR                                           |
 | `audio_post` | Audio post-production   | dialogue_editor, rerecording_mixer, sound_designer, adr_supervisor |
-| `career`     | Career decisions        | Grove, Kahneman, Dempsey, Taleb                                    |
-| `decisions`  | Major life decisions    | Kahneman, Taleb, Dempsey                                           |
-| `devops`     | Infrastructure & ops    | Dempsey, Holman, Taleb, Grove                                      |
-| `data`       | Data science            | Kahneman, Taleb, Rams                                              |
-| `general`    | General purpose         | Kahneman, Taleb, Grove, Rams                                       |
-| `llm_review` | High-quality LLM review | Dempsey, Kahneman, Rams, Treasure                                  |
-| `sonotheia`  | Audio defense & fintech | signal_analyst, compliance_auditor, Holman, Taleb                  |
+| `career`     | Career decisions        | AG, DK, MD, NT                                    |
+| `decisions`  | Major life decisions    | DK, NT, MD                                           |
+| `devops`     | Infrastructure & ops    | MD, PH, NT, AG                                      |
+| `data`       | Data science            | DK, NT, DR                                              |
+| `general`    | General purpose         | DK, NT, AG, DR                                       |
+| `llm_review` | High-quality LLM review | MD, DK, DR, JT                                  |
+| `sonotheia`  | Audio defense & fintech | signal_analyst, compliance_auditor, PH, NT                  |
 
 ---
 
@@ -448,10 +448,10 @@ council.add_member(persona)
 council = Council.for_domain("business", api_key="your-key")
 
 # Increase Grove's influence (strategy focus)
-council.set_member_weight("grove", 1.5)
+council.set_member_weight("AG", 1.5)
 
 # Decrease Kahneman's influence
-council.set_member_weight("kahneman", 0.8)
+council.set_member_weight("DK", 0.8)
 ```
 
 ### Add/Remove Traits
@@ -459,7 +459,7 @@ council.set_member_weight("kahneman", 0.8)
 ```python
 from council_ai import get_persona
 
-persona = get_persona("rams")
+persona = get_persona("DR")
 
 # Add a trait
 persona.add_trait(
@@ -601,8 +601,8 @@ config.use_structured_output = True  # Enable structured synthesis output
 council = Council.for_domain("business", api_key="your-key", config=config)
 
 # Adjust persona influence weights (0.0–2.0)
-council.set_member_weight("grove", 1.5)
-council.set_member_weight("kahneman", 0.8)
+council.set_member_weight("AG", 1.5)
+council.set_member_weight("DK", 0.8)
 
 result = council.consult("Should we expand into Europe?")
 print(result.structured_synthesis)  # Structured schema (if available)
@@ -912,12 +912,12 @@ council = Council(api_key="key", provider="anthropic")
 council = Council.for_domain("business", api_key="key")
 
 # Members
-council.add_member("rams")
+council.add_member("DR")
 council.add_member(custom_persona)
-council.remove_member("rams")
-council.set_member_weight("grove", 1.5)
-council.enable_member("holman")
-council.disable_member("holman")
+council.remove_member("DR")
+council.set_member_weight("AG", 1.5)
+council.enable_member("PH")
+council.disable_member("PH")
 council.list_members()
 council.clear_members()
 
@@ -925,7 +925,7 @@ council.clear_members()
 result = council.consult("query")
 result = council.consult("query", context="additional context")
 result = council.consult("query", mode=ConsultationMode.DEBATE)
-result = council.consult("query", members=["rams", "grove"])
+result = council.consult("query", members=["DR", "AG"])
 
 # Async
 result = await council.consult_async("query")
@@ -961,7 +961,7 @@ from council_ai import get_persona, list_personas
 from council_ai.core.persona import Persona, PersonaManager
 
 # Get built-in
-persona = get_persona("rams")
+persona = get_persona("DR")
 all_personas = list_personas()
 
 # Create
@@ -1048,7 +1048,7 @@ How should I think about this?
 
 ```python
 council = Council.for_domain("creative", api_key=key)
-council.add_member("treasure")  # Add sonic lens
+council.add_member("JT")  # Add sonic lens
 
 result = council.consult("""
 I'm designing a podcast intro.
@@ -1069,9 +1069,9 @@ What elements should I include?
 council = Council(api_key=key)
 
 # Code quality review
-council.add_member("rams")      # Design & Simplicity
-council.add_member("holman")    # Security
-council.add_member("kahneman")  # Cognitive Load
+council.add_member("DR")      # Design & Simplicity
+council.add_member("PH")    # Security
+council.add_member("DK")  # Cognitive Load
 
 result = council.consult("Review code quality and architecture...")
 

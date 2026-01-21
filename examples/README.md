@@ -70,8 +70,8 @@ council = Council.for_domain("business", api_key="key")
 
 # Or build custom
 council = Council(api_key="key")
-council.add_member("rams")
-council.add_member("grove")
+council.add_member("DR")
+council.add_member("AG")
 ```
 
 ### Consulting the Council

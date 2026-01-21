@@ -134,17 +134,17 @@ def add_member(
 
 | Parameter | Type                  | Default  | Description                                                                 |
 | --------- | --------------------- | -------- | --------------------------------------------------------------------------- |
-| `persona` | `Union[str, Persona]` | Required | Persona ID string (e.g., `"rams"`) or Persona instance.                     |
+| `persona` | `Union[str, Persona]` | Required | Persona ID string (e.g., `"DR"`) or Persona instance.                     |
 | `weight`  | `Optional[float]`     | `None`   | Influence weight (0.0-2.0). If not provided, uses persona's default weight. |
 
 **Example:**
 
 ```python
 # Add by ID
-council.add_member("rams")
+council.add_member("DR")
 
 # Add with custom weight
-council.add_member("grove", weight=1.5)
+council.add_member("AG", weight=1.5)
 
 # Add custom persona
 from council_ai import Persona
@@ -169,7 +169,7 @@ def remove_member(self, persona_id: str) -> None
 **Example:**
 
 ```python
-council.remove_member("rams")
+council.remove_member("DR")
 ```
 
 ##### `get_member()`
@@ -191,7 +191,7 @@ def get_member(self, persona_id: str) -> Optional[Persona]
 **Example:**
 
 ```python
-persona = council.get_member("rams")
+persona = council.get_member("DR")
 if persona:
     print(f"Found: {persona.name}")
 ```
@@ -247,10 +247,10 @@ def set_member_weight(self, persona_id: str, weight: float) -> None
 
 ```python
 # Increase Grove's influence
-council.set_member_weight("grove", 1.5)
+council.set_member_weight("AG", 1.5)
 
 # Decrease Kahneman's influence
-council.set_member_weight("kahneman", 0.7)
+council.set_member_weight("DK", 0.7)
 ```
 
 ##### `enable_member()`
@@ -270,7 +270,7 @@ def enable_member(self, persona_id: str) -> None
 **Example:**
 
 ```python
-council.enable_member("holman")
+council.enable_member("PH")
 ```
 
 ##### `disable_member()`
@@ -290,7 +290,7 @@ def disable_member(self, persona_id: str) -> None
 **Example:**
 
 ```python
-council.disable_member("holman")
+council.disable_member("PH")
 ```
 
 #### Consultation Methods
@@ -342,7 +342,7 @@ result = council.consult(
 # With specific members
 result = council.consult(
     query="Security review needed",
-    members=["holman", "taleb"]
+    members=["PH", "NT"]
 )
 ```
 
@@ -830,7 +830,7 @@ def to_dict(self) -> Dict[str, Any]
 **Example:**
 
 ```python
-persona = get_persona("rams")
+persona = get_persona("DR")
 data = persona.to_dict()
 ```
 
@@ -845,7 +845,7 @@ def to_yaml(self) -> str
 **Example:**
 
 ```python
-persona = get_persona("rams")
+persona = get_persona("DR")
 yaml_str = persona.to_yaml()
 print(yaml_str)
 ```
@@ -861,7 +861,7 @@ def save_to_yaml(self, path: Union[str, Path]) -> None
 **Example:**
 
 ```python
-persona = get_persona("rams")
+persona = get_persona("DR")
 persona.save_to_yaml("my_personas/rams_modified.yaml")
 ```
 
@@ -884,7 +884,7 @@ def add_trait(self, name: str, description: str, weight: float = 1.0) -> None
 **Example:**
 
 ```python
-persona = get_persona("rams")
+persona = get_persona("DR")
 persona.add_trait(
     name="Sustainability Focus",
     description="Considers environmental impact",
@@ -909,7 +909,7 @@ def remove_trait(self, trait_name: str) -> None
 **Example:**
 
 ```python
-persona = get_persona("rams")
+persona = get_persona("DR")
 persona.remove_trait("Minimalism")
 ```
 
@@ -937,7 +937,7 @@ def update_trait(
 **Example:**
 
 ```python
-persona = get_persona("rams")
+persona = get_persona("DR")
 persona.update_trait("Simplification Obsession", weight=1.8)
 ```
 
@@ -961,7 +961,7 @@ def clone(self, new_id: Optional[str] = None, **overrides) -> Persona
 **Example:**
 
 ```python
-rams = get_persona("rams")
+rams = get_persona("DR")
 
 # Create variant with higher weight
 rams_heavy = rams.clone(new_id="rams_heavy", weight=1.5)
@@ -986,7 +986,7 @@ def get_system_prompt(self) -> str
 **Example:**
 
 ```python
-persona = get_persona("rams")
+persona = get_persona("DR")
 prompt = persona.get_system_prompt()
 ```
 
@@ -1303,7 +1303,7 @@ persona = get_persona(persona_id: str) -> Persona
 from council_ai import get_persona
 
 # Get a persona (raises ValueError if not found)
-rams = get_persona("rams")
+rams = get_persona("DR")
 print(f"{rams.emoji} {rams.name}: {rams.title}")
 ```
 
@@ -1514,8 +1514,8 @@ security_expert = Persona(
 
 # Create council with custom persona
 council = Council(api_key="your-key")
-council.add_member("rams")  # Design perspective
-council.add_member("holman")  # Hacker perspective
+council.add_member("DR")  # Design perspective
+council.add_member("PH")  # Hacker perspective
 council.add_member(security_expert)  # Custom security expert
 
 # Consult
@@ -1591,7 +1591,7 @@ for persona in list_personas():
     print(f"{persona.emoji} {persona.name} - {persona.title}")
 
 # Get specific persona
-rams = get_persona("rams")
+rams = get_persona("DR")
 print(f"\n\nPersona: {rams.name}")
 print(f"Core Question: {rams.core_question}")
 print(f"Decision Razor: {rams.razor}")
@@ -1629,8 +1629,8 @@ config = CouncilConfig(
 council = Council.for_domain("coding", api_key="your-key", config=config)
 
 # Adjust member weights
-council.set_member_weight("holman", 1.5)  # Emphasize security
-council.set_member_weight("kahneman", 1.2)  # Emphasize UX
+council.set_member_weight("PH", 1.5)  # Emphasize security
+council.set_member_weight("DK", 1.2)  # Emphasize UX
 
 # Consult
 result = council.consult("Should we use microservices or monolith?")
@@ -1710,10 +1710,10 @@ council = Council.for_domain("coding", api_key="your-key")
 result = council.consult("Quick question", mode=ConsultationMode.INDIVIDUAL)
 
 # For specific members only
-result = council.consult("Security review", members=["holman", "taleb"])
+result = council.consult("Security review", members=["PH", "NT"])
 
 # Disable members you don't need
-council.disable_member("treasure")  # Not needed for this domain
+council.disable_member("JT")  # Not needed for this domain
 ```
 
 ---

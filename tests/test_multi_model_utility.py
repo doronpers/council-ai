@@ -93,6 +93,8 @@ async def test_heterogeneous_council_consultation(
 ):
     """Test a consultation with a heterogeneous council."""
     council = Council(provider="openai", model="gpt-4", api_key="openai-key")
+    # Clear default members to test specific personas only
+    council.clear_members()
 
     holman = Persona(
         id="holman",

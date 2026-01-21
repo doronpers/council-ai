@@ -188,9 +188,9 @@ response = requests.post("http://localhost:8765/api/reviewer/review", json={
         {"id": 1, "content": "Paris is the capital of France.", "source": "GPT-4"},
         {"id": 2, "content": "The capital is Paris.", "source": "Claude"}
     ],
-    "justices": ["dempsey", "kahneman", "rams"],
-    "chair": "dempsey",
-    "vice_chair": "kahneman",
+    "justices": ["MD", "DK", "DR"],
+    "chair": "MD",
+    "vice_chair": "DK",
     "api_key": "your-api-key"  # Optional if set in .env
 })
 
