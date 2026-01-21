@@ -126,8 +126,6 @@ class MainScreen(Screen):
             # Create task in the running loop
             task = loop.create_task(self._consult(query))
             # Store task reference to prevent garbage collection
-            if not hasattr(self, '_consultation_tasks'):
-                self._consultation_tasks = []
             self._consultation_tasks.append(task)
         except RuntimeError as e:
             # No event loop running - fallback to creating a new one
