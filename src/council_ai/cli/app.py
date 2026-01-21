@@ -65,6 +65,7 @@ def register_commands():
         review_command,
         show_providers_command,
         test_key_command,
+        tui_command,
         ui_command,
         web_command,
     )
@@ -76,6 +77,7 @@ def register_commands():
     main.add_command(consult_command)
     main.add_command(q_command)
     main.add_command(interactive_command)
+    main.add_command(tui_command)
 
     # Subgroups / specialized commands
     main.add_command(history_group)

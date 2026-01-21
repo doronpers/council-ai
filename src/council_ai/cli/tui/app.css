@@ -1,0 +1,57 @@
+/* TUI Styles for Council AI */
+
+Screen {
+    background: $surface;
+}
+
+#main-container {
+    layout: vertical;
+    height: 1fr;
+}
+
+#content-area {
+    layout: vertical;
+    height: 1fr;
+}
+
+#status-panel {
+    height: 1;
+    border: solid $primary;
+    padding: 1;
+}
+
+#thinking-container {
+    height: 20%;
+    border: solid $primary;
+    padding: 1;
+}
+
+#thinking-panel {
+    width: 100%;
+}
+
+#response-container {
+    height: 40%;
+    border: solid $primary;
+    padding: 1;
+}
+
+#response-panel {
+    width: 100%;
+}
+
+#history-container {
+    height: 30%;
+    border: solid $primary;
+    padding: 1;
+}
+
+#history-panel {
+    width: 100%;
+}
+
+#input-panel {
+    height: 3;
+    border: solid $primary;
+    padding: 1;
+}

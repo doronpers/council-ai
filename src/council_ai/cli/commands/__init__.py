@@ -1,11 +1,10 @@
-"""
-CLI Commands Package.
-"""
+"""CLI Commands Package."""
 
 from .init import init as init_command
 from .misc import quickstart as quickstart_command
 from .consult import consult as consult_command, q as q_command
 from .interactive import interactive as interactive_command
+from .tui import tui as tui_command
 from .history import history_group
 from .review import review as review_command
 from .web import web as web_command, ui as ui_command
@@ -22,6 +21,7 @@ __all__ = [
     "consult_command",
     "q_command",
     "interactive_command",
+    "tui_command",
     "history_group",
     "review_command",
     "web_command",

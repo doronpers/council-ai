@@ -56,6 +56,7 @@ googledocs = [
     "beautifulsoup4>=4.12.0",
 ]
 monitoring = ["psutil>=5.9.0"]
+tui = ["textual>=0.40.0"]
 all = [
     "anthropic>=0.18.0",
     "openai>=1.0.0",
@@ -63,6 +64,7 @@ all = [
     "fastapi>=0.109.0",
     "uvicorn>=0.27.0",
     "aiohttp>=3.9.0",
+    "textual>=0.40.0",
 ]
 dev = [
     "pytest>=7.0",
