@@ -148,20 +148,39 @@ class OpenAIProvider(_BaseOpenAIProvider):
         user_prompt: str,
         max_tokens: int = 1000,
         temperature: float = 0.7,
+        top_p: Optional[float] = None,
+        top_k: Optional[int] = None,
+        repetition_penalty: Optional[float] = None,
+        frequency_penalty: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
     ) -> LLMResponse:
-        """Generate a completion using OpenAI."""
+        """Generate a completion using OpenAI (supports LM Studio extensions)."""
 
         def _call() -> tuple[str, Optional[int], Optional[int]]:
             client = self._get_client()
-            response = client.chat.completions.create(
-                model=self.model or self.DEFAULT_MODEL,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                messages=[
+            # Build parameters dict, only including non-None values
+            create_params = {
+                "model": self.model or self.DEFAULT_MODEL,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-            )
+            }
+            # Add optional LM Studio/OpenAI-compatible parameters
+            if top_p is not None:
+                create_params["top_p"] = top_p
+            if top_k is not None:
+                create_params["top_k"] = top_k
+            if repetition_penalty is not None:
+                create_params["repetition_penalty"] = repetition_penalty
+            if frequency_penalty is not None:
+                create_params["frequency_penalty"] = frequency_penalty
+            if presence_penalty is not None:
+                create_params["presence_penalty"] = presence_penalty
+
+            response = client.chat.completions.create(**create_params)
             text = response.choices[0].message.content
             usage = response.usage
             input_tokens = usage.prompt_tokens if usage else None
@@ -510,7 +529,9 @@ def get_provider(name: str, **kwargs) -> LLMProvider:
         kwargs["base_url"] = "http://localhost:1234/v1"
         # LM Studio doesn't require an API key
         if "api_key" not in kwargs:
-            kwargs["api_key"] = "lm-studio"  # Dummy key for OpenAI client
+            kwargs[
+                "api_key"
+            ] = "lm-studio"  # pragma: allowlist secret  # Dummy key for OpenAI client
 
     provider_kwargs = _filter_provider_kwargs(kwargs)
     return _PROVIDERS[name](**provider_kwargs)
@@ -550,7 +571,16 @@ def normalize_model_params(params: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     normalized: Dict[str, Any] = {}
     for key, value in params.items():
         norm_key = "max_tokens" if key == "max_tokens_per_response" else key
-        if norm_key in {"temperature", "max_tokens"}:
+        # Support standard parameters plus LM Studio/OpenAI-compatible extensions
+        if norm_key in {
+            "temperature",
+            "max_tokens",
+            "top_p",
+            "top_k",
+            "repetition_penalty",
+            "frequency_penalty",
+            "presence_penalty",
+        }:
             normalized[norm_key] = value
     return normalized
 
@@ -565,6 +595,26 @@ def validate_model_params(params: Dict[str, Any]) -> None:
         m = params["max_tokens"]
         if m < 1:
             raise ValueError("max_tokens must be positive")
+    if "top_p" in params:
+        top_p = params["top_p"]
+        if not (0.0 <= top_p <= 1.0):
+            raise ValueError("top_p must be between 0.0 and 1.0")
+    if "top_k" in params:
+        top_k = params["top_k"]
+        if not (isinstance(top_k, int) and top_k >= 0):
+            raise ValueError("top_k must be a non-negative integer")
+    if "repetition_penalty" in params:
+        rp = params["repetition_penalty"]
+        if not (0.0 <= rp <= 2.0):
+            raise ValueError("repetition_penalty must be between 0.0 and 2.0")
+    if "frequency_penalty" in params:
+        fp = params["frequency_penalty"]
+        if not (-2.0 <= fp <= 2.0):
+            raise ValueError("frequency_penalty must be between -2.0 and 2.0")
+    if "presence_penalty" in params:
+        pp = params["presence_penalty"]
+        if not (-2.0 <= pp <= 2.0):
+            raise ValueError("presence_penalty must be between -2.0 and 2.0")
 
 
 __all__ = [

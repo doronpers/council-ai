@@ -109,9 +109,7 @@ class TestConsultCommand:
         mock_council.consult.return_value = mock_result
         mock_council_class.return_value = mock_council
 
-        result = runner.invoke(
-            main, ["consult", "--members", "rams", "--members", "taleb", "Test?"]
-        )
+        result = runner.invoke(main, ["consult", "--members", "DR", "--members", "NT", "Test?"])
         assert result.exit_code == 0
         assert mock_council.add_member.called
 
@@ -200,7 +198,7 @@ class TestPersonaCommands:
     def test_persona_show(self, mock_get_persona, runner):
         """Test showing persona details."""
         mock_persona = MagicMock()
-        mock_persona.id = "rams"
+        mock_persona.id = "DR"
         mock_persona.name = "Dieter Rams"
         mock_persona.title = "Designer"
         mock_persona.emoji = "🎨"
@@ -254,7 +252,7 @@ class TestPersonaCommands:
         mock_manager.get_or_raise.return_value = mock_persona
         mock_manager_class.return_value = mock_manager
 
-        result = runner.invoke(main, ["persona", "edit", "rams", "--weight", "1.5"])
+        result = runner.invoke(main, ["persona", "edit", "DR", "--weight", "1.5"])
         assert result.exit_code == 0
 
 
@@ -275,7 +273,7 @@ class TestDomainCommands:
         mock_domain.name = "Business"
         mock_domain.description = "Business domain"
         mock_domain.category.value = "business"
-        mock_domain.default_personas = ["grove", "taleb"]
+        mock_domain.default_personas = ["AG", "NT"]
         mock_domain.optional_personas = []
         mock_domain.recommended_mode = "synthesis"
         mock_domain.example_queries = ["Example query"]

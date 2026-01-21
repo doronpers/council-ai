@@ -71,8 +71,8 @@ def test_council_for_domain():
     assert len(members) > 0
 
     member_ids = [m.id for m in members]
-    # Business domain includes grove, taleb, etc
-    assert any(mid in ["grove", "taleb", "kahneman", "dempsey"] for mid in member_ids)
+    # Business domain includes AG, NT, MD, DK, etc
+    assert any(mid in ["AG", "NT", "MD", "DK"] for mid in member_ids)
 
 
 def test_member_response():

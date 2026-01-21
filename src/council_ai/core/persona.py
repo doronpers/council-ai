@@ -99,7 +99,16 @@ class Persona(BaseModel):
     @field_validator("id", mode="before")
     @classmethod
     def validate_id(cls, v: str) -> str:
-        """Normalize ID to lowercase with underscores."""
+        """Validate and normalize ID.
+
+        For 2-3 character IDs (initials like MD, DK), preserve uppercase.
+        For longer IDs, normalize to lowercase with underscores.
+        """
+        v = v.strip()
+        # If it's 2-3 uppercase letters (initials), preserve as-is
+        if len(v) <= 3 and v.isupper() and v.isalpha():
+            return v
+        # Otherwise, normalize to lowercase with underscores
         normalized = v.lower().replace(" ", "_").replace("-", "_")
         # Ensure it starts with a letter and only contains valid characters
         if not re.match(r"^[a-z][a-z0-9_]*$", normalized):
@@ -273,7 +282,9 @@ class PersonaManager:
             for yaml_file in builtin_path.glob("*.yaml"):
                 try:
                     persona = Persona.from_yaml_file(yaml_file)
-                    self._personas[persona.id] = persona
+                    # Store with lowercase key for case-insensitive lookup
+                    # But preserve original ID in persona object
+                    self._personas[persona.id.lower()] = persona
                 except Exception as e:
                     import sys
 
@@ -297,7 +308,8 @@ class PersonaManager:
                     try:
                         persona = Persona.from_yaml_file(yaml_file)
                         # Later paths overwrite earlier ones (user configs take priority)
-                        self._personas[persona.id] = persona
+                        # Store with lowercase key for case-insensitive lookup
+                        self._personas[persona.id.lower()] = persona
                     except Exception as e:
                         import sys
 
@@ -311,7 +323,8 @@ class PersonaManager:
         """Get a persona by ID, raising if not found."""
         persona = self.get(persona_id)
         if persona is None:
-            available = ", ".join(self._personas.keys())
+            # Show original IDs (from persona objects) in error message
+            available = ", ".join(sorted([p.id for p in self._personas.values()]))
             raise ValueError(f"Persona '{persona_id}' not found. Available: {available}")
         return persona
 
@@ -323,21 +336,25 @@ class PersonaManager:
         return sorted(personas, key=lambda p: (p.category.value, p.name))
 
     def list_ids(self) -> List[str]:
-        """List all persona IDs."""
-        return sorted(self._personas.keys())
+        """List all persona IDs (returned in their original case from persona objects)."""
+        # Return original IDs from persona objects, not the lowercase keys
+        return sorted([persona.id for persona in self._personas.values()])
 
     def add(self, persona: Persona, overwrite: bool = False) -> None:
         """Add a persona to the manager."""
-        if persona.id in self._personas and not overwrite:
+        persona_id_lower = persona.id.lower()
+        if persona_id_lower in self._personas and not overwrite:
             raise ValueError(
                 f"Persona '{persona.id}' already exists. Use overwrite=True to replace."
             )
-        self._personas[persona.id] = persona
+        # Store with lowercase key for case-insensitive lookup
+        self._personas[persona_id_lower] = persona
 
     def remove(self, persona_id: str) -> None:
         """Remove a persona."""
-        if persona_id in self._personas:
-            del self._personas[persona_id]
+        persona_id_lower = persona_id.lower()
+        if persona_id_lower in self._personas:
+            del self._personas[persona_id_lower]
 
     def save_persona(self, persona_id: str, path: Optional[Union[str, Path]] = None) -> Path:
         """Save a persona to file."""

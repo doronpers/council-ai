@@ -1,5 +1,6 @@
 """Consultation commands."""
 
+import re
 import sys
 from pathlib import Path
 
@@ -7,7 +8,13 @@ import click
 from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from ..utils import DEFAULT_PROVIDER, assemble_council, console, require_api_key
+from ..utils import (
+    DEFAULT_PROVIDER,
+    assemble_council,
+    console,
+    parse_bracket_notation,
+    require_api_key,
+)
 
 
 @click.command()
@@ -55,10 +62,24 @@ def consult(
     Examples:
       council consult "Should we refactor this module?"
       council consult --domain startup "Is this the right time to raise?"
-      council consult --members rams --members kahneman "Review this design"
+      council consult --members DR --members DK "Review this design"
+      council consult "[MD, JT] What do you think about this?"
       council consult --preset my-team "What do you think?"
     """
     config_manager = ctx.obj["config_manager"]
+
+    # Check for bracket notation in query
+    bracket_members = parse_bracket_notation(query)
+    if bracket_members:
+        # If bracket notation found in query, use those members
+        if members:
+            console.print(
+                "[yellow]Warning:[/yellow] Both bracket notation in query and --members specified. "
+                "Using bracket notation from query."
+            )
+        members = tuple(bracket_members)
+        # Remove bracket notation from query
+        query = re.sub(r"\[[^\]]+\]\s*", "", query).strip()
 
     # Load preset if specified
     if preset:

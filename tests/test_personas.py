@@ -24,8 +24,8 @@ def test_all_builtin_personas_load():
 
 def test_specific_personas():
     """Test specific personas load with correct data."""
-    # Test Dieter Rams
-    rams = get_persona("rams")
+    # Test Dieter Rams (ID: DR)
+    rams = get_persona("DR")
     assert rams.name == "Dieter Rams"
     assert rams.emoji == "🎨"
     assert rams.category == PersonaCategory.ADVISORY
@@ -33,14 +33,14 @@ def test_specific_personas():
     assert len(rams.traits) > 0
     assert len(rams.focus_areas) > 0
 
-    # Test Andy Grove
-    grove = get_persona("grove")
+    # Test Andy Grove (ID: AG)
+    grove = get_persona("AG")
     assert grove.name == "Andy Grove"
     assert grove.emoji == "🎯"
     assert grove.category == PersonaCategory.STRATEGIC
 
-    # Test Nassim Taleb
-    taleb = get_persona("taleb")
+    # Test Nassim Taleb (ID: NT)
+    taleb = get_persona("NT")
     assert taleb.name == "Nassim Nicholas Taleb"
     assert taleb.emoji == "🦢"
     assert taleb.category == PersonaCategory.ADVERSARIAL
@@ -48,7 +48,7 @@ def test_specific_personas():
 
 def test_persona_system_prompt_generation():
     """Test that system prompts are generated correctly."""
-    rams = get_persona("rams")
+    rams = get_persona("DR")
     prompt = rams.get_system_prompt()
 
     # Check prompt contains key elements
@@ -60,7 +60,7 @@ def test_persona_system_prompt_generation():
 
 def test_persona_response_prompt_formatting():
     """Test response prompt formatting."""
-    rams = get_persona("rams")
+    rams = get_persona("DR")
 
     query = "Should we redesign this UI?"
     context = "Current UI has 20 screens"
@@ -77,13 +77,13 @@ def test_persona_categories():
     advisory = [p for p in personas if p.category == PersonaCategory.ADVISORY]
     adversarial = [p for p in personas if p.category == PersonaCategory.ADVERSARIAL]
 
-    assert len(advisory) >= 3  # rams, kahneman, dempsey
-    assert len(adversarial) >= 2  # holman, taleb
+    assert len(advisory) >= 3  # DR, DK, MD
+    assert len(adversarial) >= 2  # PH, NT
 
 
 def test_persona_traits():
     """Test persona traits structure."""
-    rams = get_persona("rams")
+    rams = get_persona("DR")
 
     assert len(rams.traits) > 0
     for trait in rams.traits:
@@ -95,20 +95,20 @@ def test_persona_traits():
 
 def test_persona_yaml_export():
     """Test exporting persona to YAML."""
-    rams = get_persona("rams")
+    rams = get_persona("DR")
     yaml_str = rams.to_yaml()
 
-    assert "id: rams" in yaml_str
+    assert "id: DR" in yaml_str
     assert rams.name in yaml_str
     assert rams.core_question in yaml_str
 
 
 def test_persona_dict_export():
     """Test exporting persona to dict."""
-    rams = get_persona("rams")
+    rams = get_persona("DR")
     data = rams.to_dict()
 
-    assert data["id"] == "rams"
+    assert data["id"] == "DR"
     assert data["name"] == rams.name
     assert data["emoji"] == rams.emoji
     assert "traits" in data
@@ -164,14 +164,19 @@ def test_persona_manager():
     assert len(manager.list()) >= 7
     assert len(manager.list_ids()) >= 7
 
-    # Test getting personas
-    rams = manager.get("rams")
+    # Test getting personas (case-insensitive)
+    rams = manager.get("DR")
     assert rams is not None
-    assert rams.id == "rams"
+    assert rams.id == "DR"
+
+    # Test case-insensitive lookup
+    rams_lower = manager.get("dr")
+    assert rams_lower is not None
+    assert rams_lower.id == "DR"
 
     # Test get_or_raise
-    rams2 = manager.get_or_raise("rams")
-    assert rams2.id == "rams"
+    rams2 = manager.get_or_raise("DR")
+    assert rams2.id == "DR"
 
     with pytest.raises(ValueError):
         manager.get_or_raise("nonexistent")

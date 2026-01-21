@@ -190,6 +190,15 @@ class Council:
         # Response hooks process each member's raw content string
         self._response_hooks: List[Callable[[Persona, str], str]] = []
 
+        # Add default members: MD (Martin Dempsey), DK (Daniel Kahneman), JT (Julian Treasure), PH (Pablos Holman)
+        default_members = ["MD", "DK", "JT", "PH"]
+        for persona_id in default_members:
+            try:
+                self.add_member(persona_id)
+            except ValueError:
+                # Skip if persona not found (shouldn't happen for built-in personas)
+                logger.warning(f"Default persona '{persona_id}' not found, skipping")
+
     @classmethod
     def for_domain(
         cls, domain: str, api_key: Optional[str] = None, provider: str = "anthropic", **kwargs
@@ -690,6 +699,16 @@ class Council:
             "temperature": overrides.get("temperature", self.config.temperature),
             "max_tokens": overrides.get("max_tokens", self.config.max_tokens_per_response),
         }
+        # Add optional LM Studio/OpenAI-compatible parameters if present
+        for key in [
+            "top_p",
+            "top_k",
+            "repetition_penalty",
+            "frequency_penalty",
+            "presence_penalty",
+        ]:
+            if key in overrides:
+                params[key] = overrides[key]
         validate_model_params(params)
         return params
 
@@ -1315,13 +1334,26 @@ class Council:
                     timeout=120.0,
                 )
             else:
+                # Extract optional parameters for complete() call
+                complete_kwargs = {
+                    "system_prompt": system_prompt,
+                    "user_prompt": user_prompt,
+                    "max_tokens": params["max_tokens"],
+                    "temperature": params["temperature"],
+                }
+                # Add optional parameters if present (for OpenAIProvider/LM Studio)
+                for key in [
+                    "top_p",
+                    "top_k",
+                    "repetition_penalty",
+                    "frequency_penalty",
+                    "presence_penalty",
+                ]:
+                    if key in params:
+                        complete_kwargs[key] = params[key]
+
                 response = await asyncio.wait_for(
-                    member_provider.complete(
-                        system_prompt=system_prompt,
-                        user_prompt=user_prompt,
-                        max_tokens=params["max_tokens"],
-                        temperature=params["temperature"],
-                    ),
+                    member_provider.complete(**complete_kwargs),
                     timeout=120.0,
                 )
             # #region agent log

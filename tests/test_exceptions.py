@@ -1,17 +1,14 @@
-"""
-Tests for custom exceptions.
-"""
+"""Tests for custom exceptions."""
 
-import pytest
 from council_ai.core.exceptions import (
-    CouncilError,
     APIKeyError,
+    ConsultationError,
+    CouncilError,
+    PersonaNotFoundError,
+    ProviderUnavailableError,
     RateLimitError,
     TimeoutError,
     TransientAPIError,
-    PersonaNotFoundError,
-    ConsultationError,
-    ProviderUnavailableError,
 )
 
 
@@ -62,9 +59,9 @@ class TestExceptions:
 
     def test_persona_not_found_error(self):
         """Test PersonaNotFoundError."""
-        error = PersonaNotFoundError("kahneman")
-        assert error.persona_id == "kahneman"
-        assert "kahneman" in str(error)
+        error = PersonaNotFoundError("DK")
+        assert error.persona_id == "DK"
+        assert "DK" in str(error)
         assert "not found" in str(error).lower()
 
     def test_consultation_error(self):

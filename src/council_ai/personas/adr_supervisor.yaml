@@ -30,3 +30,13 @@ focus_areas:
 
 weight: 1.0
 enabled: true
+
+provider: lmstudio
+model: 'mixtral-8x7b-v0.1'
+model_params:
+  temperature: 0.52
+  top_p: 0.9
+  top_k: 52
+  repetition_penalty: 1.1
+  frequency_penalty: 0.2
+  presence_penalty: 0.1

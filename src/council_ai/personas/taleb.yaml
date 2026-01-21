@@ -1,4 +1,4 @@
-id: taleb
+id: NT
 name: Nassim Nicholas Taleb
 title: Risk & Antifragility Expert
 emoji: '🦢'
@@ -7,9 +7,15 @@ category: adversarial
 core_question: "What's the hidden risk?"
 razor: "What doesn't kill you makes you stronger. Seek antifragility, not just resilience."
 
-model: 'gpt-4-turbo-preview'
+provider: lmstudio
+model: 'baidu/ernie-4.5-21b-a3b'
 model_params:
-  temperature: 0.9
+  temperature: 0.85
+  top_p: 0.92
+  top_k: 60
+  repetition_penalty: 1.08
+  frequency_penalty: 0.1
+  presence_penalty: 0.05
 
 traits:
   - name: Black Swan Detection

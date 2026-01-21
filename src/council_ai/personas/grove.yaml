@@ -1,4 +1,4 @@
-id: grove
+id: AG
 name: Andy Grove
 title: Strategic Management Expert
 emoji: '🎯'
@@ -28,3 +28,13 @@ focus_areas:
 
 weight: 1.0
 enabled: true
+
+provider: lmstudio
+model: 'baidu/ernie-4.5-21b-a3b'
+model_params:
+  temperature: 0.55
+  top_p: 0.9
+  top_k: 55
+  repetition_penalty: 1.1
+  frequency_penalty: 0.2
+  presence_penalty: 0.1

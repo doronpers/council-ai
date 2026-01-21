@@ -30,3 +30,13 @@ focus_areas:
 
 weight: 1.0
 enabled: true
+
+provider: lmstudio
+model: 'qwen/qwen2.5-coder-32b'
+model_params:
+  temperature: 0.35
+  top_p: 0.82
+  top_k: 35
+  repetition_penalty: 1.18
+  frequency_penalty: 0.35
+  presence_penalty: 0.25

@@ -58,16 +58,16 @@ def test_specific_domains():
     business = get_domain("business")
     assert business.name == "Business Strategy"
     assert business.category == DomainCategory.BUSINESS
-    assert "grove" in business.default_personas
-    assert "taleb" in business.default_personas
+    assert "AG" in business.default_personas
+    assert "NT" in business.default_personas
     assert len(business.example_queries) > 0
 
     # Coding domain
     coding = get_domain("coding")
     assert coding.name == "Software Development"
     assert coding.category == DomainCategory.TECHNICAL
-    assert "rams" in coding.default_personas
-    assert "holman" in coding.default_personas
+    assert "DR" in coding.default_personas
+    assert "PH" in coding.default_personas
 
     # Career domain
     career = get_domain("career")
@@ -177,7 +177,7 @@ def test_general_domain():
     assert general.category == DomainCategory.GENERAL
     assert len(general.default_personas) >= 4
     # Should include diverse perspectives
-    assert any(pid in ["kahneman", "taleb", "grove", "rams"] for pid in general.default_personas)
+    assert any(pid in ["DK", "NT", "AG", "DR"] for pid in general.default_personas)
 
 
 if __name__ == "__main__":

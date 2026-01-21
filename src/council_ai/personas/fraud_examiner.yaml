@@ -31,5 +31,12 @@ focus_areas:
 weight: 1.0
 enabled: true
 
+provider: lmstudio
+model: 'baidu/ernie-4.5-21b-a3b'
 model_params:
-  temperature: 0.5
+  temperature: 0.48
+  top_p: 0.86
+  top_k: 45
+  repetition_penalty: 1.15
+  frequency_penalty: 0.3
+  presence_penalty: 0.2

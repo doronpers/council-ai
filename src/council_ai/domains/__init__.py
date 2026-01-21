@@ -48,8 +48,8 @@ DOMAINS: Dict[str, Domain] = {
         name="Software Development",
         description="Code review, architecture, and development decisions",
         category=DomainCategory.TECHNICAL,
-        default_personas=["rams", "kahneman", "holman", "taleb"],
-        optional_personas=["dempsey"],
+        default_personas=["DR", "DK", "PH", "NT"],
+        optional_personas=["MD"],
         example_queries=[
             "Review this API design",
             "Should we refactor this module?",
@@ -61,7 +61,7 @@ DOMAINS: Dict[str, Domain] = {
         name="Business Strategy",
         description="Strategic business decisions and planning",
         category=DomainCategory.BUSINESS,
-        default_personas=["grove", "taleb", "dempsey", "kahneman"],
+        default_personas=["AG", "NT", "MD", "DK"],
         example_queries=[
             "Should we enter the European market?",
             "What's our biggest competitive risk?",
@@ -73,7 +73,7 @@ DOMAINS: Dict[str, Domain] = {
         name="Startup Decisions",
         description="Early-stage startup strategy and pivots",
         category=DomainCategory.BUSINESS,
-        default_personas=["grove", "taleb", "kahneman", "rams"],
+        default_personas=["AG", "NT", "DK", "DR"],
         example_queries=[
             "Should we pivot from B2C to B2B?",
             "Is this the right time to raise funding?",
@@ -85,7 +85,7 @@ DOMAINS: Dict[str, Domain] = {
         name="Product Management",
         description="Product decisions and roadmap planning",
         category=DomainCategory.BUSINESS,
-        default_personas=["kahneman", "rams", "treasure", "grove"],
+        default_personas=["DK", "DR", "JT", "AG"],
         example_queries=[
             "Which feature should we build next?",
             "Should we add social features?",
@@ -97,8 +97,8 @@ DOMAINS: Dict[str, Domain] = {
         name="Leadership & Management",
         description="Team leadership and organizational decisions",
         category=DomainCategory.BUSINESS,
-        default_personas=["dempsey", "kahneman", "grove"],
-        optional_personas=["treasure"],
+        default_personas=["MD", "DK", "AG"],
+        optional_personas=["JT"],
         example_queries=[
             "How should we structure the team?",
             "Should we go remote-first?",
@@ -110,7 +110,7 @@ DOMAINS: Dict[str, Domain] = {
         name="Creative Projects",
         description="Creative work, design, and artistic decisions",
         category=DomainCategory.CREATIVE,
-        default_personas=["treasure", "rams", "kahneman"],
+        default_personas=["JT", "DR", "DK"],
         example_queries=[
             "What style should this video use?",
             "How do we make this more engaging?",
@@ -122,7 +122,7 @@ DOMAINS: Dict[str, Domain] = {
         name="Writing & Content",
         description="Written content creation and editing",
         category=DomainCategory.CREATIVE,
-        default_personas=["treasure", "kahneman", "rams"],
+        default_personas=["JT", "DK", "DR"],
         example_queries=[
             "How should I structure this article?",
             "Is this clear enough?",
@@ -134,7 +134,7 @@ DOMAINS: Dict[str, Domain] = {
         name="Career Decisions",
         description="Career moves and professional development",
         category=DomainCategory.PERSONAL,
-        default_personas=["grove", "kahneman", "dempsey", "taleb"],
+        default_personas=["AG", "DK", "MD", "NT"],
         example_queries=[
             "Should I take this job offer?",
             "Is this the right time to switch careers?",
@@ -146,7 +146,7 @@ DOMAINS: Dict[str, Domain] = {
         name="Major Life Decisions",
         description="Important personal and life decisions",
         category=DomainCategory.PERSONAL,
-        default_personas=["kahneman", "taleb", "dempsey"],
+        default_personas=["DK", "NT", "MD"],
         example_queries=[
             "Should we buy or rent?",
             "Is this the right time for a major change?",
@@ -158,7 +158,7 @@ DOMAINS: Dict[str, Domain] = {
         name="DevOps & Infrastructure",
         description="Infrastructure, deployment, and operations",
         category=DomainCategory.TECHNICAL,
-        default_personas=["dempsey", "holman", "taleb", "grove"],
+        default_personas=["MD", "PH", "NT", "AG"],
         example_queries=[
             "How should we structure our deployment pipeline?",
             "What are the security risks in this setup?",
@@ -170,7 +170,7 @@ DOMAINS: Dict[str, Domain] = {
         name="Data Science & Analytics",
         description="Data analysis and machine learning decisions",
         category=DomainCategory.TECHNICAL,
-        default_personas=["kahneman", "taleb", "rams"],
+        default_personas=["DK", "NT", "DR"],
         example_queries=[
             "How should we approach this model?",
             "What biases might we have?",
@@ -214,13 +214,13 @@ DOMAINS: Dict[str, Domain] = {
         ),
         category=DomainCategory.TECHNICAL,
         default_personas=[
-            "dempsey",
-            "kahneman",
-            "rams",
-            "treasure",
-            "holman",
-            "taleb",
-            "grove",
+            "MD",
+            "DK",
+            "DR",
+            "JT",
+            "PH",
+            "NT",
+            "AG",
             "signal_analyst",
             "compliance_auditor",
             "fraud_examiner",

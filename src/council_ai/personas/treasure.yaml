@@ -1,4 +1,4 @@
-id: treasure
+id: JT
 name: Julian Treasure
 title: Sound & Communication Expert
 emoji: '🔊'
@@ -29,5 +29,12 @@ focus_areas:
 weight: 1.0
 enabled: true
 
-provider: anthropic
-model: claude-3-5-sonnet-20240620
+provider: lmstudio
+model: 'mixtral-8x7b-v0.1'
+model_params:
+  temperature: 0.5
+  top_p: 0.88
+  top_k: 48
+  repetition_penalty: 1.12
+  frequency_penalty: 0.25
+  presence_penalty: 0.15

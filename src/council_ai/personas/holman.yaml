@@ -1,4 +1,4 @@
-id: holman
+id: PH
 name: Pablos Holman
 title: Hacker & Security Expert
 emoji: '🔓'
@@ -29,5 +29,12 @@ focus_areas:
 weight: 1.0
 enabled: true
 
-provider: openai
-model: gpt-4o
+provider: lmstudio
+model: 'mixtral-8x7b-v0.1'
+model_params:
+  temperature: 0.7
+  top_p: 0.92
+  top_k: 55
+  repetition_penalty: 1.08
+  frequency_penalty: 0.15
+  presence_penalty: 0.05

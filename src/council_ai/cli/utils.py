@@ -1,11 +1,13 @@
 """Shared utilities for the Council AI CLI."""
 
+import re
 import socket
 import sys
 import threading
 import time
 import webbrowser
 from functools import wraps
+from typing import List, Optional
 
 from rich.console import Console
 from rich.table import Table
@@ -25,6 +27,42 @@ if sys.platform == "win32":
 
 console = Console()
 DEFAULT_PROVIDER = "anthropic"
+
+
+def parse_bracket_notation(text: str) -> Optional[List[str]]:
+    """
+    Parse bracket notation for persona IDs from text.
+
+    Supports formats like:
+    - [MD] - single persona
+    - [MD, JT] - multiple personas
+    - [md, jt] - case-insensitive (normalized to uppercase)
+    - [MD, JT, PH] - multiple personas
+
+    Args:
+        text: Text that may contain bracket notation
+
+    Returns:
+        List of persona IDs (normalized to uppercase for 2-3 char IDs,
+        lowercase for longer IDs) if bracket notation found, None otherwise
+    """
+    # Match bracket notation: [ID] or [ID1, ID2, ...]
+    match = re.search(r"\[([^\]]+)\]", text)
+    if match:
+        # Extract content inside brackets
+        content = match.group(1)
+        # Split by comma and clean up
+        ids = []
+        for id_str in content.split(","):
+            id_str = id_str.strip()
+            if id_str:
+                # Normalize: uppercase for 2-3 char (initials), lowercase for longer
+                if len(id_str) <= 3:
+                    ids.append(id_str.upper())
+                else:
+                    ids.append(id_str.lower())
+        return ids if ids else None
+    return None
 
 
 def require_api_key(func):
@@ -72,7 +110,8 @@ def assemble_council(domain, members, api_key, provider, model, base_url):
 
     Args:
         domain: Domain preset to use
-        members: List of specific member IDs, or None to use domain
+        members: List of specific member IDs, or None to use domain.
+                 Member IDs are case-insensitive (e.g., "MD", "md", "Md" all work).
         api_key: API key for the LLM provider
         provider: LLM provider name
         model: Model name/ID
@@ -85,6 +124,7 @@ def assemble_council(domain, members, api_key, provider, model, base_url):
         council = Council(api_key=api_key, provider=provider, model=model, base_url=base_url)
         for member_id in members:
             try:
+                # PersonaManager.get() does case-insensitive lookup, so any case works
                 council.add_member(member_id)
             except ValueError as e:
                 console.print(f"[yellow]Warning:[/yellow] {e}")
