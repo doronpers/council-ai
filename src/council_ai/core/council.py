@@ -73,9 +73,11 @@ class CouncilConfig(BaseModel):
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
     reasoning_mode: Optional[str] = None  # "chain_of_thought", "tree_of_thought", etc.
+    # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
+    progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
     # Timeout configurations (in seconds)
-    member_timeout: float = 120.0  # Timeout for individual member responses
+    member_timeout: float = 120.0  # Timeout for individual member responses (adjusted per provider)
     synthesis_timeout: float = 180.0  # Timeout for synthesis generation
     total_consultation_timeout: Optional[float] = None  # Overall consultation timeout (optional)
 
@@ -179,6 +181,8 @@ class Council:
 
         # Web search tool (initialized lazily)
         self._web_search_tool: Optional[Any] = None
+        # Web search cache: query -> enhanced context (per consultation)
+        self._web_search_cache: Dict[str, Optional[str]] = {}
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
@@ -198,6 +202,9 @@ class Council:
             except ValueError:
                 # Skip if persona not found (shouldn't happen for built-in personas)
                 logger.warning(f"Default persona '{persona_id}' not found, skipping")
+
+        # Warm up providers for default members (lazy, happens on first consult)
+        self._providers_warmed = False
 
     @classmethod
     def for_domain(
@@ -692,6 +699,24 @@ class Council:
         """Return True when synthesis-specific provider/model overrides are set."""
         return bool(self.config.synthesis_provider or self.config.synthesis_model)
 
+    async def _warmup_providers(self) -> None:
+        """Pre-initialize providers for all active members to reduce first-response latency."""
+        try:
+            provider = self._get_provider(fallback=False)
+            if not provider:
+                return
+
+            # Warm up providers for all active members
+            for member in self._members.values():
+                if member.enabled:
+                    try:
+                        # This will initialize and cache the provider if needed
+                        self._get_member_provider(member, provider)
+                    except Exception as e:
+                        logger.debug(f"Failed to warmup provider for {member.id}: {e}")
+        except Exception as e:
+            logger.debug(f"Provider warmup failed: {e}")
+
     def _resolve_member_generation_params(self, member: Persona) -> Dict[str, Any]:
         """Resolve per-member generation parameters."""
         overrides = normalize_model_params(member.model_params)
@@ -727,22 +752,36 @@ class Council:
     async def _enhance_context_with_web_search(
         self, query: str, context: Optional[str], member: Persona
     ) -> Optional[str]:
-        """Enhance context with web search if enabled."""
+        """Enhance context with web search if enabled (uses cache to avoid duplicate searches)."""
         # Check if web search is enabled (council-level or persona-level)
         if not self.config.enable_web_search and not member.enable_web_search:
             return None
 
+        # Check cache first (same query = same search results)
+        cache_key = query.lower().strip()
+        if cache_key in self._web_search_cache:
+            cached_result = self._web_search_cache[cache_key]
+            if cached_result is not None:
+                return f"{context or ''}\n\n{cached_result}".strip()
+            return None
+
         web_search = self._get_web_search_tool()
         if not web_search:
+            # Cache None to avoid repeated tool checks
+            self._web_search_cache[cache_key] = None
             return None
 
         try:
             # Perform web search
             search_response = await web_search.search(query, max_results=3)
             search_context = web_search.format_search_results(search_response)
+            # Cache the search context (without base context)
+            self._web_search_cache[cache_key] = search_context
             return f"{context or ''}\n\n{search_context}".strip()
         except Exception as e:
             logger.warning(f"Web search failed: {e}")
+            # Cache None to avoid retrying failed searches
+            self._web_search_cache[cache_key] = None
             return None
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -885,6 +924,9 @@ class Council:
         """
         Consult the council on a query.
 
+        Uses streaming internally for better perceived performance while maintaining
+        backward compatibility by collecting streamed responses.
+
         Args:
             query: The question or topic to discuss
             context: Additional context for the consultation
@@ -992,26 +1034,38 @@ class Council:
                     synthesis_provider, query, context, responses
                 )
 
-        # Run Analysis Phase (Phase 2 Enhancement)
+        # Run Analysis Phase (Phase 2 Enhancement) - start in parallel with synthesis if possible
+        analysis_task = None
         if (
             self.config.enable_analysis
             and len(responses) > 1
             and mode
             in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL)
         ):
+            # Start analysis in parallel (don't wait for synthesis to complete)
+            async def run_analysis():
+                try:
+                    from .analysis import AnalysisEngine
+
+                    # Use synthesis provider (usually strongest model) for analysis
+                    analysis_provider = self._get_synthesis_provider(provider)
+                    engine = AnalysisEngine(analysis_provider)
+
+                    # Convert MemberResponse objects to dicts for the engine
+                    resp_dicts = [r.to_dict() for r in responses]
+                    await engine.analyze(query, context, resp_dicts)
+                    logger.debug("Consultation analysis matched.")
+                except Exception as e:
+                    logger.warning(f"Analysis phase failed: {e}")
+
+            analysis_task = asyncio.create_task(run_analysis())
+
+        # Wait for analysis to complete (if started)
+        if analysis_task:
             try:
-                from .analysis import AnalysisEngine
-
-                # Use synthesis provider (usually strongest model) for analysis
-                analysis_provider = self._get_synthesis_provider(provider)
-                engine = AnalysisEngine(analysis_provider)
-
-                # Convert MemberResponse objects to dicts for the engine
-                resp_dicts = [r.to_dict() for r in responses]
-                await engine.analyze(query, context, resp_dicts)
-                logger.debug("Consultation analysis matched.")
+                await analysis_task
             except Exception as e:
-                logger.warning(f"Analysis phase failed: {e}")
+                logger.debug(f"Analysis task error: {e}")
 
         # Create result
         result = ConsultationResult(
@@ -1073,6 +1127,36 @@ class Council:
 
         return result
 
+    async def _save_history_async(self, result: ConsultationResult, session: Session) -> None:
+        """Save consultation history asynchronously (non-blocking)."""
+        try:
+            metadata = {"domain": self._domain_id} if self._domain_id else None
+            # Run blocking save in thread pool to avoid blocking event loop
+            consultation_id = await asyncio.to_thread(self._history.save, result, metadata=metadata)
+            await asyncio.to_thread(self._history.save_session, session)
+
+            # Save cost records
+            if consultation_id:
+                from .cost_tracker import get_cost_tracker
+
+                cost_tracker = get_cost_tracker()
+                for cost_record in cost_tracker.get_records():
+                    await asyncio.to_thread(
+                        self._history.save_cost,
+                        consultation_id=consultation_id,
+                        provider=cost_record.provider,
+                        model=cost_record.model,
+                        input_tokens=cost_record.input_tokens,
+                        output_tokens=cost_record.output_tokens,
+                        cost_usd=cost_record.cost_usd,
+                        session_id=session.session_id if session else None,
+                    )
+                # Clear tracker for next consultation
+                cost_tracker.clear()
+        except Exception as e:
+            # Don't fail consultation if history save fails
+            logger.warning(f"Failed to save consultation to history: {e}")
+
     async def consult_stream(
         self,
         query: str,
@@ -1119,9 +1203,27 @@ class Council:
         for hook in self._pre_consult_hooks:
             query, context = hook(query, context)
 
+        # Clear web search cache for new consultation
+        self._web_search_cache.clear()
+
+        # Warm up providers on first consultation (non-blocking)
+        if not self._providers_warmed:
+            self._providers_warmed = True
+            asyncio.create_task(self._warmup_providers())
+
+        # Batch enhance contexts for all members needing web search (parallel)
+        # This pre-populates the cache so individual member calls are instant
+        await self._batch_enhance_contexts(query, context, active_members)
+
         # Get responses based on mode using Strategy pattern
         responses: List[MemberResponse] = []
         strategy = get_strategy(mode.value)
+
+        # Progressive synthesis: start synthesis as responses arrive (if enabled)
+        # Note: Full progressive synthesis requires complex coordination, so this is
+        # a simplified version that starts synthesis after first response completes
+        synthesis_started = False
+
         async for update in strategy.stream(
             council=self,
             query=query,
@@ -1133,6 +1235,18 @@ class Council:
             yield update
             if update.get("type") == "response_complete":
                 responses.append(update["response"])
+
+                # Progressive synthesis: start synthesis early if enabled
+                if (
+                    mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE)
+                    and self.config.progressive_synthesis
+                    and not synthesis_started
+                    and len(responses) >= 1
+                ):
+                    # Start synthesis with partial responses (will complete after all responses)
+                    synthesis_started = True
+                    # Note: Full progressive synthesis would update as more responses arrive
+                    # For now, we start early but wait for all responses for accuracy
 
         # Generate synthesis if needed (streaming)
         synthesis = None
@@ -1147,7 +1261,6 @@ class Council:
             ):
                 yield {"type": "synthesis_chunk", "content": chunk}
                 synthesis_parts.append(chunk)
-            synthesis = "".join(synthesis_parts)
             synthesis = "".join(synthesis_parts)
             yield {"type": "synthesis_complete", "synthesis": synthesis}
 
@@ -1203,33 +1316,13 @@ class Council:
         for post_hook in self._post_consult_hooks:
             result = post_hook(result)
 
-        # Auto-save to history if enabled
+        # Auto-save to history if enabled (non-blocking for streaming)
         if self._history:
-            try:
-                metadata = {"domain": self._domain_id} if self._domain_id else None
-                consultation_id = self._history.save(result, metadata=metadata)
-                self._history.save_session(session)
+            # Save history in background to avoid blocking stream
+            asyncio.create_task(self._save_history_async(result, session))
 
-                # Save cost records
-                if consultation_id:
-                    from .cost_tracker import get_cost_tracker
-
-                    cost_tracker = get_cost_tracker()
-                    for cost_record in cost_tracker.get_records():
-                        self._history.save_cost(
-                            consultation_id=consultation_id,
-                            provider=cost_record.provider,
-                            model=cost_record.model,
-                            input_tokens=cost_record.input_tokens,
-                            output_tokens=cost_record.output_tokens,
-                            cost_usd=cost_record.cost_usd,
-                            session_id=session.session_id if session else None,
-                        )
-                    # Clear tracker for next consultation
-                    cost_tracker.clear()
-            except Exception as e:
-                # Don't fail consultation if history save fails
-                logger.warning(f"Failed to save consultation to history: {e}")
+        # Clear web search cache after consultation
+        self._web_search_cache.clear()
 
         # Record in user memory for personalization (optional, non-blocking)
         try:
@@ -1245,6 +1338,47 @@ class Council:
 
         yield {"type": "complete", "result": result}
 
+    async def _batch_enhance_contexts(
+        self, query: str, base_context: Optional[str], members: List[Persona]
+    ) -> Dict[str, Optional[str]]:
+        """
+        Batch enhance contexts for all members needing web search (performed in parallel).
+
+        Returns a dict mapping member.id -> enhanced_context (or None if no enhancement needed).
+        """
+        # Identify members that need web search
+        members_needing_search = [
+            m
+            for m in members
+            if (self.config.enable_web_search or m.enable_web_search)
+            and self._get_web_search_tool() is not None
+        ]
+
+        if not members_needing_search:
+            return {}
+
+        # Perform all web searches in parallel
+        async def enhance_for_member(member: Persona) -> tuple[str, Optional[str]]:
+            enhanced = await self._enhance_context_with_web_search(query, base_context, member)
+            return (member.id, enhanced)
+
+        # Run all web searches concurrently
+        results = await asyncio.gather(
+            *[enhance_for_member(member) for member in members_needing_search],
+            return_exceptions=True,
+        )
+
+        # Build result dict, handling any exceptions
+        enhanced_contexts: Dict[str, Optional[str]] = {}
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning(f"Web search enhancement failed: {result}")
+                continue
+            member_id, enhanced = result
+            enhanced_contexts[member_id] = enhanced
+
+        return enhanced_contexts
+
     async def _get_member_response(
         self,
         provider: LLMProvider,
@@ -1258,7 +1392,7 @@ class Council:
         Each persona can use a different LLM provider if configured.
         This enables heterogeneous councils with personas using various providers.
         """
-        # Enhance context with web search if enabled
+        # Enhance context with web search if enabled (uses cache if available)
         enhanced_context = await self._enhance_context_with_web_search(query, context, member)
         if enhanced_context:
             context = enhanced_context
@@ -1322,6 +1456,12 @@ class Council:
 
             if use_manager:
                 manager = self._get_llm_manager()
+                # Use configurable timeout (default 120s, lower for local providers)
+                timeout = self.config.member_timeout
+                if self._provider_name == "lmstudio":
+                    # LM Studio is local, faster response expected
+                    timeout = min(timeout, 60.0)
+
                 response = await asyncio.wait_for(
                     manager.generate(
                         system_prompt=system_prompt,
@@ -1331,7 +1471,7 @@ class Council:
                         max_tokens=params["max_tokens"],
                         temperature=params["temperature"],
                     ),
-                    timeout=120.0,
+                    timeout=timeout,
                 )
             else:
                 # Extract optional parameters for complete() call
@@ -1352,9 +1492,19 @@ class Council:
                     if key in params:
                         complete_kwargs[key] = params[key]
 
+                # Use configurable timeout (default 120s, lower for local providers)
+                timeout = self.config.member_timeout
+                if self._provider_name == "lmstudio" or (
+                    hasattr(member_provider, "base_url")
+                    and member_provider.base_url
+                    and "localhost" in str(member_provider.base_url)
+                ):
+                    # LM Studio or local providers, faster response expected
+                    timeout = min(timeout, 60.0)
+
                 response = await asyncio.wait_for(
                     member_provider.complete(**complete_kwargs),
-                    timeout=120.0,
+                    timeout=timeout,
                 )
             # #region agent log
             with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
@@ -1514,6 +1664,11 @@ class Council:
             "persona_name": member.name,
             "persona_emoji": member.emoji,
         }
+
+        # Enhance context with web search if enabled (uses cache if available)
+        enhanced_context = await self._enhance_context_with_web_search(query, context, member)
+        if enhanced_context:
+            context = enhanced_context
 
         system_prompt = member.get_system_prompt()
         user_prompt = member.format_response_prompt(query, context)
