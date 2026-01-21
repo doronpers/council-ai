@@ -169,7 +169,7 @@ class OpenAIProvider(_BaseOpenAIProvider):
                 ],
             }
             # Add optional parameters
-            # Standard OpenAI API parameters
+            # Standard OpenAI API parameters (always supported by OpenAI Python client)
             if top_p is not None:
                 create_params["top_p"] = top_p
             if frequency_penalty is not None:
@@ -177,12 +177,10 @@ class OpenAIProvider(_BaseOpenAIProvider):
             if presence_penalty is not None:
                 create_params["presence_penalty"] = presence_penalty
 
-            # LM Studio/extended OpenAI-compatible parameters (only if using custom base_url)
-            if self.base_url:
-                if top_k is not None:
-                    create_params["top_k"] = top_k
-                if repetition_penalty is not None:
-                    create_params["repetition_penalty"] = repetition_penalty
+            # Note: top_k and repetition_penalty are NOT supported by the OpenAI Python client
+            # even if the underlying API (like LM Studio) supports them. These parameters
+            # would need to be passed via extra_headers or a different mechanism.
+            # For now, we only use standard OpenAI parameters to avoid TypeError.
 
             response = client.chat.completions.create(**create_params)
             text = response.choices[0].message.content
@@ -230,7 +228,7 @@ class OpenAIProvider(_BaseOpenAIProvider):
             "stream": True,
         }
         # Add optional parameters
-        # Standard OpenAI API parameters
+        # Standard OpenAI API parameters (always supported by OpenAI Python client)
         if top_p is not None:
             create_params["top_p"] = top_p
         if frequency_penalty is not None:
@@ -238,12 +236,10 @@ class OpenAIProvider(_BaseOpenAIProvider):
         if presence_penalty is not None:
             create_params["presence_penalty"] = presence_penalty
 
-        # LM Studio/extended OpenAI-compatible parameters (only if using custom base_url)
-        if self.base_url:
-            if top_k is not None:
-                create_params["top_k"] = top_k
-            if repetition_penalty is not None:
-                create_params["repetition_penalty"] = repetition_penalty
+        # Note: top_k and repetition_penalty are NOT supported by the OpenAI Python client
+        # even if the underlying API (like LM Studio) supports them. These parameters
+        # would need to be passed via extra_headers or a different mechanism.
+        # For now, we only use standard OpenAI parameters to avoid TypeError.
 
         stream = await client.chat.completions.create(**create_params)
         async for chunk in stream:
