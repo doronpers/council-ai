@@ -117,8 +117,20 @@ class MainScreen(Screen):
             self._update_status()
 
         # Start consultation - Textual apps run in async context
+        # Create a task in the running event loop
         import asyncio
-        asyncio.create_task(self._consult(query))
+        try:
+            loop = asyncio.get_running_loop()
+            task = loop.create_task(self._consult(query))
+            # Store task reference to prevent garbage collection
+            if not hasattr(self, '_consultation_tasks'):
+                self._consultation_tasks = []
+            self._consultation_tasks.append(task)
+        except RuntimeError:
+            # No event loop running - this shouldn't happen in Textual
+            # But if it does, show an error
+            self.response_panel.update("[red]Error: No async event loop available. This is a bug.[/red]")
+            self._consulting = False
 
     def _parse_bracket_notation(self, text: str) -> Optional[list]:
         """Parse bracket notation for persona IDs."""
