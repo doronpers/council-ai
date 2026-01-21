@@ -117,20 +117,29 @@ class MainScreen(Screen):
             self._update_status()
 
         # Start consultation - Textual apps run in async context
-        # Create a task in the running event loop
+        # Use Textual's built-in method to run async functions
         import asyncio
+        
+        # Textual's App class runs in an async context, so we can get the running loop
         try:
             loop = asyncio.get_running_loop()
+            # Create task in the running loop
             task = loop.create_task(self._consult(query))
             # Store task reference to prevent garbage collection
             if not hasattr(self, '_consultation_tasks'):
                 self._consultation_tasks = []
             self._consultation_tasks.append(task)
-        except RuntimeError:
-            # No event loop running - this shouldn't happen in Textual
-            # But if it does, show an error
-            self.response_panel.update("[red]Error: No async event loop available. This is a bug.[/red]")
-            self._consulting = False
+        except RuntimeError as e:
+            # No event loop running - fallback to creating a new one
+            # This shouldn't happen in Textual, but handle it gracefully
+            error_msg = f"Error: No async event loop available: {e}\n\nTrying fallback..."
+            self.response_panel.update(f"[red]{error_msg}[/red]")
+            # Try to run in a thread as fallback
+            import threading
+            def run_async():
+                asyncio.run(self._consult(query))
+            thread = threading.Thread(target=run_async, daemon=True)
+            thread.start()
 
     def _parse_bracket_notation(self, text: str) -> Optional[list]:
         """Parse bracket notation for persona IDs."""
