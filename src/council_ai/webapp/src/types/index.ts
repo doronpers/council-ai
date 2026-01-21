@@ -153,6 +153,7 @@ export interface ConsultationAnalysis {
 export type StreamEventType =
   | 'progress'
   | 'response_start'
+  | 'thinking_chunk'
   | 'response_chunk'
   | 'response_complete'
   | 'synthesis_start'

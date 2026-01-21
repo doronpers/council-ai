@@ -24,7 +24,9 @@ interface ConsultationContextType {
   streamingSynthesis: string;
   setStreamingSynthesis: React.Dispatch<React.SetStateAction<string>>;
   streamingResponses: Map<string, string>;
+  streamingThinking: Map<string, string>;
   updateStreamingResponse: (personaId: string, content: string) => void;
+  updateStreamingThinking: (personaId: string, content: string) => void;
   clearStreamingState: () => void;
 
   // Member status tracking
@@ -72,9 +74,18 @@ export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
   }, []);
 
+  const updateStreamingThinking = useCallback((personaId: string, content: string) => {
+    setStreamingThinking((prev) => {
+      const next = new Map(prev);
+      next.set(personaId, (prev.get(personaId) || '') + content);
+      return next;
+    });
+  }, []);
+
   const clearStreamingState = useCallback(() => {
     setStreamingSynthesis('');
     setStreamingResponses(new Map());
+    setStreamingThinking(new Map());
     setMemberStatuses([]);
     setStatusMessage('');
   }, []);
@@ -114,6 +125,11 @@ export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ childr
         case 'response_start':
           if (event.persona_id) {
             updateMemberStatus(event.persona_id, 'responding');
+          }
+          break;
+        case 'thinking_chunk':
+          if (event.persona_id && event.content) {
+            updateStreamingThinking(event.persona_id, event.content);
           }
           break;
         case 'response_chunk':
@@ -166,7 +182,9 @@ export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ childr
     streamingSynthesis,
     setStreamingSynthesis,
     streamingResponses,
+    streamingThinking,
     updateStreamingResponse,
+    updateStreamingThinking,
     clearStreamingState,
     memberStatuses,
     initializeMemberStatuses,

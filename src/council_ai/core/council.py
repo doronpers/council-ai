@@ -1304,82 +1304,73 @@ class Council:
         This helps display the thought process in real-time, making the wait
         feel shorter and more engaging by showing how personas are reasoning.
 
+        Strategy: Show everything as thinking initially, then switch to response
+        when we detect clear conclusion markers or the response is getting long.
+
         Returns:
             (thinking_chunk, response_chunk) - one may be None, or both if ambiguous
         """
         if not text.strip():
             return (None, None)
 
-        # Common reasoning/thinking markers
-        thinking_markers = [
-            "step 1:",
-            "step 2:",
-            "step 3:",
-            "step 4:",
-            "step 5:",
-            "thinking:",
-            "reasoning:",
-            "analysis:",
-            "considering:",
-            "first,",
-            "second,",
-            "third,",
-            "next,",
-            "then,",
-            "initial analysis:",
-            "reflection:",
-            "refinement:",
-            "approach 1:",
-            "approach 2:",
-            "perspective 1:",
-            "let me think",
-            "i need to",
-            "i should consider",
-            "to analyze",
-            "to understand",
-            "let's break down",
-            "examining",
-            "evaluating",
-            "considering",
-        ]
-
         text_lower = text.lower()
         accumulated_lower = accumulated.lower()
 
-        # Check if we're in a thinking context (recent thinking markers)
-        recent_thinking = any(marker in accumulated_lower[-500:] for marker in thinking_markers)
-
-        # Check if current chunk contains thinking markers
-        chunk_has_thinking = any(marker in text_lower for marker in thinking_markers)
-
-        # Check for structured reasoning patterns (numbered steps, bullets in reasoning context)
-        structured_thinking = False
-        if recent_thinking or chunk_has_thinking:
-            # Look for numbered/bulleted items in reasoning context
-            if text_lower.strip().startswith(("1.", "2.", "3.", "4.", "5.", "- ", "* ", "• ")):
-                structured_thinking = True
-
-        # If we detect thinking, classify as thinking chunk
-        is_thinking = chunk_has_thinking or (recent_thinking and structured_thinking)
-
-        # If it's clearly thinking, return as thinking
-        if is_thinking:
-            return (text, None)
-
-        # If we're clearly past thinking (see conclusion markers), return as response
+        # Clear conclusion/final answer markers - switch to response mode
         conclusion_markers = [
             "in conclusion",
             "to summarize",
             "therefore",
             "thus",
-            "final",
-            "summary",
+            "final answer:",
+            "final recommendation:",
+            "my recommendation is",
+            "my advice is",
+            "i recommend",
+            "i suggest",
+            "summary:",
+            "answer:",
+            "recommendation:",
         ]
-        is_conclusion = any(marker in text_lower for marker in conclusion_markers)
-        if is_conclusion or (len(accumulated) > 500 and not recent_thinking):
+
+        # Check if we've hit a conclusion marker
+        has_conclusion = any(marker in text_lower for marker in conclusion_markers)
+        accumulated_has_conclusion = any(
+            marker in accumulated_lower[-300:] for marker in conclusion_markers
+        )
+
+        # If we see conclusion markers, everything after is response
+        if has_conclusion or accumulated_has_conclusion:
             return (None, text)
 
-        # Default: show as response but allow UI to decide
+        # If accumulated text is very long (>2000 chars) and no conclusion yet,
+        # assume we're past thinking and into response
+        if len(accumulated) > 2000 and not accumulated_has_conclusion:
+            return (None, text)
+
+        # Default strategy: Show first ~1500 chars as thinking, then switch to response
+        # This ensures users see the reasoning process even if models don't use markers
+        if len(accumulated) <= 1500:
+            return (text, None)
+
+        # After 1500 chars, show as response unless we see explicit thinking markers
+        thinking_markers = [
+            "step",
+            "thinking:",
+            "reasoning:",
+            "analysis:",
+            "considering:",
+            "let me think",
+            "i need to",
+            "to analyze",
+            "examining",
+            "evaluating",
+        ]
+        has_thinking_marker = any(marker in text_lower for marker in thinking_markers)
+        if has_thinking_marker:
+            return (text, None)
+
+        # Default: show as response after initial thinking period
         return (None, text)
 
     async def _get_member_response_stream(

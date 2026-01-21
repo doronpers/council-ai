@@ -14,6 +14,7 @@ interface ResponseCardProps {
   content: string;
   error?: string;
   isStreaming?: boolean;
+  isThinking?: boolean;
   provider?: string;
   model?: string;
   usage?: {
@@ -33,6 +34,7 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
   content,
   error,
   isStreaming = false,
+  isThinking = false,
   provider,
   model,
   usage,
@@ -156,7 +158,12 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
   };
 
   return (
-    <div id={`response-${personaId}`} className="response-card-enhanced" data-persona={personaId}>
+    <div
+      id={`response-${personaId}`}
+      className={`response-card-enhanced ${isThinking ? 'thinking-card' : ''}`}
+      data-persona={personaId}
+      data-thinking={isThinking}
+    >
       {/* Header */}
       <div className="response-header">
         <div className="response-persona-info">
@@ -253,7 +260,7 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
           <p className="error">{escapeHtml(error)}</p>
         ) : (
           <p
-            className={`${isStreaming ? 'streaming-content' : ''} ${!isExpanded && isTruncated ? 'response-content-truncated' : ''}`}
+            className={`${isStreaming ? 'streaming-content' : ''} ${isThinking ? 'thinking-content' : ''} ${!isExpanded && isTruncated ? 'response-content-truncated' : ''}`}
             style={{ whiteSpace: 'pre-wrap' }}
           >
             {isExpanded ? content : contentPreview}

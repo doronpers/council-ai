@@ -11,12 +11,14 @@ import UsageSummary from './UsageSummary';
 import ExportMenu from './ExportMenu';
 
 const ResultsPanel: React.FC = () => {
-  const { result, streamingSynthesis, streamingResponses, isConsulting } = useConsultation();
+  const { result, streamingSynthesis, streamingResponses, streamingThinking, isConsulting } =
+    useConsultation();
   const [searchTerm, setSearchTerm] = useState('');
 
   // During streaming, show streaming content
   const showStreamingSynthesis = isConsulting && streamingSynthesis;
   const showStreamingResponses = isConsulting && streamingResponses.size > 0;
+  const showStreamingThinking = isConsulting && streamingThinking.size > 0;
 
   // After completion, show final results
   const showFinalResults = result && !isConsulting;
@@ -91,8 +93,18 @@ const ResultsPanel: React.FC = () => {
       )}
 
       {/* Individual Responses Section */}
-      {(showStreamingResponses || showFinalResults) && (
+      {(showStreamingResponses || showStreamingThinking || showFinalResults) && (
         <div id="responses" className="responses results-section-responses">
+          {showStreamingThinking &&
+            Array.from(streamingThinking.entries()).map(([personaId, thinking]) => (
+              <ResponseCard
+                key={`thinking-${personaId}`}
+                personaId={personaId}
+                content={thinking}
+                isStreaming
+                isThinking
+              />
+            ))}
           {showStreamingResponses &&
             Array.from(streamingResponses.entries()).map(([personaId, content]) => (
               <ResponseCard key={personaId} personaId={personaId} content={content} isStreaming />
