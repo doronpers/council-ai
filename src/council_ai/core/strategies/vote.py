@@ -1,19 +1,16 @@
-"""
-Vote consultation strategy.
-"""
+"""Vote consultation strategy."""
 
-from typing import List, Optional, Any, Dict, AsyncIterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
-    from ..council import Council, ConsultationMode
+    from ..council import ConsultationMode, Council
     from ..session import MemberResponse
 
 
 class VoteStrategy(ConsultationStrategy):
-    """
-    Members vote on a decision.
-    """
+    """Members vote on a decision."""
 
     async def execute(
         self,
@@ -71,6 +68,17 @@ VOTE: [your vote]
 CONFIDENCE: [your confidence]
 REASONING: [your reasoning]
 """
-        provider = council._get_provider()
-        active_members = council._get_active_members(members)
-        return council._consult_individual_stream(provider, active_members, vote_query, context)
+        from .individual import IndividualStrategy
+
+        individual = IndividualStrategy()
+        async for update in individual.stream(
+            council=council,
+            query=vote_query,
+            context=context,
+            mode=mode,
+            members=members,
+            session_id=session_id,
+            auto_recall=auto_recall,
+            **kwargs,
+        ):
+            yield update

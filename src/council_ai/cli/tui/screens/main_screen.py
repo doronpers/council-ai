@@ -8,13 +8,7 @@ from textual.containers import Container, Vertical
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
-from ..widgets import (
-    HistoryPanel,
-    InputPanel,
-    ResponsePanel,
-    StatusPanel,
-    ThinkingPanel,
-)
+from ..widgets import HistoryPanel, InputPanel, ResponsePanel, StatusPanel, ThinkingPanel
 
 
 class MainScreen(Screen):
@@ -36,6 +30,25 @@ class MainScreen(Screen):
         *args,
         **kwargs,
     ):
+        # #region agent log
+        import json
+
+        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "E",
+                        "location": "main_screen.py:39",
+                        "message": "MainScreen.__init__ entry",
+                        "data": {"domain": domain, "members": members or []},
+                        "timestamp": int(__import__("time").time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # #endregion
         super().__init__(*args, **kwargs)
         self.council = council
         self.domain = domain
@@ -43,18 +56,97 @@ class MainScreen(Screen):
         self.session_id = session_id
         self._consulting = False
         self._consultation_tasks = []  # Track async tasks to prevent garbage collection
+        # #region agent log
+        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "E",
+                        "location": "main_screen.py:46",
+                        "message": "MainScreen.__init__ complete",
+                        "data": {"has_council": bool(self.council)},
+                        "timestamp": int(__import__("time").time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # #endregion
 
     def compose(self) -> ComposeResult:
         """Compose the screen layout."""
-        yield Header(show_clock=True)
-        with Container(id="main-container"):
-            with Vertical(id="content-area"):
-                yield StatusPanel(id="status-panel")
-                yield ThinkingPanel(id="thinking-panel")
-                yield ResponsePanel(id="response-panel")
-                yield HistoryPanel(id="history-panel")
-            yield InputPanel(placeholder="Ask your council a question...", id="input-panel")
-        yield Footer()
+        # #region agent log
+        import json
+
+        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "B",
+                        "location": "main_screen.py:48",
+                        "message": "MainScreen.compose entry",
+                        "data": {},
+                        "timestamp": int(__import__("time").time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # #endregion
+        try:
+            yield Header(show_clock=True)
+            with Container(id="main-container"):
+                with Vertical(id="content-area"):
+                    yield StatusPanel(id="status-panel")
+                    yield ThinkingPanel(id="thinking-panel")
+                    yield ResponsePanel(id="response-panel")
+                    yield HistoryPanel(id="history-panel")
+                yield InputPanel(placeholder="Ask your council a question...", id="input-panel")
+            yield Footer()
+            # #region agent log
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:60",
+                            "message": "MainScreen.compose complete",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
+        except Exception as e:
+            # #region agent log
+            import traceback
+
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:63",
+                            "message": "Exception in compose",
+                            "data": {
+                                "error": str(e),
+                                "type": type(e).__name__,
+                                "traceback": traceback.format_exc(),
+                            },
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
+            raise
 
     def on_mount(self) -> None:
         """Called when screen is mounted."""
@@ -64,27 +156,217 @@ class MainScreen(Screen):
     @property
     def status_panel(self) -> StatusPanel:
         """Get status panel widget."""
-        return self.query_one("#status-panel", StatusPanel)
+        # #region agent log
+        import json
+
+        try:
+            result = self.query_one("#status-panel", StatusPanel)
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:67",
+                            "message": "status_panel query success",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            return result
+        except Exception as e:
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:72",
+                            "message": "status_panel query failed",
+                            "data": {"error": str(e), "type": type(e).__name__},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            raise
+        # #endregion
 
     @property
     def thinking_panel(self) -> ThinkingPanel:
         """Get thinking panel widget."""
-        return self.query_one("#thinking-panel", ThinkingPanel)
+        # #region agent log
+        import json
+
+        try:
+            result = self.query_one("#thinking-panel", ThinkingPanel)
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:81",
+                            "message": "thinking_panel query success",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            return result
+        except Exception as e:
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:86",
+                            "message": "thinking_panel query failed",
+                            "data": {"error": str(e), "type": type(e).__name__},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            raise
+        # #endregion
 
     @property
     def response_panel(self) -> ResponsePanel:
         """Get response panel widget."""
-        return self.query_one("#response-panel", ResponsePanel)
+        # #region agent log
+        import json
+
+        try:
+            result = self.query_one("#response-panel", ResponsePanel)
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:95",
+                            "message": "response_panel query success",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            return result
+        except Exception as e:
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:100",
+                            "message": "response_panel query failed",
+                            "data": {"error": str(e), "type": type(e).__name__},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            raise
+        # #endregion
 
     @property
     def history_panel(self) -> HistoryPanel:
         """Get history panel widget."""
-        return self.query_one("#history-panel", HistoryPanel)
+        # #region agent log
+        import json
+
+        try:
+            result = self.query_one("#history-panel", HistoryPanel)
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:109",
+                            "message": "history_panel query success",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            return result
+        except Exception as e:
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:114",
+                            "message": "history_panel query failed",
+                            "data": {"error": str(e), "type": type(e).__name__},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            raise
+        # #endregion
 
     @property
     def input_panel(self) -> InputPanel:
         """Get input panel widget."""
-        return self.query_one("#input-panel", InputPanel)
+        # #region agent log
+        import json
+
+        try:
+            result = self.query_one("#input-panel", InputPanel)
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:123",
+                            "message": "input_panel query success",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            return result
+        except Exception as e:
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:128",
+                            "message": "input_panel query failed",
+                            "data": {"error": str(e), "type": type(e).__name__},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            raise
+        # #endregion
 
     def _update_status(self) -> None:
         """Update status panel with current state."""
@@ -96,6 +378,25 @@ class MainScreen(Screen):
 
     def on_input_panel_submitted(self, event: InputPanel.Submitted) -> None:
         """Handle input submission."""
+        # #region agent log
+        import json
+
+        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "C",
+                        "location": "main_screen.py:137",
+                        "message": "on_input_panel_submitted entry",
+                        "data": {"query": event.value.strip(), "consulting": self._consulting},
+                        "timestamp": int(__import__("time").time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # #endregion
         if self._consulting:
             return  # Ignore if already consulting
 
@@ -120,23 +421,93 @@ class MainScreen(Screen):
         # Start consultation - Textual apps run in async context
         # Use Textual's built-in method to run async functions
         import asyncio
-        
+
         # Textual's App class runs in an async context, so we can get the running loop
         try:
+            # #region agent log
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:163",
+                            "message": "Getting event loop",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
             loop = asyncio.get_running_loop()
+            # #region agent log
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:166",
+                            "message": "Event loop obtained, creating task",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
             # Create task in the running loop
             task = loop.create_task(self._consult(query))
             # Store task reference to prevent garbage collection
             self._consultation_tasks.append(task)
+            # #region agent log
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:171",
+                            "message": "Task created and added",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
         except RuntimeError as e:
+            # #region agent log
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:174",
+                            "message": "RuntimeError getting loop, using fallback",
+                            "data": {"error": str(e)},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
             # No event loop running - fallback to creating a new one
             # This shouldn't happen in Textual, but handle it gracefully
             error_msg = f"Error: No async event loop available: {e}\n\nTrying fallback..."
             self.response_panel.update(f"[red]{error_msg}[/red]")
             # Try to run in a thread as fallback
             import threading
+
             def run_async():
                 asyncio.run(self._consult(query))
+
             thread = threading.Thread(target=run_async, daemon=True)
             thread.start()
 
@@ -158,32 +529,299 @@ class MainScreen(Screen):
 
     async def _consult(self, query: str) -> None:
         """Run a consultation."""
+        # #region agent log
+        import json
+
+        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "C",
+                        "location": "main_screen.py:261",
+                        "message": "_consult entry",
+                        "data": {"query": query, "consulting": self._consulting},
+                        "timestamp": int(__import__("time").time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # #endregion
         if self._consulting:
+            # #region agent log
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:265",
+                            "message": "_consult early return (already consulting)",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
             return
 
         self._consulting = True
-        self.response_panel.clear()
-        self.thinking_panel._thinking_content = {}
+        # #region agent log
+        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "C",
+                        "location": "main_screen.py:270",
+                        "message": "_consult setting consulting=True, clearing panels",
+                        "data": {},
+                        "timestamp": int(__import__("time").time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # #endregion
+        try:
+            self.response_panel.clear()
+            self.thinking_panel._thinking_content = {}
+        except Exception as e:
+            # #region agent log
+            import traceback
+
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:275",
+                            "message": "Exception clearing panels",
+                            "data": {
+                                "error": str(e),
+                                "type": type(e).__name__,
+                                "traceback": traceback.format_exc(),
+                            },
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
+            self._consulting = False
+            raise
 
         # Add to history
-        self.history_panel.add_entry(query)
+        # #region agent log
+        import json
+
+        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "C",
+                        "location": "main_screen.py:293",
+                        "message": "Before adding to history",
+                        "data": {},
+                        "timestamp": int(__import__("time").time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # #endregion
+        try:
+            self.history_panel.add_entry(query)
+            # #region agent log
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:299",
+                            "message": "History entry added",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
+        except Exception as e:
+            # #region agent log
+            import traceback
+
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "B",
+                            "location": "main_screen.py:303",
+                            "message": "Exception adding to history",
+                            "data": {
+                                "error": str(e),
+                                "type": type(e).__name__,
+                                "traceback": traceback.format_exc(),
+                            },
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
+            self._consulting = False
+            raise
 
         # Update member statuses
+        # #region agent log
+        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "C",
+                        "location": "main_screen.py:312",
+                        "message": "Updating member statuses",
+                        "data": {},
+                        "timestamp": int(__import__("time").time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # #endregion
         member_statuses = {}
         for member in self.council.list_members():
             member_statuses[member.id] = "waiting"
         self.status_panel.member_statuses = member_statuses
+        # #region agent log
+        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+            f.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "run1",
+                        "hypothesisId": "C",
+                        "location": "main_screen.py:320",
+                        "message": "Member statuses updated, before consult_stream",
+                        "data": {"member_count": len(member_statuses)},
+                        "timestamp": int(__import__("time").time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # #endregion
 
         try:
-            # Import ConsultationMode using relative import (works when package is installed)
-            from ...core.council import ConsultationMode
+            # #region agent log
+            import json
+
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:327",
+                            "message": "Entering try block, about to import ConsultationMode",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
+            # Import ConsultationMode - use the same pattern as app.py
+            # From council_ai.cli.tui.screens, we need to go up to council_ai.core
+            # The relative import ...core doesn't work because ... goes to council_ai.cli
+            # So we use an absolute import which works when the package is installed
+            # or when running from the src directory
+            try:
+                from council_ai.core.council import ConsultationMode
+            except ImportError:
+                # Fallback: if package not installed, use relative import with correct path
+                # Go up 4 levels: screens -> tui -> cli -> council_ai, then down to core
+                import os
+                import sys
+
+                current_file = os.path.abspath(__file__)
+                src_dir = os.path.abspath(os.path.join(current_file, "../../../../"))
+                if src_dir not in sys.path:
+                    sys.path.insert(0, src_dir)
+                from council_ai.core.council import ConsultationMode
+            # #region agent log
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:333",
+                            "message": "ConsultationMode imported successfully",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
 
             mode = ConsultationMode(self.council.config.mode.value)
             result = None
+            # #region agent log
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:310",
+                            "message": "Before consult_stream call",
+                            "data": {"mode": str(mode)},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
 
             async for event in self.council.consult_stream(
                 query, mode=mode, session_id=self.session_id
             ):
+                # #region agent log
+                with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                    f.write(
+                        json.dumps(
+                            {
+                                "sessionId": "debug-session",
+                                "runId": "run1",
+                                "hypothesisId": "C",
+                                "location": "main_screen.py:316",
+                                "message": "consult_stream event received",
+                                "data": {
+                                    "event_type": event.get("type")
+                                    if isinstance(event, dict)
+                                    else "unknown"
+                                },
+                                "timestamp": int(__import__("time").time() * 1000),
+                            }
+                        )
+                        + "\n"
+                    )
+                # #endregion
                 event_type = event.get("type")
                 persona_id = event.get("persona_id")
                 persona_name = event.get("persona_name", persona_id)
@@ -237,25 +875,94 @@ class MainScreen(Screen):
                                 self.history_panel.update_display()
 
         except ImportError as e:
+            # #region agent log
+            import json
+            import traceback
+
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:402",
+                            "message": "ImportError in _consult",
+                            "data": {"error": str(e), "traceback": traceback.format_exc()},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
             error_msg = (
                 f"Module import error: {e}\n\n"
                 "This usually means council-ai is not installed properly.\n"
                 "Try: pip install -e '.[tui]'"
             )
-            self.response_panel.update(f"[red]{error_msg}[/red]")
+            try:
+                self.response_panel.update(f"[red]{error_msg}[/red]")
+            except Exception:
+                pass  # Panel might not be available
         except Exception as e:
+            # #region agent log
+            import json
+            import traceback
+
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:415",
+                            "message": "Exception in _consult",
+                            "data": {
+                                "error": str(e),
+                                "type": type(e).__name__,
+                                "traceback": traceback.format_exc(),
+                            },
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
             # Show full error with traceback for debugging
             import traceback
+
             error_type = type(e).__name__
             error_details = (
-                f"Error ({error_type}): {str(e)}\n\n"
-                f"Full traceback:\n{traceback.format_exc()}"
+                f"Error ({error_type}): {str(e)}\n\n" f"Full traceback:\n{traceback.format_exc()}"
             )
             # Truncate very long errors for display
             if len(error_details) > 1000:
                 error_details = error_details[:1000] + "\n... (truncated)"
-            self.response_panel.update(f"[red]{error_details}[/red]")
+            try:
+                self.response_panel.update(f"[red]{error_details}[/red]")
+            except Exception:
+                pass  # Panel might not be available
         finally:
+            # #region agent log
+            import json
+
+            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "run1",
+                            "hypothesisId": "C",
+                            "location": "main_screen.py:395",
+                            "message": "_consult finally block, setting consulting=False",
+                            "data": {},
+                            "timestamp": int(__import__("time").time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # #endregion
             self._consulting = False
             # Clear member statuses
             self.status_panel.member_statuses = {}

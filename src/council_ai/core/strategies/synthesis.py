@@ -1,22 +1,19 @@
-"""
-Synthesis consultation strategy.
-"""
+"""Synthesis consultation strategy."""
 
 import logging
-from typing import List, Optional, Any, Dict, AsyncIterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
-    from ..council import Council, ConsultationMode
+    from ..council import ConsultationMode, Council
     from ..session import MemberResponse
 
 logger = logging.getLogger(__name__)
 
 
 class SynthesisStrategy(ConsultationStrategy):
-    """
-    Individual responses followed by a synthesized summary.
-    """
+    """Individual responses followed by a synthesized summary."""
 
     async def execute(
         self,
@@ -54,9 +51,20 @@ class SynthesisStrategy(ConsultationStrategy):
         auto_recall: bool = True,
         **kwargs: Any,
     ) -> AsyncIterator[Dict[str, Any]]:
-        provider = council._get_provider()
-        active_members = council._get_active_members(members)
-        return council._consult_individual_stream(provider, active_members, query, context)
+        from .individual import IndividualStrategy
+
+        individual = IndividualStrategy()
+        async for update in individual.stream(
+            council=council,
+            query=query,
+            context=context,
+            mode=mode,
+            members=members,
+            session_id=session_id,
+            auto_recall=auto_recall,
+            **kwargs,
+        ):
+            yield update
 
     async def generate_synthesis(
         self,
@@ -66,8 +74,6 @@ class SynthesisStrategy(ConsultationStrategy):
         responses: List["MemberResponse"],
         provider: Any,
     ) -> Optional[str]:
-        """
-        Helper to generate synthesis.
-        """
+        """Helper to generate synthesis."""
         synthesis_provider = council._get_synthesis_provider(provider)
         return await council._generate_synthesis(synthesis_provider, query, context, responses)

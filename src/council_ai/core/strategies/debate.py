@@ -1,19 +1,16 @@
-"""
-Debate consultation strategy.
-"""
+"""Debate consultation strategy."""
 
-from typing import List, Optional, Any, Dict, AsyncIterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
-    from ..council import Council, ConsultationMode
+    from ..council import ConsultationMode, Council
     from ..session import MemberResponse
 
 
 class DebateStrategy(ConsultationStrategy):
-    """
-    Multi-round debate between members.
-    """
+    """Multi-round debate between members."""
 
     async def execute(
         self,
@@ -71,6 +68,17 @@ class DebateStrategy(ConsultationStrategy):
         **kwargs: Any,
     ) -> AsyncIterator[Dict[str, Any]]:
         """Debate mode with streaming (simplified - streams first round)."""
-        provider = council._get_provider()
-        active_members = council._get_active_members(members)
-        return council._consult_individual_stream(provider, active_members, query, context)
+        from .individual import IndividualStrategy
+
+        individual = IndividualStrategy()
+        async for update in individual.stream(
+            council=council,
+            query=query,
+            context=context,
+            mode=mode,
+            members=members,
+            session_id=session_id,
+            auto_recall=auto_recall,
+            **kwargs,
+        ):
+            yield update
