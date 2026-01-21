@@ -197,3 +197,37 @@ venv/bin/pip list | wc -l
 # Check which one is newer:
 ls -ld venv .venv
 ```
+
+### If nvm shows "npm_config_prefix" error:
+This happens when a venv sets `npm_config_prefix` and conflicts with nvm.
+
+**Immediate fix:**
+```bash
+unset npm_config_prefix
+# Then reload nvm:
+source ~/.nvm/nvm.sh
+```
+
+**Permanent fix - Update your ~/.zshrc:**
+Your `.zshrc` should unset `npm_config_prefix` BEFORE loading nvm:
+```bash
+# In ~/.zshrc, ensure this comes BEFORE nvm loading:
+unset NPM_CONFIG_PREFIX
+unset npm_config_prefix
+
+# Then load nvm:
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+```
+
+**Why this happens:**
+- Some venv activation scripts set `npm_config_prefix` to the venv directory
+- nvm needs to control npm configuration and conflicts with this
+- The fix is to unset it before nvm loads, or after venv activation
+
+**Check if your venv sets it:**
+```bash
+# Check venv activation script:
+grep -i "npm_config_prefix" .venv/bin/activate venv/bin/activate 2>/dev/null
+
+# If found, you can remove those lines from the activate script
+```
