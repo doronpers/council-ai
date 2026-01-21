@@ -1927,7 +1927,20 @@ class Council:
             }
             return
         except Exception as e:
-            error_msg = str(e)
+            # Get detailed error information
+            error_type = type(e).__name__
+            error_msg = str(e) if str(e) else repr(e)
+
+            # Log the full exception for debugging
+            logger.error(
+                f"Error in stream for {member.name} ({member.id}): {error_type}: {error_msg}",
+                exc_info=True,
+            )
+
+            # Provide helpful error messages
+            if not error_msg or error_msg == "":
+                error_msg = f"{error_type}: An unexpected error occurred"
+
             if "API key" in error_msg or "authentication" in error_msg.lower():
                 error_msg = (
                     f"API authentication failed: {error_msg}. "
@@ -1936,6 +1949,10 @@ class Council:
                 )
             elif "rate limit" in error_msg.lower():
                 error_msg = f"Rate limit exceeded: {error_msg}. Please try again later."
+            elif "timeout" in error_msg.lower():
+                error_msg = f"Request timeout: {error_msg}. The model may be slow or unavailable."
+            elif "connection" in error_msg.lower() or "network" in error_msg.lower():
+                error_msg = f"Connection error: {error_msg}. Check your network connection and LM Studio server."
 
             response = MemberResponse(
                 persona=member,
