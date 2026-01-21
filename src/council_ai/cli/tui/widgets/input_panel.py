@@ -49,9 +49,11 @@ class InputPanel(Input):
         if event.key == "up":
             self._navigate_history(-1)
             event.prevent_default()
+            event.stop()
         elif event.key == "down":
             self._navigate_history(1)
             event.prevent_default()
+            event.stop()
         elif event.key == "enter":
             value = self.value.strip()
             if value:
@@ -62,8 +64,9 @@ class InputPanel(Input):
                 self._save_history()
                 self.post_message(self.Submitted(value))
                 self.value = ""
-        else:
-            super().on_key(event)
+            event.prevent_default()
+            event.stop()
+        # For other keys, let the Input widget handle them naturally
 
     def _navigate_history(self, direction: int) -> None:
         """Navigate through history."""
