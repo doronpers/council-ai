@@ -229,5 +229,36 @@ unset npm_config_prefix
 # Check venv activation script:
 grep -i "npm_config_prefix" .venv/bin/activate venv/bin/activate 2>/dev/null
 
-# If found, you can remove those lines from the activate script
+# If found, you have two options:
+```
+
+**Option A: Add post-activation fix to ~/.zshrc (Recommended)**
+Add this to your `~/.zshrc` AFTER the venv auto-activation function:
+```bash
+# Fix npm_config_prefix after venv activation
+if [[ -n "$npm_config_prefix" && "$npm_config_prefix" == *"/.venv"* ]]; then
+    unset npm_config_prefix
+    unset NPM_CONFIG_PREFIX
+fi
+```
+
+Or add it to your `auto_activate_venv()` function after the `source` command.
+
+**Option B: Manually unset after each activation**
+```bash
+# After activating venv:
+unset npm_config_prefix
+unset NPM_CONFIG_PREFIX
+```
+
+**Option C: Edit venv activate script (not recommended)**
+The activate script is auto-generated, so edits will be lost when venv is recreated:
+```bash
+# Edit .venv/bin/activate and comment out or remove lines 97-102:
+# _OLD_NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-}"
+# _OLD_npm_config_prefix="${npm_config_prefix:-}"
+# NPM_CONFIG_PREFIX="$NODE_VIRTUAL_ENV"
+# npm_config_prefix="$NODE_VIRTUAL_ENV"
+# export NPM_CONFIG_PREFIX
+# export npm_config_prefix
 ```
