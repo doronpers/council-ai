@@ -154,70 +154,66 @@ class MainScreen(Screen):
             member_statuses[member.id] = "waiting"
         self.status_panel.member_statuses = member_statuses
 
-        # Run async consultation
-        import asyncio
+        try:
+            from ...core.council import ConsultationMode
 
-        async def run_consultation():
-            try:
-                from ...core.council import ConsultationMode
+            mode = ConsultationMode(self.council.config.mode.value)
+            result = None
 
-                mode = ConsultationMode(self.council.config.mode.value)
-                result = None
+            async for event in self.council.consult_stream(
+                query, mode=mode, session_id=self.session_id
+            ):
+                event_type = event.get("type")
+                persona_id = event.get("persona_id")
+                persona_name = event.get("persona_name", persona_id)
+                persona_emoji = event.get("persona_emoji", "")
 
-                async for event in self.council.consult_stream(
-                    query, mode=mode, session_id=self.session_id
-                ):
-                    event_type = event.get("type")
-                    persona_id = event.get("persona_id")
-                    persona_name = event.get("persona_name", persona_id)
-                    persona_emoji = event.get("persona_emoji", "")
+                if event_type == "response_start":
+                    if persona_id:
+                        member_statuses[persona_id] = "responding"
+                        self.status_panel.member_statuses = member_statuses
 
-                    if event_type == "response_start":
-                        if persona_id:
-                            member_statuses[persona_id] = "responding"
-                            self.status_panel.member_statuses = member_statuses
+                elif event_type == "thinking_chunk":
+                    content = event.get("content", "")
+                    accumulated = event.get("accumulated_thinking", "")
+                    if persona_id and accumulated:
+                        self.thinking_panel.set_thinking(persona_id, accumulated)
 
-                    elif event_type == "thinking_chunk":
-                        content = event.get("content", "")
-                        accumulated = event.get("accumulated_thinking", "")
-                        if persona_id and accumulated:
-                            self.thinking_panel.set_thinking(persona_id, accumulated)
-
-                    elif event_type == "response_chunk":
-                        content = event.get("content", "")
-                        if persona_id and content:
-                            # Use persona name with emoji if available
-                            display_name = (
-                                f"{persona_emoji} {persona_name}" if persona_emoji else persona_id
-                            )
-                            self.response_panel.add_response_chunk(display_name, content)
-                            # Clear thinking when response starts
-                            if persona_id in self.thinking_panel._thinking_content:
-                                self.thinking_panel.clear_persona(persona_id)
-
-                    elif event_type == "response_complete":
-                        if persona_id:
-                            member_statuses[persona_id] = "completed"
-                            self.status_panel.member_statuses = member_statuses
+                elif event_type == "response_chunk":
+                    content = event.get("content", "")
+                    if persona_id and content:
+                        # Use persona name with emoji if available
+                        display_name = (
+                            f"{persona_emoji} {persona_name}" if persona_emoji else persona_id
+                        )
+                        self.response_panel.add_response_chunk(display_name, content)
+                        # Clear thinking when response starts
+                        if persona_id in self.thinking_panel._thinking_content:
                             self.thinking_panel.clear_persona(persona_id)
 
-                    elif event_type == "synthesis_chunk":
-                        chunk = event.get("chunk", "")
-                        if chunk:
-                            self.response_panel.add_synthesis_chunk(chunk)
+                elif event_type == "response_complete":
+                    if persona_id:
+                        member_statuses[persona_id] = "completed"
+                        self.status_panel.member_statuses = member_statuses
+                        self.thinking_panel.clear_persona(persona_id)
 
-                    elif event_type == "complete":
-                        result = event.get("result")
-                        if result:
-                            self.session_id = result.session_id
-                            self.status_panel.session_id = self.session_id
-                            # Update history with synthesis
-                            if result.synthesis:
-                                # Update last entry with synthesis
-                                if self.history_panel._history:
-                                    last_entry = self.history_panel._history[-1]
-                                    last_entry["synthesis"] = result.synthesis
-                                    self.history_panel.update_display()
+                elif event_type == "synthesis_chunk":
+                    chunk = event.get("chunk", "")
+                    if chunk:
+                        self.response_panel.add_synthesis_chunk(chunk)
+
+                elif event_type == "complete":
+                    result = event.get("result")
+                    if result:
+                        self.session_id = result.session_id
+                        self.status_panel.session_id = self.session_id
+                        # Update history with synthesis
+                        if result.synthesis:
+                            # Update last entry with synthesis
+                            if self.history_panel._history:
+                                last_entry = self.history_panel._history[-1]
+                                last_entry["synthesis"] = result.synthesis
+                                self.history_panel.update_display()
 
         except Exception as e:
             self.response_panel.update(f"[red]Error: {e}[/red]")
