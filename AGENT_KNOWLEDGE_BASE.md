@@ -133,6 +133,22 @@ npm test             # Test frontend
 
 - **Markdown Linting**: When creating or editing markdown files, ensure all headings are unique to avoid markdownlint MD024 errors. If multiple sections use the same heading text (e.g., "Problem Statement", "Solution Overview"), make them unique by adding context (e.g., "Problem Statement - Error Handling", "Problem Statement - Onboarding"). Always run markdownlint before committing documentation changes.
 
+- **Heading Spacing (MD022)**: Headings must be surrounded by blank lines both above and below. This applies to all heading levels (##, ###, ####, etc.). For example:
+
+  ```markdown
+  ## Section Title
+
+  Content here...
+
+  ### Subsection
+
+  More content...
+  ```
+
+  Always ensure there's a blank line after headings, especially before code blocks, lists, or other content.
+
+- **Code Block Spacing (MD031)**: Fenced code blocks (```) must be surrounded by blank lines both above and below. Always add a blank line before opening a code block and after closing it.
+
 - **Markdown Tables**: When creating markdown tables, use the "compact" style format required by markdownlint MD060. This means separator rows must have spaces around pipes: `| ------ | ------ |` instead of `|------|------|`. The header row and separator row must have consistent spacing. Always verify table formatting with markdownlint before committing.
 
 ---
