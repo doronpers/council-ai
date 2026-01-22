@@ -4,6 +4,9 @@ This document is the **Single Source of Truth** for all AI agents (Claude, Curso
 
 > **License**: This document and the associated codebase are licensed under the [MIT License](LICENSE). When using or adapting code from this repository, include the original copyright notice. Third-party dependencies retain their original licenses.
 
+> **NOTE**: This file is auto-generated from modular rules in `shared-ai-utils`.
+> DO NOT EDIT DIRECTLY. Update the source files in `shared-ai-utils/src/shared_ai_utils/rules/`.
+
 ---
 
 ## 0. Prime Directives (NON-NEGOTIABLE)
@@ -37,6 +40,17 @@ This document is the **Single Source of Truth** for all AI agents (Claude, Curso
 - **Config**: `pyproject.toml` is the source of truth for tooling. `settings.yaml` (or equivalent) for app config.
 - **Audio**: Float32 mono 16kHz numpy arrays only.
 - **Dependencies**: Lock versions. Do not upgrade without explicit instruction. Use pragmatic dependency management - avoid unnecessary dependencies, but framework dependencies (e.g., FastAPI for API modules) are acceptable when appropriate.
+
+### Dependency Tiers
+
+Minimize dependencies while allowing appropriate framework usage:
+
+- **Core Modules** (sensors, VAD, JSON utils): `numpy` + `pydantic` only
+- **CLI Modules**: Core + `Rich`, `Click` (interactive formatting)
+- **API/Assessment Modules**: Core + `FastAPI`, `textstat`, lightweight analysis libraries
+- **Avoid**: Vendor-specific SDKs, heavy ML frameworks (TensorFlow/PyTorch), libraries with C extensions (unless critical)
+
+**Guideline**: Core contracts remain dependency-free. API-specific modules may include framework dependencies when they provide clear net gain over manual implementation.
 
 ---
 
@@ -126,8 +140,37 @@ npm test             # Test frontend
 
 ## 7. Documentation
 
-- Update `README.md` if installation steps change.
-- Update `AGENT_KNOWLEDGE_BASE.md` if you discover a new recurrent issue.
+### Documentation Maintenance (REQUIRED)
+
+**CRITICAL**: Documentation maintenance is a mandatory part of every task completion. This is not optional.
+
+- **Always Update Documentation**: As part of completing any task, you MUST update relevant documentation to reflect changes, additions, or improvements.
+
+- **Prefer Existing Documentation**: Add new documents ONLY when absolutely necessary for clarity and understandability. When possible, add information to existing documentation files to maintain organization and reduce fragmentation.
+
+- **Maintain Organization**: Keep documentation organized by:
+  - Adding to existing relevant sections rather than creating new files
+  - Following established documentation structure and patterns
+  - Grouping related information together
+
+- **Revise Outdated Content**: When you encounter outdated, irrelevant, or redundant information in documentation during your work, you MUST:
+  - Update outdated information to reflect current state
+  - Remove or consolidate redundant content
+  - Mark or remove irrelevant sections
+  - Do not leave documentation in a worse state than you found it
+
+- **Update These Files When Relevant**:
+  - `README.md` - If installation steps, setup, or project overview changes
+  - `AGENT_KNOWLEDGE_BASE.md` - If you discover new recurrent issues, patterns, or guidelines
+  - `ROADMAP.md` - If completing TODOs or adding new tasks
+  - API documentation - If endpoints, parameters, or responses change
+  - Code comments and docstrings - If function behavior or interfaces change
+
+- **Documentation as Part of Definition of Done**: A task is not complete until:
+  1. Code changes are implemented and tested
+  2. All relevant documentation is updated
+  3. Outdated information encountered during the task is revised
+  4. Documentation passes linting checks (markdownlint)
 
 ### Documentation Standards
 
@@ -153,6 +196,36 @@ npm test             # Test frontend
 
 ---
 
+## 9. Framework Guidelines
+
+To ensure consistency and maintainability across the workspace, adherence to these framework choices is **mandatory**.
+
+### Frontend Stack
+
+- **Core**: React 18+
+- **UI Library**: Material UI (MUI) 5+
+- **State**: Context API or Zustand (avoid Redux unless necessary)
+- **Build**: Vite (preferred over CRA)
+
+**Anti-Pattern**: Do not mix UI libraries (e.g., Tailwind + MUI) without explicit approval. Stick to the MUI system for theming and layout.
+
+### Backend Stack
+
+- **Framework**: FastAPI
+- **Validation**: Pydantic v2 (Strict mode preferred)
+- **ORM**: SQLAlchemy 2.0+ (Async)
+- **Task Queue**: Celery or ARQ
+
+### Testing
+
+- **Unit/Integration**: Pytest
+- **E2E**: Playwright
+- **Mocking**: `unittest.mock` or `pytest-mock`
+
+---
+
 ## 8. Reasoning Logs
 
 After significant tasks (complex, architectural, refactoring, non-obvious bug fixes), create a reasoning log entry at `feedback-loop/agent_reasoning_logs/logs/YYYY-MM-DD_sono-platform_task.md` (see template: `feedback-loop/agent_reasoning_logs/templates/reasoning_entry.md`).
+
+---
