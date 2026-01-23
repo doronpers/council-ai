@@ -1,8 +1,7 @@
 """Tests for session report generation."""
 
 from datetime import datetime, timedelta
-from pathlib import Path
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -325,7 +324,7 @@ class TestSessionReport:
         report = SessionReport(mock_history)
 
         output_path = tmp_path / "report.md"
-        result = report.generate_session_report("test-session-123", output_path=output_path)
+        report.generate_session_report("test-session-123", output_path=output_path)
 
         assert output_path.exists()
         content = output_path.read_text()

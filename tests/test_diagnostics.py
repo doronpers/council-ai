@@ -1,17 +1,16 @@
 """Tests for diagnostic utilities."""
 
 import os
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+# Import with alias to avoid pytest collecting it as a test
 from council_ai.core.diagnostics import (
     check_provider_connectivity,
     check_tts_connectivity,
     diagnose_api_keys,
 )
-
-# Import with alias to avoid pytest collecting it as a test
 from council_ai.core.diagnostics import test_api_key as validate_api_key
 
 
@@ -39,7 +38,7 @@ class TestDiagnoseAPIKeys:
         assert len(result["recommendations"]) > 0
         assert "No API keys found" in result["recommendations"][0]
 
-    @patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123456789"})
+    @patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123456789"})  # pragma: allowlist secret
     @patch("council_ai.core.diagnostics.load_config")
     @patch("council_ai.core.config.get_best_available_provider")
     def test_diagnose_api_keys_with_openai(self, mock_best, mock_load_config):
@@ -54,7 +53,9 @@ class TestDiagnoseAPIKeys:
         assert result["provider_status"]["openai"]["has_key"] is True
         assert result["best_provider"] is not None
 
-    @patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test123456789"})
+    @patch.dict(
+        os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test123456789"}  # pragma: allowlist secret
+    )
     @patch("council_ai.core.diagnostics.load_config")
     @patch("council_ai.core.config.get_best_available_provider")
     def test_diagnose_api_keys_with_anthropic(self, mock_best, mock_load_config):
@@ -67,7 +68,7 @@ class TestDiagnoseAPIKeys:
         assert result["available_keys"]["anthropic"] is True
         assert result["provider_status"]["anthropic"]["has_key"] is True
 
-    @patch.dict(os.environ, {"AI_GATEWAY_API_KEY": "test-key-123"})
+    @patch.dict(os.environ, {"AI_GATEWAY_API_KEY": "test-key-123"})  # pragma: allowlist secret
     @patch("council_ai.core.diagnostics.load_config")
     def test_diagnose_api_keys_with_gateway(self, mock_load_config):
         """Test diagnostics with AI Gateway key."""
@@ -78,7 +79,7 @@ class TestDiagnoseAPIKeys:
         assert result["available_keys"]["vercel"] is True
         assert result["provider_status"]["vercel"]["has_key"] is True
 
-    @patch.dict(os.environ, {"COUNCIL_API_KEY": "test-key-123"})
+    @patch.dict(os.environ, {"COUNCIL_API_KEY": "test-key-123"})  # pragma: allowlist secret
     @patch("council_ai.core.diagnostics.load_config")
     def test_diagnose_api_keys_with_generic(self, mock_load_config):
         """Test diagnostics with generic Council API key."""
@@ -88,7 +89,7 @@ class TestDiagnoseAPIKeys:
 
         assert result["available_keys"]["generic"] is True
 
-    @patch.dict(os.environ, {"OPENAI_API_KEY": "placeholder-key"})
+    @patch.dict(os.environ, {"OPENAI_API_KEY": "placeholder-key"})  # pragma: allowlist secret
     @patch("council_ai.core.diagnostics.load_config")
     @patch("council_ai.core.config.is_placeholder_key", return_value=True)
     @patch("council_ai.core.config.get_api_key", return_value="placeholder-key")
@@ -106,7 +107,7 @@ class TestDiagnoseAPIKeys:
         # Status should indicate placeholder or missing
         assert status["has_key"] is False or "placeholder" in status.get("note", "").lower()
 
-    @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})
+    @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})  # pragma: allowlist secret
     @patch("council_ai.core.diagnostics.load_config")
     def test_diagnose_api_keys_elevenlabs(self, mock_load_config):
         """Test diagnostics includes ElevenLabs TTS key."""
@@ -280,7 +281,7 @@ class TestCheckTTSConnectivity:
         result = check_tts_connectivity()
         assert result == {}
 
-    @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})
+    @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})  # pragma: allowlist secret
     @patch("requests.get")
     def test_check_tts_connectivity_elevenlabs_success(self, mock_get):
         """Test successful ElevenLabs connectivity check."""
@@ -293,7 +294,7 @@ class TestCheckTTSConnectivity:
         assert result["elevenlabs"]["ok"] is True
         assert "Connected" in result["elevenlabs"]["msg"]
 
-    @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})
+    @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})  # pragma: allowlist secret
     @patch("requests.get")
     def test_check_tts_connectivity_elevenlabs_failure(self, mock_get):
         """Test ElevenLabs connectivity check with HTTP error."""
@@ -306,7 +307,7 @@ class TestCheckTTSConnectivity:
         assert result["elevenlabs"]["ok"] is False
         assert "http 401" in result["elevenlabs"]["msg"]
 
-    @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})
+    @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})  # pragma: allowlist secret
     @patch("requests.get")
     def test_check_tts_connectivity_elevenlabs_exception(self, mock_get):
         """Test ElevenLabs connectivity check handles exceptions."""
