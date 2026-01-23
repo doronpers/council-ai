@@ -16,31 +16,6 @@ from ..utils import DEFAULT_PROVIDER, console, require_api_key
 @click.pass_context
 @require_api_key
 def tui(ctx, domain, members, provider, api_key, session_id):
-    # #region agent log
-    import json
-
-    with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-        f.write(
-            json.dumps(
-                {
-                    "id": "log_tui_entry",
-                    "timestamp": __import__("time").time() * 1000,
-                    "location": "tui.py:18",
-                    "message": "TUI command entry",
-                    "data": {
-                        "domain": domain,
-                        "members": list(members) if members else None,
-                        "provider": provider,
-                        "has_api_key": bool(api_key),
-                    },
-                    "sessionId": "debug-session",
-                    "runId": "run1",
-                    "hypothesisId": "A",
-                }
-            )
-            + "\n"
-        )
-    # #endregion
     """
     Launch Text User Interface for Council AI.
 
@@ -72,26 +47,6 @@ def tui(ctx, domain, members, provider, api_key, session_id):
     base_url = config_manager.get("api.base_url")
 
     # Create and run TUI
-    # #region agent log
-    import json
-
-    with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-        f.write(
-            json.dumps(
-                {
-                    "id": "log_tui_before_create",
-                    "timestamp": __import__("time").time() * 1000,
-                    "location": "tui.py:49",
-                    "message": "Before CouncilTUI creation",
-                    "data": {"domain": domain, "model": model, "base_url": base_url},
-                    "sessionId": "debug-session",
-                    "runId": "run1",
-                    "hypothesisId": "B",
-                }
-            )
-            + "\n"
-        )
-    # #endregion
     try:
         app = CouncilTUI(
             domain=domain,
@@ -102,71 +57,6 @@ def tui(ctx, domain, members, provider, api_key, session_id):
             base_url=base_url,
             session_id=session_id,
         )
-        # #region agent log
-        import json
-
-        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "id": "log_tui_created",
-                        "timestamp": __import__("time").time() * 1000,
-                        "location": "tui.py:59",
-                        "message": "CouncilTUI created successfully",
-                        "data": {"has_council": hasattr(app, "council")},
-                        "sessionId": "debug-session",
-                        "runId": "run1",
-                        "hypothesisId": "B",
-                    }
-                )
-                + "\n"
-            )
-        # #endregion
-    except Exception as e:
-        # #region agent log
-        import json
-        import traceback
-
-        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "id": "log_tui_create_error",
-                        "timestamp": __import__("time").time() * 1000,
-                        "location": "tui.py:62",
-                        "message": "CouncilTUI creation failed",
-                        "data": {
-                            "error": str(e),
-                            "error_type": type(e).__name__,
-                            "traceback": traceback.format_exc(),
-                        },
-                        "sessionId": "debug-session",
-                        "runId": "run1",
-                        "hypothesisId": "B",
-                    }
-                )
-                + "\n"
-            )
-        # #endregion
+    except Exception:
         raise
-    # #region agent log
-    import json
-
-    with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-        f.write(
-            json.dumps(
-                {
-                    "id": "log_tui_before_run",
-                    "timestamp": __import__("time").time() * 1000,
-                    "location": "tui.py:64",
-                    "message": "Before app.run()",
-                    "data": {},
-                    "sessionId": "debug-session",
-                    "runId": "run1",
-                    "hypothesisId": "C",
-                }
-            )
-            + "\n"
-        )
-    # #endregion
     app.run()

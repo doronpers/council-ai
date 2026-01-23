@@ -6,8 +6,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from . import get_persona, list_personas
-from .core.persona import Persona, PersonaCategory, PersonaManager
+from ..core.persona import Persona, PersonaCategory, PersonaManager, get_persona, list_personas
 
 console = Console()
 

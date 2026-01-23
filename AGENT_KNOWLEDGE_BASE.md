@@ -1,6 +1,6 @@
 # Global Agent Knowledge Base & Instructional Set
 
-This document is the **Single Source of Truth** for all AI agents (Claude, Cursor, Gemini, etc.) working on Sonotheia and related repositories. You MUST refer to this before and during your tasks.
+This document is the **Single Source of Truth** for all AI agents (Claude, Cursor, Gemini, etc.) working on Council AI and related repositories. You MUST refer to this before and during your tasks.
 
 > **License**: This document and the associated codebase are licensed under the [MIT License](LICENSE). When using or adapting code from this repository, include the original copyright notice. Third-party dependencies retain their original licenses.
 
@@ -11,20 +11,16 @@ This document is the **Single Source of Truth** for all AI agents (Claude, Curso
 
 ## 0. Prime Directives (NON-NEGOTIABLE)
 
-1. **Patent Compliance**:
-   - **NEVER** use Linear Predictive Coding (LPC), source-filter models, glottal closure/opening detection, or static formant values.
-   - **ALWAYS** use dynamic trajectories, phase analysis, and velocity-based methods.
-
-2. **Security & Privacy**:
+1. **Security & Privacy**:
    - **NEVER** log raw audio bytes, PII, or API keys.
    - **ALWAYS** use environment variables for secrets.
 
-3. **Design Philosophy (The Advisory Council)**:
+2. **Design Philosophy (The Advisory Council)**:
    - **Dieter Rams ("Less but Better")**: Radical simplification. If a feature adds complexity without proportional value, kill it.
    - **Daniel Kahneman ("System 2 Thinking")**: Code should handle failure gracefully. validation before execution.
    - **Constraint**: No "branding" of these names in code. Use descriptive names.
 
-4. **Agent Behavior: "Defense Against Complexity"**:
+3. **Agent Behavior: "Defense Against Complexity"**:
    - **Stop and Think**: Before writing code, ask: "Is this the simplest way to solve the user's _actual_ problem?"
    - **No Speculative Features**: Do not add "nice to have" flexibility. Build exactly what is needed now.
    - **Refactor First**: If the code is hard to change, refactor it first. Do not pile hacks on top of technical debt.
@@ -37,18 +33,18 @@ This document is the **Single Source of Truth** for all AI agents (Claude, Curso
 
 ## 1. Operational Guardrails
 
-- **Config**: `pyproject.toml` is the source of truth for tooling. `settings.yaml` (or equivalent) for app config.
-- **Audio**: Float32 mono 16kHz numpy arrays only.
+- **Config**: `pyproject.toml` is the source of truth for tooling. `~/.config/council-ai/config.yaml` for user configuration.
 - **Dependencies**: Lock versions. Do not upgrade without explicit instruction. Use pragmatic dependency management - avoid unnecessary dependencies, but framework dependencies (e.g., FastAPI for API modules) are acceptable when appropriate.
 
 ### Dependency Tiers
 
 Minimize dependencies while allowing appropriate framework usage:
 
-- **Core Modules** (sensors, VAD, JSON utils): `numpy` + `pydantic` only
-- **CLI Modules**: Core + `Rich`, `Click` (interactive formatting)
-- **API/Assessment Modules**: Core + `FastAPI`, `textstat`, lightweight analysis libraries
-- **Avoid**: Vendor-specific SDKs, heavy ML frameworks (TensorFlow/PyTorch), libraries with C extensions (unless critical)
+- **Core Modules**: `pydantic`, `pyyaml`, `rich`, `click`, `httpx` (core dependencies)
+- **CLI Modules**: Core dependencies + `Rich`, `Click` (interactive formatting)
+- **Web Modules**: Core + `FastAPI`, `uvicorn`, `aiohttp` (for web app)
+- **Provider Modules**: Optional provider-specific SDKs (`anthropic`, `openai`, `google-genai`)
+- **Avoid**: Heavy ML frameworks (TensorFlow/PyTorch), unnecessary vendor-specific SDKs
 
 **Guideline**: Core contracts remain dependency-free. API-specific modules may include framework dependencies when they provide clear net gain over manual implementation.
 
@@ -62,12 +58,12 @@ Minimize dependencies while allowing appropriate framework usage:
   - **Typing**: `mypy` required for all new code.
   - **Style**: Use `snake_case` for functions and variables, `PascalCase` for classes.
 - **Frontend**:
-  - **Framework**: React 18 + MUI 5
+  - **Framework**: React 18 + TypeScript (no external UI libraries - custom minimalist components)
   - **Style**: Use `camelCase` for JavaScript variables and functions, `PascalCase` for components.
 - **Structure**:
   - **src-layout**: All code lives in `src/<package_name>/`.
   - **No Root Scripts**: Scripts belong in `scripts/` or `bin/`.
-- **Configuration**: `backend/config/settings.yaml` is the SINGLE source of truth for application configuration.
+- **Configuration**: `~/.config/council-ai/config.yaml` is the primary configuration file. `pyproject.toml` for package configuration.
 
 ---
 
@@ -124,10 +120,11 @@ npm test             # Test frontend
 
 ## 5. Key Paths
 
-- `backend/api/main.py` - Entry point
-- `backend/config/settings.yaml` - Configuration
-- `backend/sensors/` - Sensor implementations
-- `frontend/src/App.js` - Frontend entry
+- `src/council_ai/cli/app.py` - CLI entry point
+- `src/council_ai/webapp/app.py` - Web API entry point
+- `src/council_ai/core/` - Core classes (Council, Persona, Config)
+- `src/council_ai/webapp/src/App.tsx` - Frontend entry (React/TypeScript)
+- `~/.config/council-ai/config.yaml` - User configuration
 
 ---
 
@@ -226,6 +223,6 @@ To ensure consistency and maintainability across the workspace, adherence to the
 
 ## 8. Reasoning Logs
 
-After significant tasks (complex, architectural, refactoring, non-obvious bug fixes), create a reasoning log entry at `feedback-loop/agent_reasoning_logs/logs/YYYY-MM-DD_sono-platform_task.md` (see template: `feedback-loop/agent_reasoning_logs/templates/reasoning_entry.md`).
+After significant tasks (complex, architectural, refactoring, non-obvious bug fixes), create a reasoning log entry at `feedback-loop/agent_reasoning_logs/logs/YYYY-MM-DD_council-ai_task.md` (see template: `feedback-loop/agent_reasoning_logs/templates/reasoning_entry.md`).
 
 ---

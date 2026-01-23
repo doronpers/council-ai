@@ -20,7 +20,7 @@ if not exist "!CONFIG_PATH!" (
 )
 
 echo 🚀 Connecting to Council AI...
-python launch-council.py --role satellite
+python bin\launch-council.py --role satellite
 if %ERRORLEVEL% neq 0 (
     echo.
     echo ❌ Connection failed.

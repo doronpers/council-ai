@@ -2,7 +2,7 @@
 REM Council AI - CLI Mode Launcher (No Node.js Required)
 REM Launches Council AI in CLI mode, skipping web interface
 
-cd /d "%~dp0"
+cd /d "%~dp0\.."
 echo 🏛️  Launching Council AI (CLI Mode)...
 echo.
 echo This mode uses the command-line interface only.
@@ -27,7 +27,7 @@ if exist ".env" (
     )
 )
 
-python launch-council.py --skip-frontend --open
+python bin\launch-council.py --skip-frontend --open
 if %ERRORLEVEL% neq 0 (
     echo.
     echo 💡 To use the CLI directly:

@@ -73,7 +73,7 @@ class ErrorBoundary extends Component<Props, State> {
 
     console.error('ErrorBoundary Error Report:', errorData);
 
-    // TODO: Send to error logging service
+    // Future enhancement: Send to error logging service (e.g., Sentry, LogRocket)
     // Example: errorLoggingService.captureException(error, { extra: errorData });
   };
 

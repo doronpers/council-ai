@@ -7,7 +7,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from .core.personal_integration import (
+from ..core.personal_integration import (
     PersonalIntegration,
     get_personal_status,
     verify_personal_integration,

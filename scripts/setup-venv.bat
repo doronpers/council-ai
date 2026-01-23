@@ -53,14 +53,14 @@ echo.
 REM Install dependencies (if not skipped)
 if "%1" neq "--skip-install" (
     echo Installing Council AI dependencies...
-    
+
     REM Check for shared-ai-utils sibling (development mode)
     set "SHARED_UTILS=..\shared-ai-utils"
     if exist "%SHARED_UTILS%" (
         echo Found local shared-ai-utils, installing in development mode...
         pip install -e "%SHARED_UTILS%" --quiet
     )
-    
+
     REM Install council-ai
     pip install -e ".[web]" --quiet
     echo ✓ Dependencies installed

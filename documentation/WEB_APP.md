@@ -20,13 +20,13 @@ The web app is built with:
 pip install -e ".[web]"
 ```
 
-2. Start the server (with auto-reload):
+1. Start the server (with auto-reload):
 
 ```bash
 council web --reload
 ```
 
-3. Open the UI:
+1. Open the UI:
 
 - `http://127.0.0.1:8000`
 
@@ -36,9 +36,9 @@ council web --reload
 
 The repo includes convenience launchers:
 
-- **Standard**: `launch-council-web.command` (macOS) / `launch-council.bat` (Windows)
-- **LAN mode**: `launch-council-lan.command` / `launch-council-lan.bat` (binds host so other devices can connect)
-- **Persistent**: `launch-council-persistent.command` / `launch-council-persistent.bat` (auto-restart)
+- **Standard**: `bin/launch-council-web.command` (macOS) / `bin/launch-council.bat` (Windows)
+- **LAN mode**: `bin/launch-council-lan.command` / `bin/launch-council-lan.bat` (binds host so other devices can connect)
+- **Persistent**: `bin/launch-council-persistent.command` / `bin/launch-council-persistent.bat` (auto-restart)
 
 For accessing a running host from another device:
 

@@ -56,6 +56,6 @@ if defined MEMU_PATH (
 echo.
 
 REM Launch with personal settings
-python launch-council.py --open --install
+python bin\launch-council.py --open --install
 
 pause

@@ -2,7 +2,7 @@
 REM Simple Council AI Server Starter
 REM This runs the server directly using uvicorn
 
-cd /d "%~dp0"
+cd /d "%~dp0\.."
 
 REM Activate venv if it exists
 if exist "venv\Scripts\activate.bat" (

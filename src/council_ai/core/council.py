@@ -13,7 +13,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union, cast
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -386,14 +386,14 @@ class Council:
                     model=model_name,
                     base_url=self._base_url,
                 )
-            except ImportError as e:
+            except ImportError:
                 # If persona's provider requires missing module, fall back to default
                 logger.warning(
                     f"Persona '{member.id}' requested provider '{provider_name}' unavailable (missing module); "
                     f"using default provider '{self._provider_name}' instead."
                 )
                 return default_provider
-            except Exception as e:
+            except Exception:
                 # If persona's provider is unavailable, fall back to default
                 logger.warning(
                     f"Persona '{member.id}' requested provider '{provider_name}' unavailable; "
@@ -745,6 +745,7 @@ class Council:
             session_id=session_id,
             auto_recall=auto_recall,
         )
+        responses = cast(List[MemberResponse], responses)
 
         # Generate synthesis if needed
         synthesis = None
@@ -828,10 +829,11 @@ class Council:
 
         # Auto-save to history if enabled
         if self._history:
+            history = self._history
             try:
                 metadata = {"domain": self._domain_id} if self._domain_id else None
-                consultation_id = self._history.save(result, metadata=metadata)
-                self._history.save_session(session)
+                consultation_id = history.save(result, metadata=metadata)
+                history.save_session(session)
 
                 # Save cost records
                 if consultation_id:
@@ -839,7 +841,7 @@ class Council:
 
                     cost_tracker = get_cost_tracker()
                     for cost_record in cost_tracker.get_records():
-                        self._history.save_cost(
+                        history.save_cost(
                             consultation_id=consultation_id,
                             provider=cost_record.provider,
                             model=cost_record.model,
@@ -870,11 +872,14 @@ class Council:
 
     async def _save_history_async(self, result: ConsultationResult, session: Session) -> None:
         """Save consultation history asynchronously (non-blocking)."""
+        if not self._history:
+            return
+        history = self._history
         try:
             metadata = {"domain": self._domain_id} if self._domain_id else None
             # Run blocking save in thread pool to avoid blocking event loop
-            consultation_id = await asyncio.to_thread(self._history.save, result, metadata=metadata)
-            await asyncio.to_thread(self._history.save_session, session)
+            consultation_id = await asyncio.to_thread(history.save, result, metadata=metadata)
+            await asyncio.to_thread(history.save_session, session)
 
             # Save cost records
             if consultation_id:
@@ -883,7 +888,7 @@ class Council:
                 cost_tracker = get_cost_tracker()
                 for cost_record in cost_tracker.get_records():
                     await asyncio.to_thread(
-                        self._history.save_cost,
+                        history.save_cost,
                         consultation_id=consultation_id,
                         provider=cost_record.provider,
                         model=cost_record.model,
@@ -1104,7 +1109,7 @@ class Council:
             return (member.id, enhanced)
 
         # Run all web searches concurrently
-        results = await asyncio.gather(
+        results: List[Union[tuple[str, Optional[str]], BaseException]] = await asyncio.gather(
             *[enhance_for_member(member) for member in members_needing_search],
             return_exceptions=True,
         )

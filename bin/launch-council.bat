@@ -2,7 +2,7 @@
 REM Council AI - Windows Launch Script
 REM Double-click to launch
 
-cd /d "%~dp0"
+cd /d "%~dp0\.."
 echo 🏛️  Launching Council AI...
 echo.
 echo Keep this window open while using Council AI.
@@ -16,7 +16,7 @@ if exist "venv\Scripts\activate.bat" (
     call .venv\Scripts\activate.bat
 )
 
-python launch-council.py --role auto --open 2>&1
+python bin\launch-council.py --role auto --open 2>&1
 
 REM If we get here, the server stopped
 echo.

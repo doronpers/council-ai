@@ -2,7 +2,7 @@
 REM Council AI - Web UI Launcher
 REM Launches the web interface with automatic venv activation and .env loading
 
-cd /d "%~dp0"
+cd /d "%~dp0\.."
 echo 🏛️  Launching Council AI Web UI...
 echo.
 
@@ -31,7 +31,7 @@ if exist ".env" (
 
 REM Launch web UI
 echo Starting web server...
-python launch-council.py --open
+python bin\launch-council.py --open
 
 if %ERRORLEVEL% neq 0 (
     if %ERRORLEVEL% equ 2 (

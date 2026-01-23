@@ -451,3 +451,49 @@ The good news: all identified issues are fixable, and most are straightforward. 
 ---
 
 _"Good design is as little design as possible. Less, but better."_ - Dieter Rams
+
+---
+
+## Part 2: Repository Structure & CLI Audit (Jan 23, 2026)
+
+**Auditor:** Antigravity (Gemini)
+**Scope:** Repository File Structure, CLI Organization, Root Directory Hygiene
+
+### Audit by Rams' Principles
+
+#### 1. Good Design is Unobtrusive ⭐⭐⭐⭐ (4/5)
+
+**Finding:** The root directory was cluttered with 12+ script files (`launch-*.py`, `*.bat`), making the entry point noisy and distracting.
+**Action:** Moved all launcher scripts to `bin/` and setup scripts to `scripts/`.
+**Result:** A clean root directory containing only essential configuration (`pyproject.toml`, `README.md`, etc.) and directories.
+
+#### 2. Good Design Makes a Product Understandable ⭐⭐⭐⭐ (4/5)
+
+**Finding:** CLI implementation code was scattered in `src/council_ai/` (`cli_config.py`, `cli_domain.py`, etc.) alongside `core/` and `cli/` folders, creating ambiguity about where the CLI logic lived.
+**Action:** Moved all `cli_*.py` modules into `src/council_ai/cli/` and refactored imports.
+**Result:** A clear, logical structure where all CLI-related code resides in `src/council_ai/cli/`.
+
+#### 3. Good Design is Honest ⭐⭐⭐⭐⭐ (5/5)
+
+**Finding:** Documentation referenced scripts in root that were effectively implementation details or clutter.
+**Action:** Updated `README.md`, `SETUP_VENV.md`, and `WEB_APP.md` to accurately reflect the new `bin/` and `scripts/` locations.
+**Result:** Documentation now promotes a cleaner mental model of the tools (e.g., `bin/launch-council` behaves like a system binary).
+
+### Actions Taken
+
+1. **Root Cleanup**:
+   - Moved `launch-*.py` and `*.bat` -> `bin/`
+   - Moved `setup-venv.*` and `activate-venv.*` -> `scripts/`
+2. **CLI Refactor**:
+   - Moved `src/council_ai/cli_*.py` -> `src/council_ai/cli/*.py`
+   - Renamed modules (e.g., `cli_config.py` -> `config.py`) for cleaner imports within the `cli` package.
+   - Fixed all circular and relative imports.
+3. **Documentation Sync**:
+   - Updated `README.md` Quickstart commands.
+   - Updated `SETUP_VENV.md` paths.
+   - Updated `WEB_APP.md` launcher references.
+
+### Verification status
+
+- **CLI**: Verified `python -m council_ai.cli --help` works correctly.
+- **Scripts**: Updated batch scripts in `bin/` to correctly resolve repository root.

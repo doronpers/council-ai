@@ -28,17 +28,17 @@ if %ERRORLEVEL% neq 0 (
     echo.
     echo Diagnosing issue...
     echo.
-    
+
     REM Find Node.js installation directory
     where node >nul 2>&1
     if %ERRORLEVEL% equ 0 (
         for /f "tokens=*" %%i in ('where node') do set NODE_PATH=%%i
         set NODE_DIR=%~dp0
         for %%i in ("%NODE_PATH%") do set NODE_DIR=%%~dpi
-        
+
         echo Node.js location: %NODE_DIR%
         echo.
-        
+
         REM Check if npm.cmd exists in Node.js directory
         if exist "%NODE_DIR%npm.cmd" (
             echo ✅ Found npm.cmd at: %NODE_DIR%npm.cmd

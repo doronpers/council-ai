@@ -46,14 +46,14 @@ echo ""
 # Install dependencies (if not skipped)
 if [ "$1" != "--skip-install" ]; then
     echo "Installing Council AI dependencies..."
-    
+
     # Check for shared-ai-utils sibling (development mode)
     SHARED_UTILS="$(dirname "$SCRIPT_DIR")/shared-ai-utils"
     if [ -d "$SHARED_UTILS" ]; then
         echo "Found local shared-ai-utils, installing in development mode..."
         pip install -e "$SHARED_UTILS" --quiet
     fi
-    
+
     # Install council-ai
     pip install -e ".[web]" --quiet
     echo "✓ Dependencies installed"

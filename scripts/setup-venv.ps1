@@ -54,14 +54,14 @@ Write-Host "✓ pip upgraded" -ForegroundColor Green
 # Install dependencies
 if (-not $SkipInstall) {
     Write-Host "Installing Council AI dependencies..." -ForegroundColor Yellow
-    
+
     # Check for shared-ai-utils sibling (development mode)
     $sharedUtilsPath = Join-Path (Split-Path -Parent $ScriptDir) "shared-ai-utils"
     if (Test-Path $sharedUtilsPath) {
         Write-Host "Found local shared-ai-utils, installing in development mode..." -ForegroundColor Cyan
         pip install -e $sharedUtilsPath --quiet
     }
-    
+
     # Install council-ai
     pip install -e ".[web]" --quiet
     Write-Host "✓ Dependencies installed" -ForegroundColor Green
@@ -71,7 +71,7 @@ if (-not $SkipInstall) {
 if (-not $SkipEnv) {
     $envFile = Join-Path $ScriptDir ".env"
     $envExample = Join-Path $ScriptDir ".env.example"
-    
+
     if (-not (Test-Path $envFile)) {
         if (Test-Path $envExample) {
             Write-Host "Creating .env file from template..." -ForegroundColor Yellow

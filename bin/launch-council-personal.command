@@ -54,4 +54,4 @@ fi
 echo ""
 
 # Launch with personal settings
-python3 bin/launch-council.py --open --install
+python3 bi./bin/launch-council.py --open --install

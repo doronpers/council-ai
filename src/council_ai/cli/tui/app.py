@@ -43,26 +43,6 @@ class CouncilTUI(App):
         *args,
         **kwargs,
     ):
-        # #region agent log
-        import json
-
-        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "id": "log_app_init_start",
-                        "timestamp": __import__("time").time() * 1000,
-                        "location": "app.py:46",
-                        "message": "CouncilTUI.__init__ start",
-                        "data": {"domain": domain, "members": members, "provider": provider},
-                        "sessionId": "debug-session",
-                        "runId": "run1",
-                        "hypothesisId": "B",
-                    }
-                )
-                + "\n"
-            )
-        # #endregion
         super().__init__(*args, **kwargs)
         self.config_manager = ConfigManager()
         self.domain = domain
@@ -74,126 +54,18 @@ class CouncilTUI(App):
         self.session_id = session_id
 
         # Assemble council
-        # #region agent log
-        import json
-
-        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "id": "log_app_before_assemble",
-                        "timestamp": __import__("time").time() * 1000,
-                        "location": "app.py:57",
-                        "message": "Before assemble_council",
-                        "data": {"provider": self.provider, "has_api_key": bool(self.api_key)},
-                        "sessionId": "debug-session",
-                        "runId": "run1",
-                        "hypothesisId": "D",
-                    }
-                )
-                + "\n"
-            )
-        # #endregion
         try:
             self.council = assemble_council(
                 self.domain, self.members, self.api_key, self.provider, self.model, self.base_url
             )
-            # #region agent log
-            import json
-
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                f.write(
-                    json.dumps(
-                        {
-                            "id": "log_app_council_assembled",
-                            "timestamp": __import__("time").time() * 1000,
-                            "location": "app.py:60",
-                            "message": "Council assembled",
-                            "data": {
-                                "member_count": len(self.council._members)
-                                if hasattr(self.council, "_members")
-                                else 0
-                            },
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "D",
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
-        except Exception as e:
-            # #region agent log
-            import json
-            import traceback
-
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                f.write(
-                    json.dumps(
-                        {
-                            "id": "log_app_council_error",
-                            "timestamp": __import__("time").time() * 1000,
-                            "location": "app.py:63",
-                            "message": "Council assembly failed",
-                            "data": {
-                                "error": str(e),
-                                "error_type": type(e).__name__,
-                                "traceback": traceback.format_exc(),
-                            },
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "D",
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
+        except Exception:
             raise
 
         # Enable history
         self.council._history = ConsultationHistory()
-        # #region agent log
-        import json
-
-        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "id": "log_app_init_complete",
-                        "timestamp": __import__("time").time() * 1000,
-                        "location": "app.py:65",
-                        "message": "CouncilTUI.__init__ complete",
-                        "data": {},
-                        "sessionId": "debug-session",
-                        "runId": "run1",
-                        "hypothesisId": "B",
-                    }
-                )
-                + "\n"
-            )
-        # #endregion
 
     def on_mount(self) -> None:
         """Called when app is mounted."""
-        # #region agent log
-        import json
-
-        with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "sessionId": "debug-session",
-                        "runId": "run1",
-                        "hypothesisId": "E",
-                        "location": "app.py:66",
-                        "message": "CouncilTUI.on_mount entry",
-                        "data": {},
-                        "timestamp": int(__import__("time").time() * 1000),
-                    }
-                )
-                + "\n"
-            )
-        # #endregion
         try:
             screen = MainScreen(
                 self.council,
@@ -201,65 +73,8 @@ class CouncilTUI(App):
                 members=self.members,
                 session_id=self.session_id,
             )
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "E",
-                            "location": "app.py:73",
-                            "message": "MainScreen created, pushing",
-                            "data": {},
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
             self.push_screen(screen)
-            # #region agent log
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "E",
-                            "location": "app.py:76",
-                            "message": "MainScreen pushed",
-                            "data": {},
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
-        except Exception as e:
-            # #region agent log
-            import traceback
-
-            with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-                f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "debug-session",
-                            "runId": "run1",
-                            "hypothesisId": "E",
-                            "location": "app.py:79",
-                            "message": "Exception in on_mount",
-                            "data": {
-                                "error": str(e),
-                                "type": type(e).__name__,
-                                "traceback": traceback.format_exc(),
-                            },
-                            "timestamp": int(__import__("time").time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
+        except Exception:
             raise
 
     def action_exit(self) -> None:
@@ -268,15 +83,15 @@ class CouncilTUI(App):
 
     def action_help(self) -> None:
         """Show help."""
-        # TODO: Implement help screen
+        # Planned feature: Help screen with keyboard shortcuts and usage guide
         pass
 
     def action_members(self) -> None:
         """Show members."""
-        # TODO: Implement member selection
+        # Planned feature: Interactive member selection screen
         pass
 
     def action_config(self) -> None:
         """Show config."""
-        # TODO: Implement config screen
+        # Planned feature: Configuration screen for provider, model, and settings
         pass
