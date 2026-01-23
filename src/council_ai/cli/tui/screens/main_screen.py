@@ -8,6 +8,8 @@ from textual.containers import Container, Vertical
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
+from ..keyboard import HelpPanel, KeyboardShortcutManager, NavigationHints
+from ..scrolling import ContentPersistenceManager, ResponseNavigator, ScrollPositionManager
 from ..widgets import HistoryPanel, InputPanel, ResponsePanel, StatusPanel, ThinkingPanel
 
 
@@ -38,6 +40,14 @@ class MainScreen(Screen):
         self._consulting = False
         self._consultation_tasks: list = []  # Track async tasks to prevent garbage collection
 
+        # Initialize Phase 4 utilities
+        self.keyboard_manager = KeyboardShortcutManager()
+        self.content_manager = ContentPersistenceManager()
+        self.scroll_manager = ScrollPositionManager()
+        self.navigation_hints = NavigationHints()
+        self.help_panel = HelpPanel()
+        self.response_navigator = ResponseNavigator()
+
     def compose(self) -> ComposeResult:
         """Compose the screen layout."""
         try:
@@ -54,9 +64,17 @@ class MainScreen(Screen):
             raise
 
     def on_mount(self) -> None:
-        """Called when screen is mounted."""
+        """Called when screen is mounted - setup keyboard handlers."""
+        # Update status display
         self._update_status()
         self.input_panel.focus()
+
+        # Register keyboard handlers for common actions
+        self.keyboard_manager.register_handler("ctrl+s", self._handle_save_session)
+        self.keyboard_manager.register_handler("?", self._handle_show_help)
+        self.keyboard_manager.register_handler("f1", self._handle_show_help)
+        self.keyboard_manager.register_handler("tab", self._handle_focus_next_section)
+        self.keyboard_manager.register_handler("shift+tab", self._handle_focus_previous_section)
 
     @property
     def status_panel(self) -> StatusPanel:
@@ -125,19 +143,18 @@ class MainScreen(Screen):
             task = loop.create_task(self._consult(query))
             # Store task reference to prevent garbage collection
             self._consultation_tasks.append(task)
+            # Add cleanup callback to remove task when done
+            task.add_done_callback(
+                lambda t: self._consultation_tasks.remove(t)
+                if t in self._consultation_tasks
+                else None
+            )
         except RuntimeError as e:
-            # No event loop running - fallback to creating a new one
-            # This shouldn't happen in Textual, but handle it gracefully
-            error_msg = f"Error: No async event loop available: {e}\n\nTrying fallback..."
+            # No event loop running - this shouldn't happen in Textual
+            error_msg = f"Error: No async event loop available: {e}"
             self.response_panel.update(f"[red]{error_msg}[/red]")
-            # Try to run in a thread as fallback
-            import threading
-
-            def run_async():
-                asyncio.run(self._consult(query))
-
-            thread = threading.Thread(target=run_async, daemon=True)
-            thread.start()
+            # Don't use threading fallback - it causes race conditions
+            # Just report the error to the user
 
     def _parse_bracket_notation(self, text: str) -> Optional[list]:
         """Parse bracket notation for persona IDs."""
@@ -204,13 +221,16 @@ class MainScreen(Screen):
             mode = ConsultationMode(self.council.config.mode.value)
             result = None
 
-            async for event in self.council.consult_stream(
-                query, mode=mode, session_id=self.session_id
-            ):
-                event_type = event.get("type")
-                persona_id = event.get("persona_id")
-                persona_name = event.get("persona_name", persona_id)
-                persona_emoji = event.get("persona_emoji", "")
+            # Helper coroutine for the consultation stream
+            async def process_consultation():
+                nonlocal result
+                async for event in self.council.consult_stream(
+                    query, mode=mode, session_id=self.session_id
+                ):
+                    event_type = event.get("type")
+                    persona_id = event.get("persona_id")
+                    persona_name = event.get("persona_name", persona_id)
+                    persona_emoji = event.get("persona_emoji", "")
 
                 if event_type == "response_start":
                     if persona_id:
@@ -241,23 +261,40 @@ class MainScreen(Screen):
                         self.status_panel.member_statuses = member_statuses
                         self.thinking_panel.clear_persona(persona_id)
 
+                        # Persist response to memory
+                        if persona_id in self.response_panel._responses:
+                            response_content = self.response_panel._responses[persona_id]
+                            thinking_content = self.thinking_panel._thinking_content.get(
+                                persona_id, ""
+                            )
+                            self._persist_response(
+                                persona_id, persona_name, response_content, thinking_content
+                            )
+
                 elif event_type == "synthesis_chunk":
                     chunk = event.get("chunk", "")
                     if chunk:
                         self.response_panel.add_synthesis_chunk(chunk)
 
-                elif event_type == "complete":
-                    result = event.get("result")
-                    if result:
-                        self.session_id = result.session_id
-                        self.status_panel.session_id = self.session_id
-                        # Update history with synthesis
-                        if result.synthesis:
-                            # Update last entry with synthesis
-                            if self.history_panel._history:
-                                last_entry = self.history_panel._history[-1]
-                                last_entry["synthesis"] = result.synthesis
-                                self.history_panel.update_display()
+                    elif event_type == "complete":
+                        result = event.get("result")
+                        if result:
+                            self.session_id = result.session_id
+                            self.status_panel.session_id = self.session_id
+                            # Update history with synthesis
+                            if result.synthesis:
+                                # Update last entry with synthesis
+                                if self.history_panel._history:
+                                    last_entry = self.history_panel._history[-1]
+                                    last_entry["synthesis"] = result.synthesis
+                                    self.history_panel.update_display()
+
+            # Run consultation with 5-minute timeout
+            try:
+                await asyncio.wait_for(process_consultation(), timeout=300)
+            except asyncio.TimeoutError:
+                self.response_panel.add_error("Consultation timed out after 5 minutes")
+                self._consulting = False
 
         except ImportError as e:
             error_msg = (
@@ -296,8 +333,9 @@ class MainScreen(Screen):
 
     def action_help(self) -> None:
         """Show help."""
-        # Planned feature: Help screen with keyboard shortcuts and usage guide
-        pass
+        # Show keyboard shortcuts and usage guide using HelpPanel
+        help_content = self.help_panel.get_quick_start_help()
+        self.response_panel.update(f"[blue]{help_content}[/blue]")
 
     def action_members(self) -> None:
         """Show members."""
@@ -308,3 +346,13 @@ class MainScreen(Screen):
         """Show config."""
         # Planned feature: Configuration screen for provider, model, and settings
         pass
+
+    def _persist_response(
+        self, persona_id: str, persona_name: str, content: str, thinking: Optional[str] = None
+    ) -> None:
+        """Persist response content for session recovery."""
+        self.content_manager.save_response(persona_id, persona_name, content, thinking)
+
+    def _save_session_export(self, format: str = "markdown") -> str:
+        """Export current session in specified format."""
+        return self.content_manager.export_content(format=format)

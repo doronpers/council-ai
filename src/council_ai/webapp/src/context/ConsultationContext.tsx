@@ -62,6 +62,7 @@ export const ConsultationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [result, setResult] = useState<ConsultationResult | null>(null);
   const [streamingSynthesis, setStreamingSynthesis] = useState('');
   const [streamingResponses, setStreamingResponses] = useState<Map<string, string>>(new Map());
+  const [streamingThinking, setStreamingThinking] = useState<Map<string, string>>(new Map());
   const [memberStatuses, setMemberStatuses] = useState<MemberStatusInfo[]>([]);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [statusMessage, setStatusMessage] = useState('');

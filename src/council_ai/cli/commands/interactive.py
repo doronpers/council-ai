@@ -131,7 +131,9 @@ def interactive(ctx, domain, provider, api_key, session_id):
                             except Exception as e:
                                 console.print(f"[yellow]Could not generate report: {e}[/yellow]")
                     except ImportError:
-                        pass  # rich.prompt not available
+                        console.print(
+                            "[yellow]Warning: rich.prompt module not available for report generation[/yellow]"
+                        )
 
                     console.print("[green]✓[/green] Session ended. Goodbye!")
                     break
@@ -189,8 +191,10 @@ def interactive(ctx, domain, provider, api_key, session_id):
                 try:
                     user_memory.record_consultation(result)
                     user_memory.record_session(result.session_id, domain)
-                except Exception:
-                    pass  # User memory is optional
+                except Exception as e:
+                    console.print(
+                        f"[dim yellow]Warning: Could not save to user memory: {e}[/dim yellow]"
+                    )
 
             console.print()
             console.print(Markdown(result.to_markdown()))

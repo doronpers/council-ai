@@ -266,8 +266,10 @@ def consult(
                 # Fallback to non-streaming if result is None
                 if not result:
                     result = council.consult(query, context=context, mode=mode_enum)
-            except Exception:
+            except Exception as e:
                 # Fallback to non-streaming on error
+                console.print(f"[yellow]Streaming error: {e}[/yellow]")
+                console.print("[dim]Falling back to non-streaming mode...[/dim]")
                 try:
                     result = council.consult(query, context=context, mode=mode_enum)
                 except Exception as e2:

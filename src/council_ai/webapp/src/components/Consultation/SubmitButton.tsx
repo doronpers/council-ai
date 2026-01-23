@@ -131,13 +131,13 @@ const SubmitButton: React.FC = () => {
   ]);
 
   return (
-    <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+    <div className="flex-row gap-12 mt-20">
       <button
         type="button"
         id="submit"
         onClick={handleSubmit}
         disabled={isConsulting || !query.trim()}
-        style={{ flex: 1 }}
+        className="flex-full"
       >
         {isConsulting ? (
           <>

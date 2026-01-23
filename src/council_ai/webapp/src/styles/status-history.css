@@ -1,0 +1,132 @@
+/* Status Message History */
+
+.status-history {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  max-width: 400px;
+}
+
+.status-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-message {
+  padding: 12px 16px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+.status-message--enter {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+.status-message--exit {
+  animation: slideOutRight 0.3s ease-in forwards;
+}
+
+/* Message Types */
+
+.status-message--info {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-left: 4px solid #1976d2;
+}
+
+.status-message--success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-left: 4px solid #43a047;
+}
+
+.status-message--warning {
+  background-color: #fff3e0;
+  color: #e65100;
+  border-left: 4px solid #fb8c00;
+}
+
+.status-message--error {
+  background-color: #ffebee;
+  color: #c62828;
+  border-left: 4px solid #e53935;
+}
+
+.status-message-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.status-message-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.status-message-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.status-message-close:hover {
+  opacity: 1;
+}
+
+.status-message-close:focus {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Animations */
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+/* Responsive */
+
+@media (max-width: 600px) {
+  .status-history {
+    left: 8px;
+    right: 8px;
+    max-width: none;
+  }
+
+  .status-message {
+    font-size: 13px;
+  }
+}

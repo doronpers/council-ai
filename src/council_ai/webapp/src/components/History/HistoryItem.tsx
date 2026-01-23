@@ -146,26 +146,29 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onC
             className="response-action-btn"
             onClick={handleView}
             disabled={isViewing}
+            aria-label="View consultation details"
             title="View details"
           >
-            {isViewing ? '⏳' : '👁️'}
+            <span aria-hidden="true">{isViewing ? '⏳' : '👁️'}</span>
           </button>
           <button
             type="button"
             className="response-action-btn"
             onClick={handleCompare}
             disabled={isComparing}
+            aria-label="Compare consultation"
             title="Compare consultation"
           >
-            {isComparing ? '⏳' : '⚖️'}
+            <span aria-hidden="true">{isComparing ? '⏳' : '⚖️'}</span>
           </button>
           <button
             type="button"
             className="response-action-btn"
             onClick={() => setIsEditing(!isEditing)}
+            aria-label={isEditing ? 'Close editor' : 'Edit tags and notes'}
             title="Edit tags/notes"
           >
-            ✏️
+            <span aria-hidden="true">✏️</span>
           </button>
           <button
             type="button"

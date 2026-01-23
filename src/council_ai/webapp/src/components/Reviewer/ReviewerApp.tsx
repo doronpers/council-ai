@@ -490,7 +490,7 @@ const ReviewerApp: React.FC = () => {
                       onChange={(e) => setMaxTokens(Number(e.target.value))}
                     />
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="grid-full">
                     <label htmlFor="reviewer-api-key">API Key (optional)</label>
                     <input
                       type="password"
@@ -500,7 +500,7 @@ const ReviewerApp: React.FC = () => {
                       onChange={(e) => setApiKey(e.target.value)}
                     />
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="grid-full">
                     <label htmlFor="reviewer-base-url">Custom Base URL (optional)</label>
                     <input
                       id="reviewer-base-url"
@@ -620,7 +620,9 @@ const ReviewerApp: React.FC = () => {
                             <div key={`${assessment.response_id}-${criterion}`}>
                               <div className="score-label">
                                 <span>{(criterion || '').replace(/_/g, ' ')}</span>
-                                <span>{typeof score === 'number' ? score.toFixed(1) : '0.0'}/10</span>
+                                <span>
+                                  {typeof score === 'number' ? score.toFixed(1) : '0.0'}/10
+                                </span>
                               </div>
                               <div className="score-bar">
                                 <div className="score-fill" style={{ width: `${score * 10}%` }} />
@@ -671,7 +673,7 @@ const ReviewerApp: React.FC = () => {
                                   {opinion.role === 'chair' ? 'Chair' : 'Vice Chair'}
                                 </span>
                               )}
-                              <span className={voteClass} style={{ marginLeft: 'auto' }}>
+                              <span className={`${voteClass} ml-auto`}>
                                 {opinion.vote === 'approve'
                                   ? '✓ Approve'
                                   : opinion.vote === 'dissent'

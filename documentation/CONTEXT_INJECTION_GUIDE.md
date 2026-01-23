@@ -61,7 +61,7 @@ result = council.consult(
 )
 ```
 
-### Method 2: Using Helper Utility
+### Method 2: Helper Utility for Markdown
 
 ```python
 from council_ai import Council
@@ -117,7 +117,7 @@ context=context
 
 ````
 
-### Method 2: Using Helper Utility
+### Method 2: Helper Utility for Code
 
 ```python
 from council_ai import Council
@@ -173,7 +173,7 @@ result = council.consult(
 )
 ```
 
-### Method 2: Using Helper Utility
+### Method 2: Helper Utility for Images
 
 ```python
 from council_ai import Council
@@ -200,7 +200,7 @@ result = council.consult(
 
 ## Injecting Multiple Files
 
-### Using Helper Utility
+### Helper Utility for Multiple Files
 
 ```python
 from council_ai import Council
@@ -212,7 +212,7 @@ council.add_member("DR")
 # Load multiple files of different types
 context = load_context_from_files([
     "README.md",                    # Markdown
-    "src/council_ai/cli.py",       # Code
+    "src/council_ai/cli/app.py",    # Code
     "documentation/API_REFERENCE.md", # Markdown
     "config.yaml.example",         # Configuration (YAML)
 ])
@@ -353,7 +353,7 @@ context = load_context_from_files([
     "documentation/API_REFERENCE.md",
 
     # Code
-    "src/council_ai/cli.py",
+    "src/council_ai/cli/app.py",
     "src/council_ai/core/council.py",
 
     # Configuration

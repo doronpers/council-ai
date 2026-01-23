@@ -24,7 +24,7 @@ const QueryInput: React.FC<QueryInputProps> = ({ showContext = true, compact = f
   return (
     <>
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="flex-between">
           <label htmlFor="query">Query</label>
           <span
             className={`character-counter ${queryNearLimit ? 'character-counter--warning' : ''}`}
@@ -50,20 +50,17 @@ const QueryInput: React.FC<QueryInputProps> = ({ showContext = true, compact = f
           {compact && !showContextField && (
             <button
               type="button"
-              className="btn-minimal btn-small"
+              className="btn-minimal btn-small mb-8"
               onClick={() => setShowContextField(true)}
-              style={{ marginBottom: '8px' }}
             >
               + Add Context (Optional)
             </button>
           )}
           {(showContextField || !compact) && (
             <div>
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
+              <div className="flex-between">
                 <label htmlFor="context">Context (Optional)</label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div className="flex-row gap-8">
                   <span
                     className={`character-counter ${contextNearLimit ? 'character-counter--warning' : ''}`}
                     aria-live="polite"

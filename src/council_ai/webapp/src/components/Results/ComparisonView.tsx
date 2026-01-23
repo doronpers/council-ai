@@ -167,7 +167,7 @@ const ComparisonView: React.FC<ComparisonViewProps> = ({
               className={`comparison-response-cell ${pair.left ? '' : 'comparison-response-cell--empty'}`}
             >
               {pair.left ? (
-                <p style={{ whiteSpace: 'pre-wrap' }}>{escapeHtml(pair.left.content)}</p>
+                <p className="text-wrap-pre">{escapeHtml(pair.left.content)}</p>
               ) : (
                 <span className="comparison-response-placeholder">No response</span>
               )}
@@ -176,7 +176,7 @@ const ComparisonView: React.FC<ComparisonViewProps> = ({
               className={`comparison-response-cell ${pair.right ? '' : 'comparison-response-cell--empty'}`}
             >
               {pair.right ? (
-                <p style={{ whiteSpace: 'pre-wrap' }}>{escapeHtml(pair.right.content)}</p>
+                <p className="text-wrap-pre">{escapeHtml(pair.right.content)}</p>
               ) : (
                 <span className="comparison-response-placeholder">No response</span>
               )}

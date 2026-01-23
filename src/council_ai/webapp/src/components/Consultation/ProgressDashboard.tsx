@@ -21,12 +21,12 @@ const ProgressDashboard: React.FC = () => {
       <h2>Progress</h2>
 
       {/* Status message */}
-      <div id="status" className="muted" style={{ marginBottom: '16px' }}>
+      <div id="status" className="muted mb-16">
         {statusMessage}
       </div>
 
       {/* Progress bar */}
-      <div className="progress-bar-container" style={{ marginBottom: '16px' }}>
+      <div className="progress-bar-container mb-16">
         <div className="progress-bar" style={{ width: `${progressPercent}%` }} />
       </div>
 
@@ -38,7 +38,7 @@ const ProgressDashboard: React.FC = () => {
       </div>
 
       {/* Summary */}
-      <div className="progress-summary" style={{ marginTop: '12px' }}>
+      <div className="progress-summary mt-12">
         <span className="muted">
           {completedCount} of {totalCount} responses received
         </span>

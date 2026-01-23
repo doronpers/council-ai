@@ -2,15 +2,16 @@
 Diagnostic and maintenance commands.
 """
 
-import sys
-import os
 import asyncio
-import click
-from rich.table import Table
-from rich.panel import Panel
+import os
+import sys
 
-from ..utils import console
+import click
+from rich.panel import Panel
+from rich.table import Table
+
 from ...providers import list_providers
+from ..utils import console
 
 
 @click.group("cost")
@@ -223,7 +224,11 @@ def doctor():
             return await asyncio.gather(*tasks)
 
         with console.status("[bold green]Pinging providers..."):
-            results = asyncio.run(run_checks())
+            try:
+                results = asyncio.run(run_checks())
+            except Exception as e:
+                console.print(f"[red]Error running provider checks: {e}[/red]")
+                return
 
         for provider, result in zip(configured_providers, results):
             success, msg, latency = result

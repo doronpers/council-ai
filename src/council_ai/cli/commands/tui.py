@@ -57,6 +57,12 @@ def tui(ctx, domain, members, provider, api_key, session_id):
             base_url=base_url,
             session_id=session_id,
         )
-    except Exception:
-        raise
-    app.run()
+    except Exception as e:
+        console.print(f"[red]TUI initialization error: {e}[/red]")
+        sys.exit(1)
+
+    try:
+        app.run()
+    except Exception as e:
+        console.print(f"[red]TUI runtime error: {e}[/red]")
+        sys.exit(1)

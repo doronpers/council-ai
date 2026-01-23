@@ -14,10 +14,10 @@ const SynthesisCard: React.FC<SynthesisCardProps> = ({ content, isStreaming = fa
     <div className="synthesis">
       <h3>
         📋 Synthesis
-        {isStreaming && <span className="loading" style={{ marginLeft: '8px' }}></span>}
+        {isStreaming && <span className="loading ml-8"></span>}
       </h3>
       <div className="synthesis-content">
-        <p style={{ whiteSpace: 'pre-wrap' }}>{content}</p>
+        <p className="text-wrap-pre">{content}</p>
       </div>
       {!isStreaming && <AudioPlayer synthesisText={content} />}
     </div>

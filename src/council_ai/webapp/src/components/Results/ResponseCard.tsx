@@ -5,6 +5,7 @@ import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../Layout/NotificationContainer';
 import { escapeHtml, copyToClipboard } from '../../utils/helpers';
+import { logger, createLogContext } from '../../utils/logger';
 
 interface ResponseCardProps {
   personaId: string;
@@ -55,7 +56,8 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
   const [isLiked, setIsLiked] = useState(() => {
     try {
       return localStorage.getItem(likeKey) === 'true';
-    } catch {
+    } catch (err) {
+      logger.storageError('read like state', err, createLogContext('ResponseCard'));
       return false;
     }
   });
@@ -63,7 +65,8 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
   const [isBookmarked, setIsBookmarked] = useState(() => {
     try {
       return localStorage.getItem(bookmarkKey) === 'true';
-    } catch {
+    } catch (err) {
+      logger.storageError('read bookmark state', err, createLogContext('ResponseCard'));
       return false;
     }
   });
@@ -71,7 +74,8 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
   const [isFavorited, setIsFavorited] = useState(() => {
     try {
       return localStorage.getItem(favoriteKey) === 'true';
-    } catch {
+    } catch (err) {
+      logger.storageError('read favorite state', err, createLogContext('ResponseCard'));
       return false;
     }
   });
@@ -107,10 +111,15 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
     setIsFavorited(nextValue);
     try {
       localStorage.setItem(favoriteKey, nextValue ? 'true' : 'false');
-    } catch {
-      // ignore storage errors
+      showNotification(
+        nextValue ? 'Response favorited' : 'Response removed from favorites',
+        'info'
+      );
+    } catch (err) {
+      logger.storageError('save favorite', err, createLogContext('ResponseCard'));
+      showNotification('Failed to save preference (localStorage unavailable)', 'warning');
+      setIsFavorited(!nextValue); // Rollback optimistic update
     }
-    showNotification(nextValue ? 'Response favorited' : 'Response removed from favorites', 'info');
   };
 
   const handleLike = () => {
@@ -118,10 +127,12 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
     setIsLiked(nextValue);
     try {
       localStorage.setItem(likeKey, nextValue ? 'true' : 'false');
-    } catch {
-      // ignore storage errors
+      showNotification(nextValue ? 'Response liked' : 'Response unliked', 'info');
+    } catch (err) {
+      logger.storageError('save like', err, createLogContext('ResponseCard'));
+      showNotification('Failed to save preference (localStorage unavailable)', 'warning');
+      setIsLiked(!nextValue); // Rollback optimistic update
     }
-    showNotification(nextValue ? 'Response liked' : 'Response unliked', 'info');
   };
 
   const handleBookmark = () => {
@@ -129,10 +140,12 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
     setIsBookmarked(nextValue);
     try {
       localStorage.setItem(bookmarkKey, nextValue ? 'true' : 'false');
-    } catch {
-      // ignore storage errors
+      showNotification(nextValue ? 'Response bookmarked' : 'Bookmark removed', 'info');
+    } catch (err) {
+      logger.storageError('save bookmark', err, createLogContext('ResponseCard'));
+      showNotification('Failed to save preference (localStorage unavailable)', 'warning');
+      setIsBookmarked(!nextValue); // Rollback optimistic update
     }
-    showNotification(nextValue ? 'Response bookmarked' : 'Bookmark removed', 'info');
   };
 
   const handleShare = () => {
@@ -260,8 +273,7 @@ const ResponseCard: React.FC<ResponseCardProps> = ({
           <p className="error">{escapeHtml(error)}</p>
         ) : (
           <p
-            className={`${isStreaming ? 'streaming-content' : ''} ${isThinking ? 'thinking-content' : ''} ${!isExpanded && isTruncated ? 'response-content-truncated' : ''}`}
-            style={{ whiteSpace: 'pre-wrap' }}
+            className={`${isStreaming ? 'streaming-content' : ''} ${isThinking ? 'thinking-content' : ''} ${!isExpanded && isTruncated ? 'response-content-truncated' : ''} text-wrap-pre`}
           >
             {isExpanded ? content : contentPreview}
             {isStreaming && <span className="loading"></span>}

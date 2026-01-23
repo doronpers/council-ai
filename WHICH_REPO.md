@@ -10,20 +10,22 @@
 ## Detailed Explanation
 
 ### `council-ai` (Main Repository)
+
 - **Contains**: All the core Council AI code, web interface, CLI, personas, domains
-- **Use this for**: 
+- **Use this for**:
   - Running the web server
   - Using the CLI commands
   - Development and bug fixes
   - Installing and using Council AI
 
 ### `council-ai-personal` (Personal Overlay)
+
 - **Contains**: Your personal customizations:
   - Custom personas you've created
   - Personal configuration files
   - Custom domain presets
   - Personal scripts
-- **Use this for**: 
+- **Use this for**:
   - Storing your personal customizations
   - Version controlling your personal configs
   - Sharing your custom personas with others
@@ -31,16 +33,19 @@
 ## How They Work Together
 
 1. **Install/use Council AI from `council-ai`**:
+
    ```bash
    cd council-ai
-   python launch-council.py
+   python bin/launch-council.py
    ```
 
 2. **Integrate your personal configs** (one-time setup):
+
    ```bash
    cd council-ai
    council personal integrate
    ```
+
    This copies your custom configs from `council-ai-personal` into `~/.config/council-ai/`
 
 3. **After integration**: Council AI automatically uses both:
@@ -50,17 +55,19 @@
 ## Launch Options
 
 ### Standard Launch (uses built-in + integrated personal configs)
+
 ```bash
 cd council-ai
-python launch-council.py
+python bin/launch-council.py
 ```
 
 ### Launch with Personal Integration (auto-detects council-ai-personal)
+
 ```bash
 cd council-ai
-launch-council-personal.bat  # Windows
+bin/launch-council-personal.bat  # Windows
 # or
-python launch-council.py --personal  # If supported
+python bin/launch-council.py --personal  # If supported
 ```
 
 ## Workflow Summary
