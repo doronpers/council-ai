@@ -166,7 +166,7 @@ def validate_configuration(config_dict: Dict[str, any]) -> Tuple[bool, List[str]
 
 def display_config_warning(key: str, value: any, warning: str) -> None:
     """Display configuration warning to user"""
-    console.print(f"[yellow]⚠️  Configuration Warning[/yellow]")
+    console.print("[yellow]⚠️  Configuration Warning[/yellow]")
     console.print(f"  Key: {key}")
     console.print(f"  Value: {value}")
     console.print(f"  Issue: {warning}")

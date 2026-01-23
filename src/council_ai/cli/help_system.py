@@ -2,7 +2,7 @@
 CLI command documentation and help utilities
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from rich.console import Console
 from rich.panel import Panel

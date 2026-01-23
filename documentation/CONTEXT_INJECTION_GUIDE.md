@@ -89,7 +89,7 @@ result = council.consult(
 
 ### Method 1: Read and Format Manually
 
-````python
+`````python
 from pathlib import Path
 from council_ai import Council
 
@@ -115,7 +115,7 @@ result = council.consult(
 context=context
 )
 
-````
+`````
 
 ### Method 2: Helper Utility for Code
 

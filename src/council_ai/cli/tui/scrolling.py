@@ -9,7 +9,6 @@ from typing import List, Optional
 
 from textual.containers import ScrollableContainer
 from textual.message import Message
-from textual.widget import Widget
 
 
 class ScrollableResponse(ScrollableContainer):

@@ -110,9 +110,9 @@ class StorageError(CLIError):
 
         suggestion = (
             "Try one of:\n"
-            f"  • Check disk space: df -h\n"
-            f"  • Check permissions: ls -la ~/.council\n"
-            f"  • Clear cache: council history clear (WARNING: deletes history)"
+            "  • Check disk space: df -h\n"
+            "  • Check permissions: ls -la ~/.council\n"
+            "  • Clear cache: council history clear (WARNING: deletes history)"
         )
 
         super().__init__(full_message, suggestion)

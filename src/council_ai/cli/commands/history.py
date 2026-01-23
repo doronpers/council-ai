@@ -4,15 +4,16 @@ History and session management commands.
 
 import sys
 from pathlib import Path
-import click
-from rich.table import Table
-from rich.panel import Panel
-from rich.prompt import Prompt, Confirm
-from rich.markdown import Markdown
 
-from ..utils import console
+import click
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
+
 from ...core.history import ConsultationHistory
 from ...core.session import ConsultationResult
+from ..utils import console
 
 
 @click.group("history")

@@ -3,12 +3,13 @@ Code review command.
 """
 
 from pathlib import Path
+
 import click
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.markdown import Markdown
 
-from ..utils import console, require_api_key, DEFAULT_PROVIDER
+from ..utils import DEFAULT_PROVIDER, console, require_api_key
 
 
 @click.command()

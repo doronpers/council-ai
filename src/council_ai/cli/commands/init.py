@@ -6,8 +6,8 @@ import click
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
-from ..utils import console, DEFAULT_PROVIDER
 from ...providers import list_providers
+from ..utils import DEFAULT_PROVIDER, console
 
 
 @click.command()
@@ -19,19 +19,19 @@ def init(ctx):
     Guides you through first-time setup including API keys and preferences.
     Automatically detects all available API keys and suggests the best provider.
     """
+    from ... import list_domains
     from ...core.config import (
+        get_api_key,
         get_available_providers,
         get_best_available_provider,
-        get_api_key,
         is_placeholder_key,
     )
     from ...core.diagnostics import diagnose_api_keys
     from ...core.personal_integration import (
         detect_personal_repo,
-        is_personal_configured,
         integrate_personal,
+        is_personal_configured,
     )
-    from ... import list_domains
 
     config_manager = ctx.obj["config_manager"]
 
