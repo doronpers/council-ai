@@ -839,7 +839,7 @@ class Council:
                 strategy_result.structured_synthesis = structured_synthesis
             # Ensure context/mode/timestamp are set
             strategy_result.context = strategy_result.context or context
-            strategy_result.mode = strategy_result.mode or mode
+            strategy_result.mode = strategy_result.mode or mode.value
             strategy_result.timestamp = strategy_result.timestamp or datetime.now()
 
             result = strategy_result
