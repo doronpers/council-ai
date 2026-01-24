@@ -4,10 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from uuid import uuid4
 
 from .persona import Persona
+
+if TYPE_CHECKING:
+    from .analysis import AnalysisResult
+    from .schemas import ActionItem, ProsCons, Recommendation, SynthesisSchema
 
 
 @dataclass
@@ -47,11 +51,11 @@ class ConsultationResult:
     id: Optional[str] = field(default_factory=lambda: str(uuid4()))
     tags: List[str] = field(default_factory=list)
     notes: Optional[str] = None
-    structured_synthesis: Optional[Any] = None  # SynthesisSchema
-    analysis: Optional[Any] = None  # AnalysisResult
-    action_items: List[Any] = field(default_factory=list)  # List[ActionItem]
-    recommendations: List[Any] = field(default_factory=list)  # List[Recommendation]
-    pros_cons: Optional[Any] = None  # ProsCons
+    structured_synthesis: Optional[SynthesisSchema] = None
+    analysis: Optional[AnalysisResult] = None
+    action_items: List[ActionItem] = field(default_factory=list)
+    recommendations: List[Recommendation] = field(default_factory=list)
+    pros_cons: Optional[ProsCons] = None
     synthesis_audio_url: Optional[str] = None  # URL to synthesis audio if TTS is enabled
     session_id: Optional[str] = None
 

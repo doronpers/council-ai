@@ -42,8 +42,14 @@ class SynthesisStrategy(ConsultationStrategy):
         from ..session import ConsultationResult
 
         if isinstance(result, ConsultationResult):
-            return result.responses
-        return result
+            return result
+        # Legacy path: wrap list of responses in ConsultationResult
+        return ConsultationResult(
+            query=query,
+            responses=result,
+            context=context,
+            mode=mode.value if mode else "synthesis",
+        )
 
     async def stream(
         self,

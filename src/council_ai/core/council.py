@@ -72,9 +72,9 @@ class CouncilConfig(BaseModel):
     # Web search and reasoning capabilities
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
-    reasoning_mode: Optional[
-        str
-    ] = "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    reasoning_mode: Optional[str] = (
+        "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    )
     # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
     progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
@@ -164,9 +164,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[
-            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
-        ] = []
+        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
+            []
+        )
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -832,17 +832,14 @@ class Council:
             )
         else:
             # Merge computed synthesis back into strategy-provided result when missing
-            if strategy_result.synthesis is None and synthesis is not None:
-                strategy_result.synthesis = synthesis
-            if strategy_result.structured_synthesis is None and structured_synthesis is not None:
-                strategy_result.structured_synthesis = structured_synthesis
-            # Ensure context/mode/timestamp are set
-            if strategy_result.context is None:
-                strategy_result.context = context
-            if strategy_result.mode is None:
-                strategy_result.mode = mode
-            if strategy_result.timestamp is None:
-                strategy_result.timestamp = datetime.now()
+            strategy_result.synthesis = strategy_result.synthesis or synthesis
+            strategy_result.structured_synthesis = (
+                strategy_result.structured_synthesis or structured_synthesis
+            )
+            # Ensure context/mode/timestamp are set with proper defaults
+            strategy_result.context = strategy_result.context or context
+            strategy_result.mode = strategy_result.mode or mode
+            strategy_result.timestamp = strategy_result.timestamp or datetime.now()
 
             result = strategy_result
 
