@@ -150,27 +150,73 @@ const HistoryPanel: React.FC = () => {
 
           {(compareLeft || compareRight) && (
             <div className="history-compare-bar">
+              <div className="history-compare-header">
+                <h3 className="history-compare-title">⚖️ Compare Consultations</h3>
+                <p className="history-compare-hint">
+                  {!compareRight
+                    ? 'Select another consultation to compare'
+                    : 'Both consultations selected. Click "Compare" to view side-by-side.'}
+                </p>
+              </div>
               <div className="history-compare-slots">
                 <div
-                  className={`history-compare-slot ${compareLeft ? 'history-compare-slot--active' : ''}`}
+                  className={`history-compare-slot ${compareLeft ? 'history-compare-slot--active' : 'history-compare-slot--empty'}`}
                 >
                   <span className="history-compare-label">A</span>
                   <span className="history-compare-text">
-                    {compareLeft ? truncate(compareLeft.entry.query, 40) : 'Select a consultation'}
+                    {compareLeft ? truncate(compareLeft.entry.query, 40) : 'Select consultation A'}
                   </span>
+                  {compareLeft && (
+                    <button
+                      type="button"
+                      className="history-compare-remove"
+                      onClick={() => setCompareLeft(null)}
+                      aria-label="Remove from comparison A"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
                 <div
-                  className={`history-compare-slot ${compareRight ? 'history-compare-slot--active' : ''}`}
+                  className={`history-compare-slot ${compareRight ? 'history-compare-slot--active' : 'history-compare-slot--empty'}`}
                 >
                   <span className="history-compare-label">B</span>
                   <span className="history-compare-text">
-                    {compareRight ? truncate(compareRight.entry.query, 40) : 'Select a consultation'}
+                    {compareRight
+                      ? truncate(compareRight.entry.query, 40)
+                      : 'Select consultation B'}
                   </span>
+                  {compareRight && (
+                    <button
+                      type="button"
+                      className="history-compare-remove"
+                      onClick={() => setCompareRight(null)}
+                      aria-label="Remove from comparison B"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="history-compare-actions">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={clearComparison}>
-                  Clear
+                {comparisonReady && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setViewingResult(null);
+                      // Modal will show automatically when comparisonReady is true
+                    }}
+                  >
+                    ⚖️ View Comparison
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={clearComparison}
+                >
+                  Clear Selection
                 </button>
               </div>
             </div>
@@ -216,15 +262,27 @@ const HistoryPanel: React.FC = () => {
                 id="history-list"
                 className={`history-list ${isSearching ? 'history-list--searching' : ''}`}
               >
-                {displayHistory.map((entry) => (
-                  <HistoryItem
-                    key={entry.id}
-                    entry={entry}
-                    onDeleted={fetchHistory}
-                    onView={setViewingResult}
-                    onCompare={handleCompareSelection}
-                  />
-                ))}
+                {displayHistory.map((entry) => {
+                  const isSelected =
+                    compareLeft?.entry.id === entry.id || compareRight?.entry.id === entry.id;
+                  const slot =
+                    compareLeft?.entry.id === entry.id
+                      ? 'left'
+                      : compareRight?.entry.id === entry.id
+                        ? 'right'
+                        : null;
+                  return (
+                    <HistoryItem
+                      key={entry.id}
+                      entry={entry}
+                      onDeleted={fetchHistory}
+                      onView={setViewingResult}
+                      onCompare={handleCompareSelection}
+                      isSelectedForComparison={isSelected}
+                      comparisonSlot={slot}
+                    />
+                  );
+                })}
               </div>
 
               {!searchQuery && hasMore && (
@@ -255,7 +313,9 @@ const HistoryPanel: React.FC = () => {
                   </div>
                 )}
                 <div className="detail-section">
-                  <span className="detail-label">Responses ({viewingResult.responses.length}):</span>
+                  <span className="detail-label">
+                    Responses ({viewingResult.responses.length}):
+                  </span>
                   <div className="detail-content detail-content--scrollable">
                     {viewingResult.responses.map((response, i) => (
                       <div
@@ -263,7 +323,8 @@ const HistoryPanel: React.FC = () => {
                         className="response-item"
                       >
                         <div className="response-item-header">
-                          {response.persona_emoji} {response.persona_name} ({response.persona_title})
+                          {response.persona_emoji} {response.persona_name} ({response.persona_title}
+                          )
                         </div>
                         <div className="response-item-content">{response.content}</div>
                       </div>
@@ -282,7 +343,11 @@ const HistoryPanel: React.FC = () => {
             )}
           </Modal>
 
-          <Modal isOpen={!!comparisonReady} onClose={clearComparison} title="Consultation Comparison">
+          <Modal
+            isOpen={!!comparisonReady}
+            onClose={clearComparison}
+            title="Consultation Comparison"
+          >
             {comparisonReady && (
               <ComparisonView
                 leftResult={compareLeft.result}

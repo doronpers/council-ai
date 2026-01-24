@@ -4,15 +4,18 @@
 import React, { useMemo, useState } from 'react';
 import './ResultsPanel.css';
 import { useConsultation } from '../../context/ConsultationContext';
+import { useApp } from '../../context/AppContext';
 import SynthesisCard from './SynthesisCard';
 import ResponseCard from './ResponseCard';
 import AnalysisCard from './AnalysisCard';
 import UsageSummary from './UsageSummary';
 import ExportMenu from './ExportMenu';
+import AudioPlayer from './AudioPlayer';
 
 const ResultsPanel: React.FC = () => {
   const { result, streamingSynthesis, streamingResponses, streamingThinking, isConsulting } =
     useConsultation();
+  const { settings, updateSettings, config } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
 
   // During streaming, show streaming content
@@ -44,6 +47,7 @@ const ResultsPanel: React.FC = () => {
 
   // Show empty state if no results and not consulting
   if (!result && !isConsulting && streamingResponses.size === 0 && !streamingSynthesis) {
+    const hasTTS = config?.tts && (config.tts.has_elevenlabs_key || config.tts.has_openai_key);
     return (
       <section className="panel" id="results-section">
         <h2>Results</h2>
@@ -53,6 +57,14 @@ const ResultsPanel: React.FC = () => {
           </p>
           <p className="empty-state-text">Your consultation results will appear here</p>
           <p className="empty-state-hint">Ask your council a question to get started</p>
+          {hasTTS && !settings.enable_tts && (
+            <div className="empty-state-feature-hint">
+              <p className="empty-state-feature-text">
+                🔊 <strong>Try voice responses:</strong> Enable TTS in Advanced Settings to hear
+                synthesis read aloud
+              </p>
+            </div>
+          )}
         </div>
       </section>
     );
@@ -73,7 +85,23 @@ const ResultsPanel: React.FC = () => {
               className="results-search-input"
             />
           </div>
-          <ExportMenu result={result} />
+          <div className="results-toolbar-actions">
+            {/* TTS Toggle - Surface in toolbar */}
+            {config?.tts && (config.tts.has_elevenlabs_key || config.tts.has_openai_key) && (
+              <div className="results-tts-toggle">
+                <label className="results-tts-toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={settings.enable_tts || false}
+                    onChange={(e) => updateSettings({ enable_tts: e.target.checked })}
+                    aria-label="Enable text-to-speech"
+                  />
+                  <span className="results-tts-toggle-text">🔊 TTS</span>
+                </label>
+              </div>
+            )}
+            <ExportMenu result={result} />
+          </div>
         </div>
       )}
 
@@ -81,7 +109,17 @@ const ResultsPanel: React.FC = () => {
       {(showStreamingSynthesis || (showFinalResults && result.synthesis)) && (
         <div id="synthesis" className="results-section-synthesis">
           {showStreamingSynthesis && <SynthesisCard content={streamingSynthesis} isStreaming />}
-          {showFinalResults && result.synthesis && <SynthesisCard content={result.synthesis} />}
+          {showFinalResults && result.synthesis && (
+            <>
+              <SynthesisCard content={result.synthesis} />
+              {/* Audio Player - Show when TTS is enabled */}
+              {settings.enable_tts && (
+                <div className="results-audio-player">
+                  <AudioPlayer synthesisText={result.synthesis} />
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 

@@ -4,6 +4,8 @@
 import React from 'react';
 import type { Persona } from '../../types';
 import { escapeHtml } from '../../utils/helpers';
+import HelpIcon from '../Help/HelpIcon';
+import { getHelpContent, formatHelpContent } from '../../data/helpContent';
 
 interface MemberSelectionCardProps {
   persona: Persona;
@@ -44,22 +46,46 @@ const MemberSelectionCard: React.FC<MemberSelectionCardProps> = ({
           <div className="member-selection-card-title">{escapeHtml(persona.title)}</div>
         </div>
 
-        <button
-          type="button"
-          className="member-info-button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewDetails(persona);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.stopPropagation();
+        <div className="member-selection-card-actions">
+          <HelpIcon
+            content={
+              <div className="help-content">
+                <div className="help-content-title">{persona.name}</div>
+                <div className="help-content-description">{persona.razor}</div>
+                <div className="help-content-description">
+                  <strong>Core Question:</strong> {persona.core_question}
+                </div>
+                {persona.focus_areas && persona.focus_areas.length > 0 && (
+                  <div className="help-content-examples">
+                    <strong>Focus Areas:</strong>
+                    <ul>
+                      {persona.focus_areas.slice(0, 5).map((area, idx) => (
+                        <li key={idx}>{area}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             }
-          }}
-          aria-label={`Learn more about ${persona.name}`}
-        >
-          ℹ️
-        </button>
+            position="left"
+          />
+          <button
+            type="button"
+            className="member-info-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails(persona);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
+            aria-label={`Learn more about ${persona.name}`}
+          >
+            ℹ️
+          </button>
+        </div>
       </div>
 
       <div className="member-selection-card-content">

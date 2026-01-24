@@ -3,9 +3,11 @@
  */
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useConsultation } from '../../context/ConsultationContext';
 import type { Persona } from '../../types';
 import MemberSelectionCard from './MemberSelectionCard';
 import PersonaDetailModal from './PersonaDetailModal';
+import { recommendPersonasForQuery, recommendPersonasForDomain } from '../../utils/recommendations';
 
 const categoryLabels: Record<Persona['category'], string> = {
   advisory: 'Advisory Council',
@@ -20,9 +22,27 @@ const categoryLabels: Record<Persona['category'], string> = {
 };
 
 const MemberSelectionGrid: React.FC = () => {
-  const { personas, selectedMembers, setSelectedMembers } = useApp();
+  const { personas, selectedMembers, setSelectedMembers, domains, settings } = useApp();
+  const { query } = useConsultation();
   const [searchQuery, setSearchQuery] = useState('');
   const [activePersona, setActivePersona] = useState<Persona | null>(null);
+
+  // Get recommended personas
+  const recommendedPersonas = useMemo(() => {
+    if (query.trim()) {
+      return recommendPersonasForQuery(query, domains, personas);
+    } else if (settings.domain) {
+      const domain = domains.find((d) => d.id === settings.domain);
+      if (domain) {
+        return recommendPersonasForDomain(domain, personas);
+      }
+    }
+    return [];
+  }, [query, settings.domain, domains, personas]);
+
+  const handleUseRecommended = () => {
+    setSelectedMembers(recommendedPersonas.map((p) => p.id));
+  };
 
   const filteredPersonas = useMemo(() => {
     const query = searchQuery ? searchQuery.trim().toLowerCase() : '';
@@ -92,11 +112,30 @@ const MemberSelectionGrid: React.FC = () => {
       <div className="members-selection-header">
         <div className="members-selection-title">Select members</div>
         <div className="members-selection-actions">
+          {recommendedPersonas.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleUseRecommended}
+            >
+              Use Recommended ({recommendedPersonas.length})
+            </button>
+          )}
           <button type="button" className="btn-minimal" onClick={handleClearSelection}>
             Clear selection
           </button>
         </div>
       </div>
+
+      {recommendedPersonas.length > 0 && (
+        <div className="members-recommendation-banner">
+          <div className="members-recommendation-content">
+            <strong>Recommended personas:</strong>{' '}
+            {recommendedPersonas.map((p) => `${p.emoji} ${p.name}`).join(', ')}
+            {query.trim() ? ' (based on your query)' : ' (for selected domain)'}
+          </div>
+        </div>
+      )}
 
       <div className="members-selection-search">
         <input
@@ -125,15 +164,31 @@ const MemberSelectionGrid: React.FC = () => {
               </button>
             </div>
             <div className="members-selection-grid">
-              {personasInCategory.map((persona) => (
-                <MemberSelectionCard
-                  key={persona.id}
-                  persona={persona}
-                  isSelected={selectedMembers.includes(persona.id)}
-                  onToggle={handleToggle}
-                  onViewDetails={setActivePersona}
-                />
-              ))}
+              {personasInCategory.map((persona) => {
+                const isRecommended = recommendedPersonas.some((p) => p.id === persona.id);
+                return (
+                  <div
+                    key={persona.id}
+                    className={
+                      isRecommended
+                        ? 'member-card-wrapper member-card-wrapper--recommended'
+                        : 'member-card-wrapper'
+                    }
+                  >
+                    {isRecommended && (
+                      <span className="member-recommended-badge" title="Recommended for your query">
+                        Recommended
+                      </span>
+                    )}
+                    <MemberSelectionCard
+                      persona={persona}
+                      isSelected={selectedMembers.includes(persona.id)}
+                      onToggle={handleToggle}
+                      onViewDetails={setActivePersona}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

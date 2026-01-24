@@ -6,8 +6,10 @@ Interact with the sono-eval assessment engine via CLI.
 
 import json
 import logging
+import os
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -39,35 +41,28 @@ class SonoEvalClient:
             return in_path
 
         # 3. Check peer directory (workspace assumption)
-        # Assuming we are in .../council-ai/src/council_ai/tools/
-        # workspace root is 4 levels up? No, simpler to rely on CWD or known workspace structures.
-        # Check standard locations
+        # Check standard locations relative to current working directory
         workspace_roots = [
             Path.cwd().parent,  # If CWD is council-ai
-            Path.cwd(),
-            Path("../"),
-            Path("../../"),
+            Path.cwd(),  # Current directory
         ]
 
         for root in workspace_roots:
+            sono_eval_dir = root / "sono-eval"
+            if not sono_eval_dir.exists():
+                continue
+
             # Check for direct executable (e.g., installed in venv)
-            candidate = root / "sono-eval" / "venv" / "bin" / "sono-eval"
+            candidate = sono_eval_dir / "venv" / "bin" / "sono-eval"
             if candidate.exists():
                 return str(candidate)
 
             # Check for python execution path
-            candidate_py = root / "sono-eval" / "venv" / "bin" / "python"
+            candidate_py = sono_eval_dir / "venv" / "bin" / "python"
             if candidate_py.exists():
                 return f"{candidate_py} -m sono_eval.cli.main"
 
         return None
-
-    def _get_python_executable(self, root: Path) -> Optional[str]:
-        """Get Python executable from venv or fallback."""
-        venv_py = root / "venv" / "bin" / "python"
-        if venv_py.exists():
-            return str(venv_py)
-        return None  # Could allow system python but safer to restrict
 
     def is_available(self) -> bool:
         """Check if sono-eval is available."""
@@ -90,8 +85,6 @@ class SonoEvalClient:
         Returns:
             Review result dictionary
         """
-        import os
-
         if not self.executable:
             raise RuntimeError("sono-eval not found. Please install it or set SONO_EVAL_PATH.")
 
@@ -116,7 +109,8 @@ class SonoEvalClient:
                     src_path = root_path / "src"
                     if src_path.exists():
                         env["PYTHONPATH"] = str(src_path) + os.pathsep + env.get("PYTHONPATH", "")
-            except Exception:
+            except (ValueError, OSError, IndexError) as e:
+                logger.debug(f"Could not determine sono-eval src path: {e}")
                 pass
 
             # Also add current council-ai src to PYTHONPATH if we are running from it
@@ -145,7 +139,8 @@ class SonoEvalClient:
                     env["PYTHONPATH"] = (
                         str(shared_utils_path) + os.pathsep + env.get("PYTHONPATH", "")
                     )
-            except Exception:
+            except (ValueError, OSError, AttributeError) as e:
+                logger.debug(f"Could not determine workspace paths: {e}")
                 pass
 
         cmd.extend(["assess", "run"])
@@ -154,8 +149,6 @@ class SonoEvalClient:
         cmd.extend(["--quiet"])
 
         # For reliability, we'll use a temporary output file
-        import tempfile
-
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
             output_file = tmp.name
 

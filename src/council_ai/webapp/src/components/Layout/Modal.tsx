@@ -10,6 +10,7 @@ interface ModalProps {
   children: React.ReactNode;
   maxWidth?: string;
   showCloseButton?: boolean;
+  className?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -19,6 +20,7 @@ const Modal: React.FC<ModalProps> = ({
   children,
   maxWidth = '800px',
   showCloseButton = true,
+  className = '',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
@@ -89,7 +91,7 @@ const Modal: React.FC<ModalProps> = ({
     >
       <div
         ref={modalRef}
-        className="modal-content"
+        className={`modal-content ${className}`}
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}

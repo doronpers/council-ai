@@ -1,0 +1,109 @@
+/**
+ * Feature Card Component Styles
+ */
+
+.feature-card {
+  padding: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.feature-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(234, 91, 12, 0.1);
+}
+
+.feature-card-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.feature-card-icon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.feature-card-title-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.feature-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.feature-card-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.feature-card-badge--new {
+  background: var(--accent-green);
+  color: white;
+}
+
+.feature-card-badge--popular {
+  background: var(--primary);
+  color: white;
+}
+
+.feature-card-description {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.feature-card-use-cases {
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--bg-primary);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+
+.feature-card-use-cases strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.feature-card-use-cases ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+}
+
+.feature-card-use-cases li {
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.feature-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}

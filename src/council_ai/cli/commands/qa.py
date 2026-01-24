@@ -45,7 +45,7 @@ def qa_command(
             content = sys.stdin.read()
 
     if not content:
-        console.print("[red]Error: No content provided (dangle argument or pipe stdin)[/red]")
+        console.print("[red]Error: No content provided (provide argument or pipe stdin)[/red]")
         sys.exit(1)
 
     client = SonoEvalClient()

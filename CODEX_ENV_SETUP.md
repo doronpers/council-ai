@@ -256,8 +256,7 @@ api:
 Add these to your Codex **Environment Variables**:
 
 ```
-# For LM Studio configuration, use config file (see below)
-# Or set COUNCIL_CONFIG_DIR to point to your config directory
+COUNCIL_CONFIG_DIR=/workspace/council-ai/.workspace-config/council-ai
 ```
 
 Or use the config path format:

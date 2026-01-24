@@ -1,0 +1,57 @@
+/**
+ * Error Recovery Component Styles
+ */
+
+.error-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.error-recovery-retry {
+  min-width: 100px;
+}
+
+.error-recovery-retry--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-recovery-action {
+  min-width: 120px;
+}
+
+.error-recovery-quick-fixes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.error-recovery-quick-fixes-label {
+  opacity: 0.7;
+  margin-right: 4px;
+}
+
+.error-recovery-quick-fix {
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition:
+    opacity 0.2s,
+    background 0.2s;
+  color: inherit;
+}
+
+.error-recovery-quick-fix:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.05);
+}

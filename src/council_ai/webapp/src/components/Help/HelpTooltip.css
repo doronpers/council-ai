@@ -1,0 +1,236 @@
+/**
+ * Help Tooltip Component Styles
+ */
+
+.help-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.help-tooltip {
+  position: absolute;
+  z-index: 1000;
+  padding: 12px 16px;
+  background: var(--text-primary);
+  color: var(--bg-secondary);
+  border-radius: var(--radius);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: normal;
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  animation: helpTooltipFadeIn 0.2s ease-out;
+}
+
+.help-tooltip-content {
+  word-wrap: break-word;
+}
+
+.help-tooltip-content a {
+  color: var(--bg-secondary);
+  text-decoration: underline;
+}
+
+.help-tooltip-content code {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-size: 11px;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+}
+
+.help-tooltip--top {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+}
+
+.help-tooltip--bottom {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+}
+
+.help-tooltip--left {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 8px;
+}
+
+.help-tooltip--right {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+}
+
+.help-tooltip::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+}
+
+.help-tooltip--top::before {
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: var(--text-primary);
+}
+
+.help-tooltip--bottom::before {
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: var(--text-primary);
+}
+
+.help-tooltip--left::before {
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: var(--text-primary);
+}
+
+.help-tooltip--right::before {
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: var(--text-primary);
+}
+
+@keyframes helpTooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.help-tooltip--bottom {
+  animation-name: helpTooltipFadeInBottom;
+}
+
+@keyframes helpTooltipFadeInBottom {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.help-tooltip--left {
+  animation-name: helpTooltipFadeInLeft;
+}
+
+@keyframes helpTooltipFadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.help-tooltip--right {
+  animation-name: helpTooltipFadeInRight;
+}
+
+@keyframes helpTooltipFadeInRight {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.help-icon {
+  background: none;
+  border: none;
+  cursor: help;
+  padding: 2px 4px;
+  font-size: 14px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  color: var(--text-muted);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-icon:hover {
+  opacity: 1;
+  color: var(--primary);
+}
+
+.help-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.help-content-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.help-content-description {
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.help-content-examples {
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+.help-content-examples strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.help-content-examples ul {
+  margin: 4px 0 0 0;
+  padding-left: 16px;
+}
+
+.help-content-examples li {
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.help-content-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.help-content-links a {
+  font-size: 11px;
+  text-decoration: underline;
+}

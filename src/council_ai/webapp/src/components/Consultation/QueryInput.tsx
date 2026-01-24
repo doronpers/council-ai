@@ -1,8 +1,11 @@
 /**
- * QueryInput Component - Main query and context textareas
+ * QueryInput Component - Main query and context textareas with validation
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useConsultation } from '../../context/ConsultationContext';
+import { getValidationError } from '../../utils/errorMessages';
+import { ValidationRules } from '../../utils/validation';
+import QueryTemplates from './QueryTemplates';
 
 const MAX_QUERY_LENGTH = 50000;
 const MAX_CONTEXT_LENGTH = 50000;
@@ -15,14 +18,62 @@ interface QueryInputProps {
 const QueryInput: React.FC<QueryInputProps> = ({ showContext = true, compact = false }) => {
   const { query, setQuery, context, setContext, isConsulting } = useConsultation();
   const [showContextField, setShowContextField] = useState(false);
+  const [queryError, setQueryError] = useState<string | null>(null);
+  const [queryTouched, setQueryTouched] = useState(false);
 
   const queryLength = query.length;
   const contextLength = context.length;
   const queryNearLimit = queryLength > MAX_QUERY_LENGTH * 0.9;
   const contextNearLimit = contextLength > MAX_CONTEXT_LENGTH * 0.9;
 
+  // Validate query on change if touched
+  useEffect(() => {
+    if (queryTouched) {
+      const validationError = getValidationError('query', query);
+      if (validationError) {
+        setQueryError(validationError);
+      } else {
+        // Additional length validation
+        const lengthError = ValidationRules.query.maxLength(MAX_QUERY_LENGTH).validate(query)
+          ? null
+          : ValidationRules.query.maxLength(MAX_QUERY_LENGTH).message;
+        setQueryError(lengthError);
+      }
+    }
+  }, [query, queryTouched]);
+
+  const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setQuery(newValue);
+    if (queryTouched) {
+      const validationError = getValidationError('query', newValue);
+      if (validationError) {
+        setQueryError(validationError);
+      } else {
+        const lengthError = ValidationRules.query.maxLength(MAX_QUERY_LENGTH).validate(newValue)
+          ? null
+          : ValidationRules.query.maxLength(MAX_QUERY_LENGTH).message;
+        setQueryError(lengthError);
+      }
+    }
+  };
+
+  const handleQueryBlur = () => {
+    setQueryTouched(true);
+    const validationError = getValidationError('query', query);
+    if (validationError) {
+      setQueryError(validationError);
+    } else {
+      const lengthError = ValidationRules.query.maxLength(MAX_QUERY_LENGTH).validate(query)
+        ? null
+        : ValidationRules.query.maxLength(MAX_QUERY_LENGTH).message;
+      setQueryError(lengthError);
+    }
+  };
+
   return (
     <>
+      <QueryTemplates />
       <div>
         <div className="flex-between">
           <label htmlFor="query">Query</label>
@@ -37,12 +88,20 @@ const QueryInput: React.FC<QueryInputProps> = ({ showContext = true, compact = f
           id="query"
           placeholder="What would you like the council to discuss?"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={handleQueryChange}
+          onBlur={handleQueryBlur}
           disabled={isConsulting}
           maxLength={MAX_QUERY_LENGTH}
           rows={compact ? 3 : 4}
-          aria-describedby="query-counter"
+          aria-invalid={queryError ? 'true' : 'false'}
+          aria-describedby={queryError ? 'query-error query-counter' : 'query-counter'}
+          className={queryError ? 'input-error' : ''}
         />
+        {queryError && (
+          <p id="query-error" className="field-error" role="alert">
+            {queryError}
+          </p>
+        )}
       </div>
 
       {showContext && (

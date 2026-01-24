@@ -14,9 +14,18 @@ interface HistoryItemProps {
   onDeleted: () => void;
   onView?: (result: ConsultationResult) => void;
   onCompare?: (entry: HistoryEntry, result: ConsultationResult) => void;
+  isSelectedForComparison?: boolean;
+  comparisonSlot?: 'left' | 'right' | null;
 }
 
-const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onCompare }) => {
+const HistoryItem: React.FC<HistoryItemProps> = ({
+  entry,
+  onDeleted,
+  onView,
+  onCompare,
+  isSelectedForComparison = false,
+  comparisonSlot = null,
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [tags, setTags] = useState(entry.tags || []);
   const [notes, setNotes] = useState(entry.notes || '');
@@ -119,11 +128,30 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onC
     setIsEditing(false);
   };
 
+  const comparisonLabel =
+    comparisonSlot === 'left'
+      ? ' (Comparison A)'
+      : comparisonSlot === 'right'
+        ? ' (Comparison B)'
+        : '';
+
   return (
-    <div className="history-item">
+    <div
+      className={`history-item ${isSelectedForComparison ? 'history-item--selected-for-comparison' : ''}`}
+    >
+      {isSelectedForComparison && (
+        <div className="history-item-comparison-badge">
+          {comparisonSlot === 'left' ? 'A' : comparisonSlot === 'right' ? 'B' : 'Selected'}
+        </div>
+      )}
       <div className="history-item-header">
         <div className="history-item-content">
-          <div className="history-item-query">{truncate(entry.query, 60)}</div>
+          <div className="history-item-query">
+            {truncate(entry.query, 60)}
+            {comparisonLabel && (
+              <span className="history-item-comparison-label">{comparisonLabel}</span>
+            )}
+          </div>
           <div className="history-item-meta muted">
             {formatTimestamp(entry.timestamp)} · {entry.mode} · {entry.member_count} members
           </div>
@@ -153,13 +181,28 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ entry, onDeleted, onView, onC
           </button>
           <button
             type="button"
-            className="response-action-btn"
+            className={`response-action-btn ${isSelectedForComparison ? 'response-action-btn--active' : ''} history-item-compare-btn`}
             onClick={handleCompare}
             disabled={isComparing}
-            aria-label="Compare consultation"
-            title="Compare consultation"
+            aria-label={
+              isSelectedForComparison
+                ? `Remove from comparison ${comparisonSlot === 'left' ? 'A' : 'B'}`
+                : comparisonSlot
+                  ? `Add to comparison ${comparisonSlot === 'left' ? 'A' : 'B'}`
+                  : 'Compare consultation'
+            }
+            title={
+              isSelectedForComparison
+                ? `Remove from comparison ${comparisonSlot === 'left' ? 'A' : 'B'}`
+                : 'Compare this consultation with another'
+            }
           >
             <span aria-hidden="true">{isComparing ? '⏳' : '⚖️'}</span>
+            {!isComparing && (
+              <span className="history-item-compare-label">
+                {isSelectedForComparison ? 'Remove' : 'Compare'}
+              </span>
+            )}
           </button>
           <button
             type="button"

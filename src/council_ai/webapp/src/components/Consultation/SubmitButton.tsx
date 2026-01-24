@@ -1,11 +1,14 @@
 /**
- * SubmitButton Component - Submit and cancel buttons for consultation
+ * SubmitButton Component - Submit and cancel buttons for consultation with validation
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useConsultation } from '../../context/ConsultationContext';
 import { submitStreamingConsultation } from '../../utils/api';
 import { parseSSELine, getDefaultPersonasForDomain } from '../../utils/helpers';
+import { getValidationError } from '../../utils/errorMessages';
+import { ValidationRules } from '../../utils/validation';
+import Tooltip from '../Layout/Tooltip';
 import type { ConsultationRequest, StreamEvent, MemberStatusInfo, MemberStatus } from '../../types';
 
 const SubmitButton: React.FC = () => {
@@ -23,6 +26,64 @@ const SubmitButton: React.FC = () => {
     handleStreamEvent,
     setStatusMessage,
   } = useConsultation();
+
+  // Validation state
+  const validationErrors = useMemo(() => {
+    const errors: string[] = [];
+
+    // Query validation
+    if (!query.trim()) {
+      errors.push('Query is required');
+    } else {
+      const queryError = getValidationError('query', query);
+      if (queryError) {
+        errors.push(queryError);
+      } else if (query.length > 50000) {
+        errors.push('Query is too long (max 50,000 characters)');
+      }
+    }
+
+    // API key validation (only if no base URL for local LLM)
+    if (!settings.base_url && apiKey) {
+      const apiKeyError = getValidationError('apiKey', apiKey);
+      if (apiKeyError) {
+        errors.push(apiKeyError);
+      }
+    }
+
+    // Base URL validation
+    if (settings.base_url) {
+      const baseUrlError = getValidationError('baseUrl', settings.base_url);
+      if (baseUrlError) {
+        errors.push(baseUrlError);
+      }
+    }
+
+    return errors;
+  }, [query, apiKey, settings.base_url]);
+
+  const isDisabled = isConsulting || validationErrors.length > 0;
+  const tooltipContent = useMemo(() => {
+    if (isConsulting) {
+      return 'Consultation in progress...';
+    }
+    if (validationErrors.length > 0) {
+      if (validationErrors.length === 1) {
+        return validationErrors[0];
+      }
+      return (
+        <div>
+          <strong>Please fix the following issues:</strong>
+          <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+            {validationErrors.map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+    return null;
+  }, [isConsulting, validationErrors]);
 
   const handleSubmit = useCallback(async () => {
     if (!query.trim()) {
@@ -130,23 +191,36 @@ const SubmitButton: React.FC = () => {
     handleStreamEvent,
   ]);
 
+  const buttonContent = isConsulting ? (
+    <>
+      <span className="loading"></span> Consulting...
+    </>
+  ) : (
+    '🗣️ Consult the Council'
+  );
+
+  const submitButton = (
+    <button
+      type="button"
+      id="submit"
+      onClick={handleSubmit}
+      disabled={isDisabled}
+      className="flex-full"
+      aria-label={tooltipContent ? String(tooltipContent) : 'Submit consultation'}
+    >
+      {buttonContent}
+    </button>
+  );
+
   return (
     <div className="flex-row gap-12 mt-20">
-      <button
-        type="button"
-        id="submit"
-        onClick={handleSubmit}
-        disabled={isConsulting || !query.trim()}
-        className="flex-full"
-      >
-        {isConsulting ? (
-          <>
-            <span className="loading"></span> Consulting...
-          </>
-        ) : (
-          '🗣️ Consult the Council'
-        )}
-      </button>
+      {tooltipContent ? (
+        <Tooltip content={tooltipContent} position="top" disabled={!isDisabled}>
+          {submitButton}
+        </Tooltip>
+      ) : (
+        submitButton
+      )}
 
       {isConsulting && abortController && (
         <button type="button" id="cancel" className="btn-secondary" onClick={cancelConsultation}>
