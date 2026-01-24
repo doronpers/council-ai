@@ -39,10 +39,6 @@ class SynthesisStrategy(ConsultationStrategy):
             auto_recall=auto_recall,
             **kwargs,
         )
-        from ..session import ConsultationResult
-
-        if isinstance(result, ConsultationResult):
-            return result
         return result
 
     async def stream(
