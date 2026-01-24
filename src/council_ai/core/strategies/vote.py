@@ -49,7 +49,7 @@ REASONING: [your reasoning]
         if isinstance(result, ConsultationResult):
             return result
         return ConsultationResult(
-            query=vote_query,
+            query=query,
             responses=cast(List[MemberResponse], result),
             context=context,
             mode=mode_str,
