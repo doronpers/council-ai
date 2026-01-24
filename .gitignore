@@ -217,4 +217,6 @@ package-lock.json
 
 # ESLint cache
 .eslintcache
+
+# Workspace config
 .workspace-config/

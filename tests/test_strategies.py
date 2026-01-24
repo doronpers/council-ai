@@ -116,8 +116,9 @@ class TestDebateStrategy:
                 rounds=1,
             )
 
-            assert len(result) == 1
-            assert result[0].content == "Alice's response"
+            assert isinstance(result, ConsultationResult)
+            assert len(result.responses) == 1
+            assert result.responses[0].content == "Alice's response"
 
     @pytest.mark.asyncio
     async def test_debate_multiple_rounds(self, setup):
@@ -143,7 +144,8 @@ class TestDebateStrategy:
                 rounds=2,
             )
 
-            assert len(result) == 2
+            assert isinstance(result, ConsultationResult)
+            assert len(result.responses) == 2
             assert mock_individual.return_value.execute.call_count == 2
 
     @pytest.mark.asyncio
