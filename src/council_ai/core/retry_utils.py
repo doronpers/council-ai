@@ -227,7 +227,7 @@ async def retry_async(
         )
         ```
     """
-    decorated: Callable[..., Awaitable[T]] = retry_with_backoff(
+    decorated = retry_with_backoff(
         max_retries=max_retries,
         base_delay=base_delay,
         max_delay=max_delay,
