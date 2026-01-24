@@ -21,10 +21,15 @@ class PersonalIntegration:
 
     def __init__(self):
         """Initialize personal integration manager."""
+        from ..utils.paths import get_workspace_config_dir
+
         self._repo_path: Optional[Path] = None
-        self._config_dir = Path(
-            os.environ.get("COUNCIL_CONFIG_DIR", Path.home() / ".config" / "council-ai")
-        )
+        # Use workspace-relative config directory
+        config_dir_env = os.environ.get("COUNCIL_CONFIG_DIR")
+        if config_dir_env:
+            self._config_dir = Path(config_dir_env)
+        else:
+            self._config_dir = get_workspace_config_dir("council-ai")
 
     @staticmethod
     def detect_repo() -> Optional[Path]:
