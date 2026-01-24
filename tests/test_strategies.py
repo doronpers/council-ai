@@ -360,10 +360,18 @@ class TestSequentialStrategy:
                 query="Test?",
             )
 
-            assert len(result) == 3
-            assert result[0].content == "Alice response"
-            assert result[1].content == "Bob response"
-            assert result[2].content == "Charlie response"
+            # Accept either a list (legacy) or ConsultationResult (new)
+            from council_ai.core.session import ConsultationResult
+
+            if isinstance(result, ConsultationResult):
+                responses = result.responses
+            else:
+                responses = result
+
+            assert len(responses) == 3
+            assert responses[0].content == "Alice response"
+            assert responses[1].content == "Bob response"
+            assert responses[2].content == "Charlie response"
 
     @pytest.mark.asyncio
     async def test_sequential_context_accumulation(self, setup):
@@ -564,5 +572,19 @@ class TestStrategyIntegration:
                 query="Test?",
             )
 
-        assert len(synthesis_result) >= 0
-        assert len(sequential_result) >= 0
+        # Accept either list or ConsultationResult shapes
+        from council_ai.core.session import ConsultationResult
+
+        seq_len = (
+            len(sequential_result.responses)
+            if isinstance(sequential_result, ConsultationResult)
+            else len(sequential_result)
+        )
+        syn_len = (
+            len(synthesis_result.responses)
+            if isinstance(synthesis_result, ConsultationResult)
+            else len(synthesis_result)
+        )
+
+        assert syn_len >= 0
+        assert seq_len >= 0

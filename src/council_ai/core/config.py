@@ -11,6 +11,8 @@ import requests  # type: ignore[import]
 import yaml
 from pydantic import BaseModel, Field
 
+from ..utils.paths import get_config_path
+
 logger = logging.getLogger(__name__)
 
 
@@ -139,9 +141,11 @@ class ConfigManager:
             self.path = Path(config_path)
         else:
             # Try to find a writable path for config
+            # Priority: environment variable > workspace config > home config > current dir
             options = [
                 os.environ.get("COUNCIL_CONFIG_PATH"),
-                Path.home() / ".config" / "council-ai" / "config.yaml",
+                get_config_path("config.yaml", fallback_home=False),
+                Path.home() / ".config" / "council-ai" / "config.yaml",  # Legacy fallback
                 Path.cwd() / "config.yaml",
             ]
             for option in options:
