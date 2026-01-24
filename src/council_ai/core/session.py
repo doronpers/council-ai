@@ -13,6 +13,9 @@ if TYPE_CHECKING:
     from .analysis import AnalysisResult
     from .schemas import ActionItem, ProsCons, Recommendation, SynthesisSchema
 
+# Valid consultation modes - sync with ConsultationMode enum
+VALID_CONSULTATION_MODES = ["individual", "sequential", "synthesis", "debate", "vote"]
+
 
 @dataclass
 class MemberResponse:
@@ -63,10 +66,9 @@ class ConsultationResult:
     def __post_init__(self) -> None:
         """Validate default values after initialization."""
         # Validate mode is a valid consultation mode
-        valid_modes = ["individual", "sequential", "synthesis", "debate", "vote"]
-        if self.mode not in valid_modes:
+        if self.mode not in VALID_CONSULTATION_MODES:
             raise ValueError(
-                f"Invalid mode '{self.mode}'. Must be one of: {', '.join(valid_modes)}"
+                f"Invalid mode '{self.mode}'. Must be one of: {', '.join(VALID_CONSULTATION_MODES)}"
             )
 
     def to_dict(self) -> Dict[str, Any]:

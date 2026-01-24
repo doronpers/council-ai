@@ -41,8 +41,8 @@ async def test_council_handles_strategy_returning_consultationresult(
             return fake_result
 
         async def stream(self, **kwargs):
-            if False:
-                yield {}
+            return
+            yield  # Make this a generator function
 
     monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
 
@@ -71,8 +71,8 @@ async def test_council_handles_strategy_returning_list(
             return [member_response]
 
         async def stream(self, **kwargs):
-            if False:
-                yield {}
+            return
+            yield  # Make this a generator function
 
     monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
 
@@ -95,8 +95,8 @@ async def test_council_validates_strategy_return_type(
             return "invalid-return-type"  # Neither ConsultationResult nor list
 
         async def stream(self, **kwargs):
-            if False:
-                yield {}
+            return
+            yield  # Make this a generator function
 
     monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: BadStrategy())
 
