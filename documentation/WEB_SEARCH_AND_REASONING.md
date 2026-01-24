@@ -18,11 +18,11 @@ Council AI can automatically search the web for current information during consu
 ### Supported Providers
 
 1. **Tavily** (Recommended) - Fast, AI-powered search
-   - Sign up at https://tavily.com
+   - Sign up at <https://tavily.com>
    - Set `TAVILY_API_KEY` environment variable
 
 2. **Serper.dev** - Google search API
-   - Sign up at https://serper.dev
+   - Sign up at <https://serper.dev>
    - Set `SERPER_API_KEY` environment variable
 
 3. **Google Custom Search** - Official Google API

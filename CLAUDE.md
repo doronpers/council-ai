@@ -164,8 +164,8 @@ The codebase follows a modular, provider-abstraction pattern:
 
 **Development Workflow:**
 
-1. Backend runs on http://localhost:8000
-2. Frontend dev server runs on http://localhost:5173 (proxies /api to backend)
+1. Backend runs on <http://localhost:8000>
+2. Frontend dev server runs on <http://localhost:5173> (proxies /api to backend)
 3. Production: Frontend builds to static assets served by backend
 
 ### Directory Structure
