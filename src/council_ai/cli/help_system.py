@@ -19,9 +19,6 @@ class CommandDoc(TypedDict):
     quick_tips: List[str]
 
 
-console = Console()
-
-
 COMMAND_DOCS: Dict[str, CommandDoc] = {
     "consult": {
         "description": "Get advice from the AI council on any topic",
