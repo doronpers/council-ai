@@ -97,17 +97,13 @@ class ConsultationResult:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ConsultationResult":
         """Create ConsultationResult from dictionary."""
-        from datetime import datetime
+        from .persona import get_persona
 
         # Reconstruct MemberResponse objects
         responses = []
         for r_data in data.get("responses", []):
-            from .persona import get_persona
-
             persona = get_persona(r_data.get("persona_id", ""))
             if persona:
-                from .session import MemberResponse
-
                 responses.append(
                     MemberResponse(
                         persona=persona,
