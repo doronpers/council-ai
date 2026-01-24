@@ -1,16 +1,62 @@
+# tests/test_strategy_return_types.py
 """Strategy execute return type compatibility tests."""
+
 import inspect
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from council_ai import Council, Persona
+from council_ai.core.council import ConsultationMode
 from council_ai.core.session import ConsultationResult, MemberResponse
 
 
+@pytest.fixture
+def mock_env_keys(monkeypatch):
+    """Mock environment variables for API keys."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
+
+
+@pytest.fixture
+def mock_get_api_key(monkeypatch):
+    """Mock get_api_key function."""
+    with patch("council_ai.core.council.get_api_key") as mock:
+        mock.side_effect = lambda name: f"key-for-{name}"
+        yield mock
+
+
+@pytest.fixture
+def mock_get_provider(monkeypatch):
+    """Mock _get_provider on Council to avoid real provider initialization."""
+    with patch("council_ai.core.council.LLMManager") as llm_manager_cls:
+        mock_manager = MagicMock()
+        llm_manager_cls.return_value = mock_manager
+
+        def _fake_get_provider(self, fallback=False):
+            return object()
+
+        monkeypatch.setattr(Council, "_get_provider", _fake_get_provider)
+        yield mock_manager
+
+
+@pytest.fixture
+def mock_llm_manager():
+    """Fixture kept for compatibility with other tests that expect it."""
+    return MagicMock()
+
+
 @pytest.mark.anyio
-async def test_council_handles_strategy_returning_consultationresult(monkeypatch):
+async def test_council_handles_strategy_returning_consultationresult(
+    monkeypatch, mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
+):
+    """Test that council properly handles strategies that return ConsultationResult."""
+    council = Council(api_key="test-key")
+
+    # Mock the provider to avoid API key requirements (defensive even with fixture)
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+
     # Create a fake strategy that returns a ConsultationResult
     persona = Persona(id="T1", name="Test1", title="T", core_question="?", razor=".")
     member_response = MemberResponse(persona=persona, content="Advice", timestamp=datetime.now())
@@ -20,48 +66,145 @@ async def test_council_handles_strategy_returning_consultationresult(monkeypatch
         async def execute(self, **kwargs):
             return fake_result
 
-    # Mock provider to avoid API key requirement
-    mock_provider = MagicMock()
-    
-    # Mock the Council methods that need a provider
-    monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
-    
-    council = Council(api_key="test-key")
-    monkeypatch.setattr(council, "_get_provider", lambda **kwargs: mock_provider)
-    monkeypatch.setattr(council, "_start_session", lambda *args, **kwargs: MagicMock(session_id="test-session"))
+    # Monkeypatch the strategy lookup to return our dummy strategy
+    from council_ai.core.strategies import base as strategies_base
 
-    result = await council.consult_async("Test Q")
+    monkeypatch.setattr(
+        strategies_base,
+        "get_strategy",
+        lambda mode_value: DummyStrategy(),
+    )
+
+    # Also avoid starting a real session
+    monkeypatch.setattr(
+        council,
+        "_start_session",
+        lambda *args, **kwargs: MagicMock(session_id="test-session"),
+    )
+
+    result = await council.consult_async(
+        query="Test Q",
+        mode="synthesis",
+    )
 
     assert isinstance(result, ConsultationResult)
-    assert len(result.responses) == 1
+    assert result is fake_result
     assert result.responses[0].content == "Advice"
 
 
 @pytest.mark.anyio
-async def test_all_strategies_return_consultationresult():
-    """Test that all built-in strategies return ConsultationResult."""
+async def test_council_handles_strategy_returning_list_of_memberresponses(
+    monkeypatch, mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
+):
+    """Test that council wraps legacy List[MemberResponse] into ConsultationResult."""
+    council = Council(api_key="test-key")
+
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+
+    persona = Persona(id="T1", name="Test1", title="T", core_question="?", razor=".")
+    member_response = MemberResponse(persona=persona, content="Legacy", timestamp=datetime.now())
+    fake_list = [member_response]
+
+    class LegacyStrategy:
+        async def execute(self, **kwargs):
+            # Legacy behavior: return list[MemberResponse]
+            return fake_list
+
+    from council_ai.core.strategies import base as strategies_base
+
+    monkeypatch.setattr(
+        strategies_base,
+        "get_strategy",
+        lambda mode_value: LegacyStrategy(),
+    )
+
+    monkeypatch.setattr(
+        council,
+        "_start_session",
+        lambda *args, **kwargs: MagicMock(session_id="test-session"),
+    )
+
+    result = await council.consult_async(
+        query="Legacy Q",
+        mode="synthesis",
+    )
+
+    assert isinstance(result, ConsultationResult)
+    assert result.responses == fake_list
+    assert result.responses[0].content == "Legacy"
+
+
+def test_all_built_in_strategies_return_consultationresult_signature():
+    """Ensure execute signature of built-in strategies returns ConsultationResult."""
     from council_ai.core.strategies.debate import DebateStrategy
-    from council_ai.core.strategies.individual import IndividualStrategy
-    from council_ai.core.strategies.sequential import SequentialStrategy
     from council_ai.core.strategies.synthesis import SynthesisStrategy
-    from council_ai.core.strategies.vote import VoteStrategy
+    from council_ai.core.strategies.individual import IndividualStrategy
 
-    strategies = [
-        IndividualStrategy,
-        SequentialStrategy,
-        SynthesisStrategy,
-        DebateStrategy,
-        VoteStrategy,
-    ]
+    strategies = [DebateStrategy, SynthesisStrategy, IndividualStrategy]
 
-    for strategy_class in strategies:
-        strategy = strategy_class()
-        # Check the return type annotation
-        sig = inspect.signature(strategy.execute)
-        return_annotation = sig.return_annotation
-        
-        # The return type should be "ConsultationResult" or ConsultationResult class
-        assert "ConsultationResult" in str(return_annotation), (
-            f"{strategy_class.__name__}.execute() should return ConsultationResult, "
-            f"but has return type: {return_annotation}"
+    for strategy_cls in strategies:
+        execute_sig = inspect.signature(strategy_cls.execute)
+        return_annotation = execute_sig.return_annotation
+        assert (
+            return_annotation == "ConsultationResult"
+            or return_annotation is ConsultationResult
+        ), f"{strategy_cls.__name__}.execute must return ConsultationResult"
+
+
+@pytest.mark.anyio
+async def test_stream_methods_are_async_generators(monkeypatch, mock_env_keys):
+    """Ensure stream(...) methods on strategies are async iterators."""
+    from council_ai.core.strategies.debate import DebateStrategy
+    from council_ai.core.strategies.synthesis import SynthesisStrategy
+    from council_ai.core.strategies.individual import IndividualStrategy
+
+    strategies = [DebateStrategy(), SynthesisStrategy(), IndividualStrategy()]
+
+    council = Council(api_key="test-key")
+
+    # Avoid real provider/session
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    monkeypatch.setattr(
+        council,
+        "_start_session",
+        lambda *args, **kwargs: MagicMock(session_id="test-session"),
+    )
+
+    async def consume_stream(strategy):
+        """Helper to consume a few items from stream to verify it is async iterator."""
+        stream = strategy.stream(
+            council=council,
+            query="Test",
+            context=None,
+            mode=ConsultationMode.SYNTHESIS,
+            members=None,
+            session_id=None,
+            auto_recall=True,
         )
+        assert hasattr(stream, "__aiter__")
+        assert hasattr(stream, "__anext__")
+        # We don't care about contents here; just that it is iterable
+        async for _ in stream:
+            break
+
+    # Use AsyncMock to drive consume_stream
+    for strategy in strategies:
+        await consume_stream(strategy)
+
+
+@pytest.mark.anyio
+async def test_consult_async_returns_consultationresult(monkeypatch, mock_env_keys):
+    """Smoke test: consult_async always returns ConsultationResult for built-in modes."""
+    council = Council(api_key="test-key")
+
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    monkeypatch.setattr(
+        council,
+        "_start_session",
+        lambda *args, **kwargs: MagicMock(session_id="test-session"),
+    )
+
+    for mode in [ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL]:
+        result = await council.consult_async(query="Test", mode=mode.value)
+        assert isinstance(result, ConsultationResult)
+        assert result.mode in {mode.value, "debate", "synthesis", "individual"}

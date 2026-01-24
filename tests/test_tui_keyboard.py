@@ -61,4 +61,4 @@ def test_display_shortcuts_runs_without_error(capsys):
     manager.display_shortcuts()
     captured = capsys.readouterr()
     # Some output expected
-    assert "Keyboard Shortcuts" in captured.out or captured.out.strip() != ""
+    assert "Keyboard Shortcuts" in captured.out

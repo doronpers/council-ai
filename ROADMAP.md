@@ -1,6 +1,6 @@
 # Council AI - Roadmap & TODOs
 
-**Last Updated**: 2026-01-18
+**Last Updated**: 2026-01-19
 **Single Source of Truth**: This file contains all TODOs, planned features, and roadmap items.
 
 ---
@@ -21,6 +21,10 @@
 3. ✅ **Consultation Export** - Export menu for markdown and JSON results
 4. ✅ **Consultation Comparison** - Side-by-side comparison view for history entries
 5. ✅ **Error Boundaries** - App-level error boundaries with fallback UI
+
+### Web UI Improvements (2026-01-19)
+
+1. ✅ **Session Management UI** - Added session view/management in the history panel
 
 ### Core Improvements (2026-01-16)
 
@@ -44,10 +48,11 @@ _No high priority items at this time._
 #### 1. Session Management UI
 
 - **Status**: 📝 TODO
+- **Complexity**: Medium
+- **Recommended Models**: 1. Cursor Composer 2, 2. Claude Sonnet 4.5, 3. GPT-5.1-Codex
 - **Description**: Backend has session endpoints (`/api/sessions`, `/api/sessions/{id}`), but no UI
 - **Implementation**: Add session view/management to history panel
 - **Files**: `src/council_ai/webapp/src/components/History/`
-- **Estimated Effort**: 4-6 hours
 
 ### Integration & Architecture
 
@@ -76,23 +81,25 @@ _No high priority items at this time._
 #### 7. Add Pattern-Coach Mode
 
 - **Status**: 📝 TODO
+- **Complexity**: Medium-High
+- **Recommended Models**: 1. Claude Opus 4.5, 2. GPT-5.2-Codex, 3. GPT-5.1-Codex-Max
 - **Description**: Add pattern-aware council mode with recommendations from feedback-loop
 - **Implementation**:
   - Add council "pattern-coach" mode hitting feedback-loop (library or REST)
   - Allow feedback-loop to call council personas for pattern review
 - **Files**: `src/council_ai/core/council.py`, new mode implementation
-- **Estimated Effort**: 2-3 days
 - **Reference**: `planning/integration-plan.md`
 
 #### 8. Add QA Command for sono-eval
 
 - **Status**: 📝 TODO
+- **Complexity**: Medium
+- **Recommended Models**: 1. GPT-5.1-Codex, 2. Claude Sonnet 4.5, 3. Gemini 3 Pro
 - **Description**: Optional QA command to run council outputs through sono-eval assessment
 - **Implementation**:
   - Add council QA command that calls sono-eval assessment engine
   - Add "assessment" domain preset that points to sono-eval API
 - **Files**: `src/council_ai/cli.py`, new command
-- **Estimated Effort**: 2-3 days
 - **Reference**: `planning/integration-plan.md`
 
 ---
@@ -107,15 +114,15 @@ _No high priority items at this time._
 - **Description**: No way to share consultations with others
 - **Implementation**: Add share/permalink functionality
 - **Files**: `src/council_ai/webapp/src/components/History/HistoryItem.tsx`
-- **Estimated Effort**: 2-3 hours
 
 #### 2. Keyboard Shortcuts
 
 - **Status**: 📝 TODO
+- **Complexity**: Low
+- **Recommended Models**: 1. Cursor Composer 2, 2. Claude Sonnet 4.5, 3. Gemini 3 Flash
 - **Description**: Add keyboard shortcuts for common actions beyond history search (Ctrl/Cmd+K)
 - **Implementation**: Add shortcuts for submit and navigation (e.g., Ctrl+Enter, / to focus query)
 - **Files**: `src/council_ai/webapp/src/App.tsx`, new hook
-- **Estimated Effort**: 2-3 hours
 
 #### 3. Loading States Review
 
@@ -123,21 +130,23 @@ _No high priority items at this time._
 - **Description**: Some async operations may lack loading indicators
 - **Implementation**: Review and add loading states where missing
 - **Files**: Various components
-- **Estimated Effort**: 2-3 hours
 
 #### 4. Mobile Responsiveness Review
 
 - **Status**: 📝 TODO
+- **Complexity**: Low-Medium
+- **Recommended Models**: 1. Cursor Composer 2, 2. Claude Sonnet 4.5, 3. GPT-5.1-Codex
 - **Description**: Some components may need mobile optimization
 - **Implementation**: Review and enhance mobile CSS
 - **Files**: `src/council_ai/webapp/assets/css/mobile.css`, various components
-- **Estimated Effort**: 3-4 hours
 
 ### Features
 
 #### 15. Google Docs Content Fetching
 
 - **Status**: ⚠️ Incomplete
+- **Complexity**: Medium
+- **Recommended Models**: 1. GPT-5.1-Codex, 2. Claude Sonnet 4.5, 3. Gemini 3 Pro
 - **Description**: Google Docs URL fetching requires Google API credentials
 - **Current State**: Returns `None`, relies on manually exported/pasted content
 - **Implementation**:
@@ -146,7 +155,6 @@ _No high priority items at this time._
   - Implement OAuth2 flow for authentication
   - Use Google Docs API to fetch document content
 - **Files**: `src/council_ai/webapp/reviewer.py` (line ~1067)
-- **Estimated Effort**: 1-2 days
 - **Priority**: Low (workaround exists - manual paste)
 
 #### 16. Optional MemU Backend for History
@@ -158,7 +166,6 @@ _No high priority items at this time._
   - Feature-flag default off
   - Integration test with in-memory backend
 - **Files**: `src/council_ai/core/history.py`
-- **Estimated Effort**: 2-3 days
 - **Reference**: `planning/integration-plan.md`
 
 ---
@@ -203,6 +210,6 @@ These are lower priority and depend on Phase 1 & 2 completion:
 
 1. When starting work on a TODO, change status from `📝 TODO` to `🚧 In Progress`
 2. When completing, move to "Recently Completed" section and mark as `✅`
-3. Add new TODOs with appropriate priority and estimated effort
+3. Add new TODOs with complexity indicators (Low, Medium, High) rather than time estimates
 4. Update "Last Updated" date
 5. Keep items organized by priority and category

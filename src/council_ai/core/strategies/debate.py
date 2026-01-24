@@ -1,6 +1,6 @@
 """Debate consultation strategy."""
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from .base import ConsultationStrategy
 
@@ -52,17 +52,19 @@ class DebateStrategy(ConsultationStrategy):
                 context=round_context,
                 members=[m.id for m in active_members],
             )
-            # Accept either ConsultationResult (new) or list of MemberResponse (legacy)
+            # IndividualStrategy now always returns ConsultationResult
             from ..session import ConsultationResult
 
             if isinstance(round_result, ConsultationResult):
                 round_responses = round_result.responses
             else:
+                # Legacy fallback (should not happen with updated strategies)
                 round_responses = round_result
 
             all_responses.extend(round_responses)
 
-        # Return ConsultationResult for consistency
+        # Return ConsultationResult for consistency with other strategies
+
         mode_str = mode.value if mode is not None else "debate"
         return ConsultationResult(
             query=query,

@@ -29,6 +29,10 @@ class ConsultationStrategy(ABC):
     ) -> "ConsultationResult":
         """Execute a consultation strategy.
 
+        All built-in strategies now return ConsultationResult. The union type
+        with list[MemberResponse] is maintained for backward compatibility with
+        any external strategy implementations.
+
         Args:
             council: The council instance
             query: The user query

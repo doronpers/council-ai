@@ -1,7 +1,7 @@
 """Synthesis consultation strategy."""
 
 import logging
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
 from .base import ConsultationStrategy
 
