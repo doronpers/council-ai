@@ -1143,8 +1143,8 @@ class Council:
         # Build result dict, handling any exceptions
         enhanced_contexts: Dict[str, Optional[str]] = {}
         for result in results:
-            if isinstance(result, asyncio.CancelledError):
-                # Propagate cancellation so higher-level tasks can terminate correctly
+            if isinstance(result, (asyncio.CancelledError, KeyboardInterrupt)):
+                # Propagate cancellation/interruption so higher-level tasks can terminate correctly
                 raise result
             if isinstance(result, Exception):
                 logger.warning(f"Web search enhancement failed: {result}")
