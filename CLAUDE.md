@@ -284,6 +284,8 @@ council-ai/
 - Serper: `SERPER_API_KEY`
 - Google: `GOOGLE_API_KEY` + `GOOGLE_CSE_ID`
 
+For detailed configuration, provider selection, and examples, see `documentation/WEB_SEARCH_AND_REASONING.md`.
+
 **TTS Providers:**
 
 - ElevenLabs: `ELEVENLABS_API_KEY` (primary)
