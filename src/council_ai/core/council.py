@@ -749,7 +749,6 @@ class Council:
 
         # Backwards-compatible handling: strategies may return either a
         # ConsultationResult (new behavior) or a List[MemberResponse] (legacy).
-        from .session import ConsultationResult
 
         if isinstance(result_or_responses, ConsultationResult):
             strategy_result = result_or_responses
