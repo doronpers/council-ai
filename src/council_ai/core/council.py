@@ -1090,7 +1090,7 @@ class Council:
             context=context,
             responses=responses,
             synthesis=synthesis,
-            mode=mode,
+            mode=mode.value,
             timestamp=datetime.now(),
             structured_synthesis=structured_synthesis,
         )
@@ -1166,8 +1166,10 @@ class Council:
             if isinstance(result, Exception):
                 logger.warning(f"Web search enhancement failed: {result}")
                 continue
-            member_id, enhanced = result
-            enhanced_contexts[member_id] = enhanced
+            # Type guard: at this point, result must be a tuple
+            if isinstance(result, tuple):
+                member_id, enhanced = result
+                enhanced_contexts[member_id] = enhanced
 
         return enhanced_contexts
 
