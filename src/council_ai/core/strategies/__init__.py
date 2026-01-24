@@ -9,7 +9,12 @@ _STRATEGIES: Dict[str, ConsultationStrategy] = {}
 
 
 def get_strategy(mode_name: str) -> ConsultationStrategy:
-    """Factory to get a strategy instance by mode name."""
+    """
+    Factory to get a strategy instance by mode name.
+
+    Uses singleton pattern - each strategy is instantiated once and reused.
+    Strategies are stateless, so reusing instances is safe and efficient.
+    """
     if mode_name not in _STRATEGIES:
         # Lazy import to avoid circular dependencies
         from ..council import ConsultationMode
