@@ -5,7 +5,7 @@ Validates configuration settings and provides helpful guidance
 """
 
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
 
@@ -138,7 +138,7 @@ class ConfigValidator:
         return "Run 'council config show' to see all settings"
 
 
-def validate_configuration(config_dict: Dict[str, any]) -> Tuple[bool, List[str]]:
+def validate_configuration(config_dict: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """
     Validate entire configuration dictionary.
     Returns (is_valid, list_of_error_messages)
@@ -164,7 +164,7 @@ def validate_configuration(config_dict: Dict[str, any]) -> Tuple[bool, List[str]
     return len(errors) == 0, errors
 
 
-def display_config_warning(key: str, value: any, warning: str) -> None:
+def display_config_warning(key: str, value: Any, warning: str) -> None:
     """Display configuration warning to user"""
     console.print("[yellow]⚠️  Configuration Warning[/yellow]")
     console.print(f"  Key: {key}")
