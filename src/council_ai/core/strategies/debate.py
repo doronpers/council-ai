@@ -1,12 +1,12 @@
 """Debate consultation strategy."""
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import MemberResponse
+    from ..session import ConsultationResult
 
 
 class DebateStrategy(ConsultationStrategy):
@@ -22,7 +22,7 @@ class DebateStrategy(ConsultationStrategy):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> List["MemberResponse"]:
+    ) -> "ConsultationResult":
         rounds = kwargs.get("rounds", 2)
         active_members = council._get_active_members(members)
 
@@ -52,9 +52,21 @@ class DebateStrategy(ConsultationStrategy):
                 context=round_context,
                 members=[m.id for m in active_members],
             )
-            all_responses.extend(round_responses)
+            from ..session import ConsultationResult, MemberResponse
 
-        return all_responses
+            if isinstance(round_responses, ConsultationResult):
+                all_responses.extend(round_responses.responses)
+            else:
+                all_responses.extend(round_responses)
+
+        mode_str = mode.value if mode is not None else "debate"
+
+        return ConsultationResult(
+            query=query,
+            responses=cast(List[MemberResponse], all_responses),
+            context=context,
+            mode=mode_str,
+        )
 
     async def stream(
         self,
