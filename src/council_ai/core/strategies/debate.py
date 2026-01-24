@@ -52,12 +52,13 @@ class DebateStrategy(ConsultationStrategy):
                 context=round_context,
                 members=[m.id for m in active_members],
             )
-            # Accept either ConsultationResult (new) or list of MemberResponse (legacy)
+            # IndividualStrategy now always returns ConsultationResult
             from ..session import ConsultationResult
 
             if isinstance(round_result, ConsultationResult):
                 round_responses = round_result.responses
             else:
+                # Legacy fallback (should not happen with updated strategies)
                 round_responses = round_result
 
             all_responses.extend(round_responses)

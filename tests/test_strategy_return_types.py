@@ -49,7 +49,9 @@ async def test_council_handles_strategy_returning_consultationresult(
     monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
     monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
 
-    result = await council.consult_async("Test Q")
+    with patch("council_ai.core.council.get_strategy", return_value=DummyStrategy()):
+        with patch.object(council, "_get_provider", return_value=mock_provider):
+            result = await council.consult_async("Test Q")
 
     assert isinstance(result, ConsultationResult)
     assert len(result.responses) == 1
@@ -81,7 +83,9 @@ async def test_council_handles_strategy_returning_list(
     monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
     monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
 
-    result = await council.consult_async("Test Q")
+    with patch("council_ai.core.council.get_strategy", return_value=DummyStrategy()):
+        with patch.object(council, "_get_provider", return_value=mock_provider):
+            result = await council.consult_async("Test Q")
 
     assert isinstance(result, ConsultationResult)
     assert len(result.responses) == 1
