@@ -15,9 +15,10 @@ This directory contains comprehensive documentation for Council AI. Use this ind
 
 ## Feature Guides
 
+- **[Web App](WEB_APP.md)**: run the UI, launchers, local endpoints, onboarding, feature discovery
+- **[Error Handling](ERROR_HANDLING.md)**: comprehensive error handling and user feedback system
 - **[Web Search & Reasoning](WEB_SEARCH_AND_REASONING.md)**: enable web search and reasoning modes
 - **[Context Injection](CONTEXT_INJECTION_GUIDE.md)**: inject files/code into consultations
-- **[Web App](WEB_APP.md)**: run the UI, launchers, local endpoints
 - **[LLM Response Reviewer](REVIEWER_SETUP.md)**: Supreme Court-style review system
 
 ## Reference

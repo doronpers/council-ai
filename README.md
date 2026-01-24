@@ -76,11 +76,14 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 - 🌐 **15 Domain Presets** - Coding, business, startup, creative, career, and more
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
 - 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints. Personas can use various LLM providers simultaneously.
-- 💬 **Multiple Modes** - Individual, synthesis, debate, vote, or sequential
+- 💬 **Multiple Modes** - Individual, synthesis, debate, vote, sequential, or pattern-coach
 - 🔍 **Web Search Integration** - Connect to live web data via Tavily, Serper, or Google Custom Search
 - 🧠 **Reasoning Modes** - Extended thinking for complex analysis
 - 📝 **Session & History Management** - Track, resume, search, and export consultations
 - 🧭 **Standalone Web App** - Modern React/TypeScript UI with Dieter Rams-inspired design
+- 🎯 **Onboarding Wizard** - Guided 6-step setup for first-time users
+- 🛡️ **Comprehensive Error Handling** - User-friendly error messages with recovery actions
+- 🔍 **Feature Discovery** - Interactive tours and progressive disclosure
 - 🔊 **Text-to-Speech** - Voice responses via ElevenLabs and OpenAI TTS
 - 📦 **Portable Package** - pip-installable, use in any project
 - 📖 **[Full API Documentation](documentation/API_REFERENCE.md)** - Complete Python API reference
@@ -753,7 +756,19 @@ per council instance when needed.
 
 ## Web App (Standalone)
 
-The web app is the primary user-testing surface. It features a modern, Dieter Rams-inspired UI built with **React 18** and **TypeScript**. The frontend architecture was migrated from vanilla JavaScript to a fully modular component-based system with 25+ React components, Context API for state management, and optimized build output.
+The web app is the primary user interface. It features a modern, Dieter Rams-inspired UI built with **React 18** and **TypeScript**. The frontend architecture includes 25+ React components, Context API for state management, and optimized build output.
+
+**📖 [Complete Web App Guide](documentation/WEB_APP.md)** - Detailed documentation for all web app features
+
+**Key Web App Features:**
+
+- 🎯 **Onboarding Wizard** - Automatic 6-step guided setup for first-time users
+- 🛡️ **Error Handling** - Comprehensive error messages with recovery actions ([Error Handling Guide](documentation/ERROR_HANDLING.md))
+- 🔍 **Feature Tours** - Interactive step-by-step tours for discovering features
+- 📊 **History Management** - Search, filter, tag, compare, and export consultations
+- 🔊 **Text-to-Speech** - Voice responses with ElevenLabs and OpenAI TTS
+- ⚙️ **Tiered Configuration** - Progressive disclosure (basic/intermediate/advanced)
+- 💡 **Contextual Help** - Help icons throughout the interface
 
 ### 1-Click Launchers
 
@@ -880,11 +895,16 @@ See `config.yaml.example` for full configuration options.
 - **Manual Save/Reset**: Use the "💾 Save Settings" and "🔄 Reset to Defaults" buttons in Advanced Settings
 - **Security**: API keys are never stored - only used for the current session
 - **History**: Recent consultations are automatically saved and displayed
+- **Onboarding**: First-time users get a guided 6-step setup wizard
+- **Error Handling**: Comprehensive error messages with recovery actions
+- **Feature Discovery**: Interactive tours and contextual help throughout
 
 **Settings Persistence:**
 
 - ✅ Saved to browser: Provider, Model, Base URL, Domain, Mode
 - ❌ Session only: Custom Members, API Key
+
+For complete web app documentation, see [Web App Guide](documentation/WEB_APP.md).
 
 ---
 

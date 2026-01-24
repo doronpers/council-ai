@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Added**
 
+- Comprehensive UX Enhancement (January 2026):
+  - **Onboarding Wizard**: 6-step guided setup for first-time users (welcome, provider, config, domain, personas, first consultation)
+  - **Error Handling System**: Categorized error messages with recovery actions, inline validation, and error logging
+  - **Feature Discovery**: Interactive tours, tiered configuration, contextual help icons, and feature highlights
+  - **Query Templates**: Example queries by domain and use case
+  - **Smart Recommendations**: Domain and persona recommendations based on query analysis
+  - **Enhanced Progress Dashboard**: Individual persona progress, time estimates, and cancel functionality
+  - **Improved Comparison UI**: More discoverable comparison feature with visual indicators
+  - **TTS Surface**: Text-to-speech toggle moved to results toolbar for better discoverability
+  - **Pattern-Coach Mode**: Added to mode selection with explanation and documentation links
+
 - Test coverage and robustness improvements:
   - **Reviewer module**: 73 comprehensive tests covering JSON extraction/parsing, request validation, council building, prompt generation, synthesis fallbacks, streaming and API endpoints (`tests/test_reviewer.py`, `tests/test_webapp_reviewer_api.py`).
   - **Web Search tool**: 6 tests for provider behavior, auto-detection, formatting, and function definitions (`tests/test_web_search.py`).

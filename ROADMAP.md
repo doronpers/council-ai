@@ -36,6 +36,17 @@
 1. ✅ **Pattern-Coach Mode** - Implemented Pattern-Coach Mode integrating with `shared-ai-utils` PatternManager
 2. ✅ **QA Command** - Implemented `council qa` command evaluating content via `sono-eval`
 
+### UX Enhancements (2026-01-24)
+
+1. ✅ **Onboarding Wizard** - 6-step guided setup for first-time users
+2. ✅ **Error Handling System** - Comprehensive error messages with recovery actions
+3. ✅ **Feature Discovery** - Interactive tours, tiered configuration, contextual help
+4. ✅ **Query Templates** - Example queries by domain and use case
+5. ✅ **Smart Recommendations** - Domain and persona recommendations based on query analysis
+6. ✅ **Enhanced Progress Dashboard** - Individual persona progress, time estimates, cancel functionality
+7. ✅ **Improved Comparison UI** - More discoverable comparison feature
+8. ✅ **TTS Surface** - Text-to-speech toggle in results toolbar
+
 ### Core Improvements (2026-01-16)
 
 1. ✅ **Concurrent Streaming** - Optimized streaming consultations to run personas in parallel
