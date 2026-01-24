@@ -28,10 +28,10 @@
 
 ### Core Improvements (2026-01-16)
 
-5. ✅ **Concurrent Streaming** - Optimized streaming consultations to run personas in parallel
-6. ✅ **Enhanced API Key Detection** - Improved detection of multiple LLM providers
-7. ✅ **Robust Fallback Mechanism** - Better fallback handling for LLM providers
-8. ✅ **Desktop Launcher** - Created `launch-council-web.command` for macOS
+1. ✅ **Concurrent Streaming** - Optimized streaming consultations to run personas in parallel
+2. ✅ **Enhanced API Key Detection** - Improved detection of multiple LLM providers
+3. ✅ **Robust Fallback Mechanism** - Better fallback handling for LLM providers
+4. ✅ **Desktop Launcher** - Created `launch-council-web.command` for macOS
 
 ---
 
@@ -44,15 +44,6 @@ _No high priority items at this time._
 ## 🟡 Medium Priority
 
 ### Web UI Enhancements
-
-#### 1. Session Management UI
-
-- **Status**: 📝 TODO
-- **Complexity**: Medium
-- **Recommended Models**: 1. Cursor Composer 2, 2. Claude Sonnet 4.5, 3. GPT-5.1-Codex
-- **Description**: Backend has session endpoints (`/api/sessions`, `/api/sessions/{id}`), but no UI
-- **Implementation**: Add session view/management to history panel
-- **Files**: `src/council_ai/webapp/src/components/History/`
 
 ### Integration & Architecture
 

@@ -1,6 +1,4 @@
-"""
-Consultation strategies package.
-"""
+"""Consultation strategies package."""
 
 from typing import Dict
 
@@ -41,6 +39,10 @@ def get_strategy(mode_name: str) -> ConsultationStrategy:
             from .vote import VoteStrategy
 
             _STRATEGIES[ConsultationMode.VOTE.value] = VoteStrategy()
+        elif mode_name == ConsultationMode.PATTERN_COACH.value:
+            from .pattern_coach import PatternCoachStrategy
+
+            _STRATEGIES[ConsultationMode.PATTERN_COACH.value] = PatternCoachStrategy()
         else:
             raise ValueError(f"Unknown consultation mode: {mode_name}")
 

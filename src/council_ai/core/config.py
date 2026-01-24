@@ -120,6 +120,7 @@ class Config(BaseModel):
 
     api: APIConfig = Field(default_factory=APIConfig)
     tts: TTSConfig = Field(default_factory=TTSConfig)
+    patterns_path: Optional[str] = None
     default_mode: str = "synthesis"
     default_domain: str = "general"
     temperature: float = 0.7
