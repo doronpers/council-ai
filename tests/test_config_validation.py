@@ -4,7 +4,7 @@ from council_ai.cli.config_validation import display_config_warning, validate_co
 
 # Test API keys used in tests are test-only and marked for detect-secrets allowlist
 TEST_API_KEY = "TEST_API_KEY_NOT_SECRET"  # pragma: allowlist secret
-INVALID_SHORT_KEY = "INVALID_SHORT_KEY"  # pragma: allowlist secret
+INVALID_SHORT_KEY = "short"  # pragma: allowlist secret
 
 
 def test_validate_configuration_valid():
@@ -29,8 +29,8 @@ def test_validate_configuration_invalid_provider_and_key():
     ok, errors = validate_configuration(cfg)
     assert ok is False
     # both provider and api key validation errors should be reported
-    assert any("Invalid provider" in e or "Invalid provider" in e for e in errors)
-    assert any("API key" in e or "API key" in e for e in errors)
+    assert any("Invalid provider" in e for e in errors)
+    assert any("API key" in e for e in errors)
 
 
 def test_display_config_warning_prints(capsys):

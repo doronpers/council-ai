@@ -26,7 +26,7 @@ class ConsultationStrategy(ABC):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> "ConsultationResult | list['MemberResponse']":
+    ) -> List["MemberResponse"]:
         """
         Execute the consultation strategy.
 
@@ -41,7 +41,7 @@ class ConsultationStrategy(ABC):
             **kwargs: Additional strategy-specific arguments
 
         Returns:
-            ConsultationResult: The result of the consultation
+            List[MemberResponse]: The list of member responses
         """
         pass
 
