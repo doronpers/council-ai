@@ -1,4 +1,5 @@
 """Strategy execute return type compatibility tests."""
+import inspect
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -56,7 +57,6 @@ async def test_all_strategies_return_consultationresult():
     for strategy_class in strategies:
         strategy = strategy_class()
         # Check the return type annotation
-        import inspect
         sig = inspect.signature(strategy.execute)
         return_annotation = sig.return_annotation
         
