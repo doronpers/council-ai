@@ -750,9 +750,13 @@ class Council:
         # Once all Phase 2 PRs are merged, this can be simplified to:
         # responses = strategy_result.responses
         if isinstance(strategy_result, ConsultationResult):
+        if isinstance(strategy_result, ConsultationResult):
             responses = strategy_result.responses
         else:
-            # Fallback for strategies still returning list (before Phase 2 merge)
+            logger.warning(
+                "A strategy returned a raw list of responses instead of ConsultationResult. "
+                "This is a deprecated behavior and will be removed in a future version."
+            )
             responses = strategy_result
 
         # Generate synthesis if needed
