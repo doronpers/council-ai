@@ -72,9 +72,9 @@ class CouncilConfig(BaseModel):
     # Web search and reasoning capabilities
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
-    reasoning_mode: Optional[
-        str
-    ] = "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    reasoning_mode: Optional[str] = (
+        "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    )
     # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
     progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
@@ -164,9 +164,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[
-            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
-        ] = []
+        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
+            []
+        )
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -826,7 +826,7 @@ class Council:
                 context=context,
                 responses=responses,
                 synthesis=synthesis,
-                mode=mode,
+                mode=mode.value,  # Convert enum to string
                 timestamp=datetime.now(),
                 structured_synthesis=structured_synthesis,
             )
@@ -840,7 +840,7 @@ class Council:
             if strategy_result.context is None:
                 strategy_result.context = context
             if strategy_result.mode is None:
-                strategy_result.mode = mode
+                strategy_result.mode = mode.value  # Convert enum to string
             if strategy_result.timestamp is None:
                 strategy_result.timestamp = datetime.now()
 
