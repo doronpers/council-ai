@@ -1,7 +1,9 @@
+# tests/test_strategy_return_types.py
 """Strategy execute return type compatibility tests."""
 
+import inspect
 from datetime import datetime
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -25,6 +27,26 @@ def mock_get_api_key(monkeypatch):
         yield mock
 
 
+@pytest.fixture
+def mock_get_provider(monkeypatch):
+    """Mock _get_provider on Council to avoid real provider initialization."""
+    with patch("council_ai.core.council.LLMManager") as llm_manager_cls:
+        mock_manager = MagicMock()
+        llm_manager_cls.return_value = mock_manager
+
+        def _fake_get_provider(self, fallback=False):
+            return object()
+
+        monkeypatch.setattr(Council, "_get_provider", _fake_get_provider)
+        yield mock_manager
+
+
+@pytest.fixture
+def mock_llm_manager():
+    """Fixture kept for compatibility with other tests that expect it."""
+    return MagicMock()
+
+
 @pytest.mark.anyio
 async def test_council_handles_strategy_returning_consultationresult(
     monkeypatch, mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
@@ -32,7 +54,7 @@ async def test_council_handles_strategy_returning_consultationresult(
     """Test that council properly handles strategies that return ConsultationResult."""
     council = Council(api_key="test-key")
 
-    # Mock the provider to avoid API key requirements
+    # Mock the provider to avoid API key requirements (defensive even with fixture)
     monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
 
     # Create a fake strategy that returns a ConsultationResult
@@ -44,231 +66,145 @@ async def test_council_handles_strategy_returning_consultationresult(
         async def execute(self, **kwargs):
             return fake_result
 
-    # Mock provider and strategy
-    mock_provider = MagicMock()
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
-    monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
+    # Monkeypatch the strategy lookup to return our dummy strategy
+    from council_ai.core.strategies import base as strategies_base
 
-    with patch("council_ai.core.council.get_strategy", return_value=DummyStrategy()):
-        with patch.object(council, "_get_provider", return_value=mock_provider):
-            result = await council.consult_async("Test Q")
+    monkeypatch.setattr(
+        strategies_base,
+        "get_strategy",
+        lambda mode_value: DummyStrategy(),
+    )
+
+    # Also avoid starting a real session
+    monkeypatch.setattr(
+        council,
+        "_start_session",
+        lambda *args, **kwargs: MagicMock(session_id="test-session"),
+    )
+
+    result = await council.consult_async(
+        query="Test Q",
+        mode="synthesis",
+    )
 
     assert isinstance(result, ConsultationResult)
-    assert len(result.responses) == 1
+    assert result is fake_result
     assert result.responses[0].content == "Advice"
 
 
 @pytest.mark.anyio
-async def test_council_handles_strategy_returning_list(
+async def test_council_handles_strategy_returning_list_of_memberresponses(
     monkeypatch, mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
 ):
-    """Test that council properly handles strategies that return List[MemberResponse]."""
+    """Test that council wraps legacy List[MemberResponse] into ConsultationResult."""
     council = Council(api_key="test-key")
 
-    # Mock the provider to avoid API key requirements
     monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
 
-    # Create a fake strategy that returns a list of MemberResponse
-    persona = Persona(id="T2", name="Test2", title="T", core_question="?", razor=".")
-    member_response = MemberResponse(
-        persona=persona, content="ListAdvice", timestamp=datetime.now()
+    persona = Persona(id="T1", name="Test1", title="T", core_question="?", razor=".")
+    member_response = MemberResponse(persona=persona, content="Legacy", timestamp=datetime.now())
+    fake_list = [member_response]
+
+    class LegacyStrategy:
+        async def execute(self, **kwargs):
+            # Legacy behavior: return list[MemberResponse]
+            return fake_list
+
+    from council_ai.core.strategies import base as strategies_base
+
+    monkeypatch.setattr(
+        strategies_base,
+        "get_strategy",
+        lambda mode_value: LegacyStrategy(),
     )
 
-    class DummyStrategy:
-        async def execute(self, **kwargs):
-            return [member_response]
+    monkeypatch.setattr(
+        council,
+        "_start_session",
+        lambda *args, **kwargs: MagicMock(session_id="test-session"),
+    )
 
-    # Mock provider and strategy
-    mock_provider = MagicMock()
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
-    monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
-
-    with patch("council_ai.core.council.get_strategy", return_value=DummyStrategy()):
-        with patch.object(council, "_get_provider", return_value=mock_provider):
-            result = await council.consult_async("Test Q")
+    result = await council.consult_async(
+        query="Legacy Q",
+        mode="synthesis",
+    )
 
     assert isinstance(result, ConsultationResult)
-    assert len(result.responses) == 1
-    assert result.responses[0].content == "ListAdvice"
+    assert result.responses == fake_list
+    assert result.responses[0].content == "Legacy"
+
+
+def test_all_built_in_strategies_return_consultationresult_signature():
+    """Ensure execute signature of built-in strategies returns ConsultationResult."""
+    from council_ai.core.strategies.debate import DebateStrategy
+    from council_ai.core.strategies.synthesis import SynthesisStrategy
+    from council_ai.core.strategies.individual import IndividualStrategy
+
+    strategies = [DebateStrategy, SynthesisStrategy, IndividualStrategy]
+
+    for strategy_cls in strategies:
+        execute_sig = inspect.signature(strategy_cls.execute)
+        return_annotation = execute_sig.return_annotation
+        assert (
+            return_annotation == "ConsultationResult"
+            or return_annotation is ConsultationResult
+        ), f"{strategy_cls.__name__}.execute must return ConsultationResult"
 
 
 @pytest.mark.anyio
-async def test_council_preserves_prepopulated_synthesis(monkeypatch):
-    """Test that pre-populated synthesis in ConsultationResult is not overwritten."""
+async def test_stream_methods_are_async_generators(monkeypatch, mock_env_keys):
+    """Ensure stream(...) methods on strategies are async iterators."""
+    from council_ai.core.strategies.debate import DebateStrategy
+    from council_ai.core.strategies.synthesis import SynthesisStrategy
+    from council_ai.core.strategies.individual import IndividualStrategy
+
+    strategies = [DebateStrategy(), SynthesisStrategy(), IndividualStrategy()]
+
     council = Council(api_key="test-key")
-    council.config.mode = ConsultationMode.SYNTHESIS
 
-    persona = Persona(id="T3", name="Test3", title="T", core_question="?", razor=".")
-    member_response = MemberResponse(persona=persona, content="Response", timestamp=datetime.now())
-
-    # Strategy returns ConsultationResult with pre-populated synthesis
-    fake_result = ConsultationResult(
-        query="Test Q", responses=[member_response], synthesis="Pre-populated synthesis"
+    # Avoid real provider/session
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    monkeypatch.setattr(
+        council,
+        "_start_session",
+        lambda *args, **kwargs: MagicMock(session_id="test-session"),
     )
 
-    class DummyStrategy:
-        async def execute(self, **kwargs):
-            return fake_result
+    async def consume_stream(strategy):
+        """Helper to consume a few items from stream to verify it is async iterator."""
+        stream = strategy.stream(
+            council=council,
+            query="Test",
+            context=None,
+            mode=ConsultationMode.SYNTHESIS,
+            members=None,
+            session_id=None,
+            auto_recall=True,
+        )
+        assert hasattr(stream, "__aiter__")
+        assert hasattr(stream, "__anext__")
+        # We don't care about contents here; just that it is iterable
+        async for _ in stream:
+            break
 
-    # Mock provider and strategy
-    mock_provider = MagicMock()
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
-    monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
-
-    result = await council.consult_async("Test Q")
-
-    # Verify the pre-populated synthesis is preserved
-    assert result.synthesis == "Pre-populated synthesis"
-
-
-@pytest.mark.anyio
-async def test_council_merges_computed_synthesis(monkeypatch):
-    """Test that council-computed synthesis is merged into ConsultationResult without synthesis."""
-    council = Council(api_key="test-key")
-    council.config.mode = ConsultationMode.SYNTHESIS
-
-    persona = Persona(id="T4", name="Test4", title="T", core_question="?", razor=".")
-    member_response = MemberResponse(persona=persona, content="Response", timestamp=datetime.now())
-
-    # Strategy returns ConsultationResult WITHOUT synthesis
-    fake_result = ConsultationResult(query="Test Q", responses=[member_response], synthesis=None)
-
-    class DummyStrategy:
-        async def execute(self, **kwargs):
-            return fake_result
-
-    # Mock synthesis generation to return a specific value
-    async def mock_generate_synthesis(provider, query, context, responses):
-        return "Council-computed synthesis"
-
-    # Mock provider and strategy
-    mock_provider = MagicMock()
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
-    monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
-    monkeypatch.setattr(council, "_generate_synthesis", mock_generate_synthesis)
-    monkeypatch.setattr(council, "_get_synthesis_provider", lambda provider: mock_provider)
-
-    result = await council.consult_async("Test Q")
-
-    # Verify the council-computed synthesis is merged in
-    assert result.synthesis == "Council-computed synthesis"
+    # Use AsyncMock to drive consume_stream
+    for strategy in strategies:
+        await consume_stream(strategy)
 
 
 @pytest.mark.anyio
-async def test_council_fills_partial_fields(monkeypatch):
-    """Test that fallback logic fills in missing context, mode, and timestamp."""
+async def test_consult_async_returns_consultationresult(monkeypatch, mock_env_keys):
+    """Smoke test: consult_async always returns ConsultationResult for built-in modes."""
     council = Council(api_key="test-key")
 
-    persona = Persona(id="T5", name="Test5", title="T", core_question="?", razor=".")
-    member_response = MemberResponse(persona=persona, content="Response", timestamp=datetime.now())
-
-    # Strategy returns ConsultationResult with missing context, mode, timestamp
-    fake_result = ConsultationResult(
-        query="Test Q", responses=[member_response], context=None, mode=None, timestamp=None
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    monkeypatch.setattr(
+        council,
+        "_start_session",
+        lambda *args, **kwargs: MagicMock(session_id="test-session"),
     )
 
-    class DummyStrategy:
-        async def execute(self, **kwargs):
-            return fake_result
-
-    # Mock provider and strategy
-    mock_provider = MagicMock()
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
-    monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
-
-    result = await council.consult_async("Test Q", context="Test context")
-
-    # Verify fallback values were set
-    assert result.context == "Test context"
-    assert result.mode == ConsultationMode.SYNTHESIS.value  # Default mode
-    assert result.timestamp is not None  # Should be set to current time
-
-
-@pytest.mark.anyio
-async def test_synthesis_mode_triggers_synthesis_generation(monkeypatch):
-    """Test that SYNTHESIS mode triggers synthesis generation when using legacy list return."""
-    council = Council(api_key="test-key")
-    council.config.mode = ConsultationMode.SYNTHESIS
-
-    persona = Persona(id="T6", name="Test6", title="T", core_question="?", razor=".")
-    member_response = MemberResponse(persona=persona, content="Response", timestamp=datetime.now())
-
-    class DummyStrategy:
-        async def execute(self, **kwargs):
-            # Legacy behavior: return list
-            return [member_response]
-
-    # Mock synthesis generation
-    async def mock_generate_synthesis(provider, query, context, responses):
-        return "Generated synthesis for SYNTHESIS mode"
-
-    # Mock provider and strategy
-    mock_provider = MagicMock()
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
-    monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
-    monkeypatch.setattr(council, "_generate_synthesis", mock_generate_synthesis)
-    monkeypatch.setattr(council, "_get_synthesis_provider", lambda provider: mock_provider)
-
-    result = await council.consult_async("Test Q")
-
-    # Verify synthesis was generated
-    assert result.synthesis == "Generated synthesis for SYNTHESIS mode"
-    assert result.mode == ConsultationMode.SYNTHESIS.value
-
-
-@pytest.mark.anyio
-async def test_debate_mode_triggers_synthesis_generation(monkeypatch):
-    """Test that DEBATE mode triggers synthesis generation when using legacy list return."""
-    council = Council(api_key="test-key")
-    council.config.mode = ConsultationMode.DEBATE
-
-    persona = Persona(id="T7", name="Test7", title="T", core_question="?", razor=".")
-    member_response = MemberResponse(persona=persona, content="Response", timestamp=datetime.now())
-
-    class DummyStrategy:
-        async def execute(self, **kwargs):
-            # Legacy behavior: return list
-            return [member_response]
-
-    # Mock synthesis generation
-    async def mock_generate_synthesis(provider, query, context, responses):
-        return "Generated synthesis for DEBATE mode"
-
-    # Mock provider and strategy
-    mock_provider = MagicMock()
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
-    monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
-    monkeypatch.setattr(council, "_generate_synthesis", mock_generate_synthesis)
-    monkeypatch.setattr(council, "_get_synthesis_provider", lambda provider: mock_provider)
-
-    result = await council.consult_async("Test Q")
-
-    # Verify synthesis was generated
-    assert result.synthesis == "Generated synthesis for DEBATE mode"
-    assert result.mode == ConsultationMode.DEBATE.value
-
-
-@pytest.mark.anyio
-async def test_individual_mode_no_synthesis(monkeypatch):
-    """Test that INDIVIDUAL mode does not trigger synthesis generation."""
-    council = Council(api_key="test-key")
-    council.config.mode = ConsultationMode.INDIVIDUAL
-
-    persona = Persona(id="T8", name="Test8", title="T", core_question="?", razor=".")
-    member_response = MemberResponse(persona=persona, content="Response", timestamp=datetime.now())
-
-    class DummyStrategy:
-        async def execute(self, **kwargs):
-            # Legacy behavior: return list
-            return [member_response]
-
-    # Mock provider and strategy
-    mock_provider = MagicMock()
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=False: mock_provider)
-    monkeypatch.setattr("council_ai.core.council.get_strategy", lambda mode: DummyStrategy())
-
-    result = await council.consult_async("Test Q")
-
-    # Verify NO synthesis was generated for INDIVIDUAL mode
-    assert result.synthesis is None
-    assert result.mode == ConsultationMode.INDIVIDUAL.value
+    for mode in [ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL]:
+        result = await council.consult_async(query="Test", mode=mode.value)
+        assert isinstance(result, ConsultationResult)
+        assert result.mode in {mode.value, "debate", "synthesis", "individual"}

@@ -737,8 +737,7 @@ class Council:
 
         # Get responses based on mode using Strategy pattern
         strategy = get_strategy(mode.value)
-        strategy_result = None
-        result_or_responses = await strategy.execute(
+        strategy_result = await strategy.execute(
             council=self,
             query=query,
             context=context,
@@ -747,21 +746,8 @@ class Council:
             auto_recall=auto_recall,
         )
 
-        # Backwards-compatible handling: strategies may return either a
-        # ConsultationResult (new behavior) or a List[MemberResponse] (legacy).
-
-        if isinstance(result_or_responses, ConsultationResult):
-            strategy_result = result_or_responses
-            responses = strategy_result.responses
-        elif isinstance(result_or_responses, list):
-            # Runtime type validation instead of cast for type safety
-            responses = result_or_responses
-        else:
-            # This should never happen if strategies follow the contract
-            raise TypeError(
-                f"Strategy returned unexpected type: {type(result_or_responses)}. "
-                "Expected ConsultationResult or List[MemberResponse]."
-            )
+        # All strategies now return ConsultationResult
+        responses = strategy_result.responses
 
         # Generate synthesis if needed
         synthesis = None

@@ -26,7 +26,7 @@ class ConsultationStrategy(ABC):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> "ConsultationResult | list['MemberResponse']":
+    ) -> "ConsultationResult":
         """Execute a consultation strategy.
 
         All built-in strategies now return ConsultationResult. The union type
@@ -44,8 +44,7 @@ class ConsultationStrategy(ABC):
             **kwargs: Additional strategy-specific arguments
 
         Returns:
-            ConsultationResult | list[MemberResponse]: The result of the consultation.
-            All built-in strategies return ConsultationResult.
+            ConsultationResult: The result of the consultation
         """
         pass
 

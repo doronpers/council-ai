@@ -64,7 +64,6 @@ class DebateStrategy(ConsultationStrategy):
             all_responses.extend(round_responses)
 
         # Return ConsultationResult for consistency with other strategies
-        from ..session import ConsultationResult
 
         mode_str = mode.value if mode is not None else "debate"
         return ConsultationResult(
