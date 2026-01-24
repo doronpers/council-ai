@@ -13,7 +13,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -72,9 +72,9 @@ class CouncilConfig(BaseModel):
     # Web search and reasoning capabilities
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
-    reasoning_mode: Optional[
-        str
-    ] = "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    reasoning_mode: Optional[str] = (
+        "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    )
     # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
     progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
@@ -164,9 +164,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[
-            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
-        ] = []
+        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
+            []
+        )
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -753,8 +753,15 @@ class Council:
         if isinstance(result_or_responses, ConsultationResult):
             strategy_result = result_or_responses
             responses = strategy_result.responses
+        elif isinstance(result_or_responses, list):
+            # Runtime type validation instead of cast for type safety
+            responses = result_or_responses
         else:
-            responses = cast(List[MemberResponse], result_or_responses)
+            # This should never happen if strategies follow the contract
+            raise TypeError(
+                f"Strategy returned unexpected type: {type(result_or_responses)}. "
+                "Expected ConsultationResult or List[MemberResponse]."
+            )
 
         # Generate synthesis if needed
         synthesis = None
