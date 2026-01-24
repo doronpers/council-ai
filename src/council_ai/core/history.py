@@ -41,7 +41,7 @@ class ConsultationHistory:
             for option in options:
                 if not option:
                     continue
-                path = Path(option)
+                path = Path(str(option))
                 try:
                     path.mkdir(parents=True, exist_ok=True)
                     self.storage_dir = path / "history"

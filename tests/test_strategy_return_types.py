@@ -1,5 +1,4 @@
-"""Tests for strategy execute return type compatibility (Phase 1 migration).
-"""
+"""Strategy execute return type compatibility tests."""
 from datetime import datetime
 
 import pytest
