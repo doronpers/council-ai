@@ -1,7 +1,7 @@
 """Synthesis consultation strategy."""
 
 import logging
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
 from .base import ConsultationStrategy
 
@@ -43,13 +43,7 @@ class SynthesisStrategy(ConsultationStrategy):
 
         if isinstance(result, ConsultationResult):
             return result
-        # Legacy path: wrap list of responses in ConsultationResult
-        return ConsultationResult(
-            query=query,
-            responses=result,
-            context=context,
-            mode=mode.value if mode else "synthesis",
-        )
+        return result
 
     async def stream(
         self,

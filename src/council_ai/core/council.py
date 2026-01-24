@@ -13,7 +13,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -753,8 +753,15 @@ class Council:
         if isinstance(result_or_responses, ConsultationResult):
             strategy_result = result_or_responses
             responses = strategy_result.responses
+        elif isinstance(result_or_responses, list):
+            # Runtime type validation instead of cast for type safety
+            responses = result_or_responses
         else:
-            responses = cast(List[MemberResponse], result_or_responses)
+            # This should never happen if strategies follow the contract
+            raise TypeError(
+                f"Strategy returned unexpected type: {type(result_or_responses)}. "
+                "Expected ConsultationResult or List[MemberResponse]."
+            )
 
         # Generate synthesis if needed
         synthesis = None
@@ -826,20 +833,23 @@ class Council:
                 context=context,
                 responses=responses,
                 synthesis=synthesis,
-                mode=mode,
+                mode=mode.value,  # Convert enum to string
                 timestamp=datetime.now(),
                 structured_synthesis=structured_synthesis,
             )
         else:
             # Merge computed synthesis back into strategy-provided result when missing
-            strategy_result.synthesis = strategy_result.synthesis or synthesis
-            strategy_result.structured_synthesis = (
-                strategy_result.structured_synthesis or structured_synthesis
-            )
-            # Ensure context/mode/timestamp are set with proper defaults
-            strategy_result.context = strategy_result.context or context
-            strategy_result.mode = strategy_result.mode or mode
-            strategy_result.timestamp = strategy_result.timestamp or datetime.now()
+            if strategy_result.synthesis is None and synthesis is not None:
+                strategy_result.synthesis = synthesis
+            if strategy_result.structured_synthesis is None and structured_synthesis is not None:
+                strategy_result.structured_synthesis = structured_synthesis
+            # Ensure context/mode/timestamp are set
+            if strategy_result.context is None:
+                strategy_result.context = context
+            if strategy_result.mode is None:
+                strategy_result.mode = mode.value  # Convert enum to string
+            if strategy_result.timestamp is None:
+                strategy_result.timestamp = datetime.now()
 
             result = strategy_result
 
@@ -1140,8 +1150,8 @@ class Council:
         # Build result dict, handling any exceptions
         enhanced_contexts: Dict[str, Optional[str]] = {}
         for result in results:
-            if isinstance(result, asyncio.CancelledError):
-                # Propagate cancellation so higher-level tasks can terminate correctly
+            if isinstance(result, (asyncio.CancelledError, KeyboardInterrupt)):
+                # Propagate cancellation/interruption so higher-level tasks can terminate correctly
                 raise result
             if isinstance(result, Exception):
                 logger.warning(f"Web search enhancement failed: {result}")
