@@ -6,7 +6,7 @@ from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import ConsultationResult
+    from ..session import ConsultationResult, MemberResponse
 
 
 class DebateStrategy(ConsultationStrategy):
@@ -62,16 +62,13 @@ class DebateStrategy(ConsultationStrategy):
 
             all_responses.extend(round_responses)
 
-            if isinstance(round_responses, ConsultationResult):
-                all_responses.extend(round_responses.responses)
-            else:
-                all_responses.extend(round_responses)
+        # Return ConsultationResult for consistency with other strategies
+        from ..session import ConsultationResult
 
         mode_str = mode.value if mode is not None else "debate"
-
         return ConsultationResult(
             query=query,
-            responses=cast(List[MemberResponse], all_responses),
+            responses=all_responses,
             context=context,
             mode=mode_str,
         )

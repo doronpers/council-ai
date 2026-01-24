@@ -1,4 +1,5 @@
 """Strategy execute return type compatibility tests."""
+
 from datetime import datetime
 
 import pytest
@@ -10,6 +11,9 @@ from council_ai.core.session import ConsultationResult, MemberResponse
 @pytest.mark.anyio
 async def test_council_handles_strategy_returning_consultationresult(monkeypatch):
     council = Council(api_key="test-key")
+
+    # Mock the provider to avoid API key requirements
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
 
     # Create a fake strategy that returns a ConsultationResult
     persona = Persona(id="T1", name="Test1", title="T", core_question="?", razor=".")
@@ -32,6 +36,9 @@ async def test_council_handles_strategy_returning_consultationresult(monkeypatch
 @pytest.mark.anyio
 async def test_council_handles_strategy_returning_list(monkeypatch):
     council = Council(api_key="test-key")
+
+    # Mock the provider to avoid API key requirements
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
 
     # Create a fake strategy that returns a list of MemberResponse
     persona = Persona(id="T2", name="Test2", title="T", core_question="?", razor=".")
