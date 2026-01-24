@@ -749,7 +749,6 @@ class Council:
 
         # Backwards-compatible handling: strategies may return either a
         # ConsultationResult (new behavior) or a List[MemberResponse] (legacy).
-        from .session import ConsultationResult
 
         if isinstance(result_or_responses, ConsultationResult):
             strategy_result = result_or_responses
@@ -833,14 +832,17 @@ class Council:
             )
         else:
             # Merge computed synthesis back into strategy-provided result when missing
-            if not getattr(strategy_result, "synthesis", None) and synthesis:
+            if strategy_result.synthesis is None and synthesis is not None:
                 strategy_result.synthesis = synthesis
-            if not getattr(strategy_result, "structured_synthesis", None) and structured_synthesis:
+            if strategy_result.structured_synthesis is None and structured_synthesis is not None:
                 strategy_result.structured_synthesis = structured_synthesis
             # Ensure context/mode/timestamp are set
-            strategy_result.context = strategy_result.context or context
-            strategy_result.mode = strategy_result.mode or mode.value
-            strategy_result.timestamp = strategy_result.timestamp or datetime.now()
+            if strategy_result.context is None:
+                strategy_result.context = context
+            if strategy_result.mode is None:
+                strategy_result.mode = mode
+            if strategy_result.timestamp is None:
+                strategy_result.timestamp = datetime.now()
 
             result = strategy_result
 
@@ -1141,7 +1143,10 @@ class Council:
         # Build result dict, handling any exceptions
         enhanced_contexts: Dict[str, Optional[str]] = {}
         for result in results:
-            if isinstance(result, BaseException):
+            if isinstance(result, asyncio.CancelledError):
+                # Propagate cancellation so higher-level tasks can terminate correctly
+                raise result
+            if isinstance(result, Exception):
                 logger.warning(f"Web search enhancement failed: {result}")
                 continue
             member_id, enhanced = result

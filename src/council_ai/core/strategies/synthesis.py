@@ -1,13 +1,13 @@
 """Synthesis consultation strategy."""
 
 import logging
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import MemberResponse
+    from ..session import ConsultationResult, MemberResponse
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class SynthesisStrategy(ConsultationStrategy):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> List["MemberResponse"]:
+    ) -> "ConsultationResult":
         from .individual import IndividualStrategy
 
         individual = IndividualStrategy()

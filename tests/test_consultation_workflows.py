@@ -452,9 +452,9 @@ class TestMultiStepWorkflows:
 
         for round_num in range(refinement_rounds):
             responses = []
-            for _persona in mock_personas:
+            for persona in mock_personas:
                 response = MagicMock()
-                response.persona = _persona
+                response.persona = persona
                 response.content = f"Round {round_num + 1} response"
                 responses.append(response)
 
