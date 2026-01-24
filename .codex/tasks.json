@@ -1,0 +1,118 @@
+{
+  "version": "1.0.0",
+  "description": "Autonomous tasks for council-ai Codex environment",
+  "tasks": {
+    "validate": {
+      "name": "Full Validation",
+      "description": "Run complete validation suite (format, lint, types, tests, package validation)",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "all"
+      },
+      "triggers": ["on-commit", "on-push", "manual"],
+      "timeout": 600
+    },
+    "quick-check": {
+      "name": "Quick Check",
+      "description": "Fast validation (lint, types, fast tests only)",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "quick"
+      },
+      "triggers": ["on-file-change", "manual"],
+      "timeout": 120
+    },
+    "ci-pipeline": {
+      "name": "CI Pipeline",
+      "description": "Full CI pipeline (format, lint, types, tests, validation)",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "ci"
+      },
+      "triggers": ["on-push", "manual"],
+      "timeout": 600
+    },
+    "test-fast": {
+      "name": "Fast Tests",
+      "description": "Run fast tests (excludes slow and integration tests)",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "test-fast"
+      },
+      "triggers": ["on-file-change", "manual"],
+      "timeout": 180
+    },
+    "test-all": {
+      "name": "All Tests",
+      "description": "Run all tests including slow and integration tests",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "test-all"
+      },
+      "triggers": ["manual", "on-push"],
+      "timeout": 900
+    },
+    "coverage": {
+      "name": "Test Coverage",
+      "description": "Run tests with coverage report",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "coverage"
+      },
+      "triggers": ["manual", "on-push"],
+      "timeout": 300
+    },
+    "format": {
+      "name": "Code Formatting",
+      "description": "Check code formatting with black",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "format"
+      },
+      "triggers": ["on-file-change", "manual"],
+      "timeout": 60
+    },
+    "lint": {
+      "name": "Linting",
+      "description": "Lint code with ruff",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "lint"
+      },
+      "triggers": ["on-file-change", "manual"],
+      "timeout": 60
+    },
+    "types": {
+      "name": "Type Checking",
+      "description": "Type check with mypy",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "types"
+      },
+      "triggers": ["on-file-change", "manual"],
+      "timeout": 120
+    },
+    "precommit": {
+      "name": "Pre-commit Hooks",
+      "description": "Run all pre-commit hooks",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "precommit"
+      },
+      "triggers": ["on-commit", "manual"],
+      "timeout": 300
+    },
+    "security": {
+      "name": "Security Scan",
+      "description": "Scan for secrets and security issues",
+      "command": "bash scripts/codex-automation.sh",
+      "env": {
+        "CODEX_TASK": "security"
+      },
+      "triggers": ["on-push", "manual"],
+      "timeout": 120
+    }
+  },
+  "default_task": "quick-check",
+  "auto_run_on": ["on-file-change", "on-commit"]
+}
