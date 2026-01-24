@@ -26,11 +26,8 @@ class ConsultationStrategy(ABC):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> "ConsultationResult | list['MemberResponse']":
+    ) -> "ConsultationResult":
         """Execute a consultation strategy.
-
-        During migration we accept either a ConsultationResult (new) or a
-        list of MemberResponse (legacy).
 
         Args:
             council: The council instance
@@ -43,7 +40,7 @@ class ConsultationStrategy(ABC):
             **kwargs: Additional strategy-specific arguments
 
         Returns:
-            ConsultationResult | list[MemberResponse]: The result of the consultation
+            ConsultationResult: The result of the consultation
         """
         pass
 

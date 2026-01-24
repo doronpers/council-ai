@@ -116,8 +116,9 @@ class TestDebateStrategy:
                 rounds=1,
             )
 
-            assert len(result) == 1
-            assert result[0].content == "Alice's response"
+            assert isinstance(result, ConsultationResult)
+            assert len(result.responses) == 1
+            assert result.responses[0].content == "Alice's response"
 
     @pytest.mark.asyncio
     async def test_debate_multiple_rounds(self, setup):
@@ -143,7 +144,8 @@ class TestDebateStrategy:
                 rounds=2,
             )
 
-            assert len(result) == 2
+            assert isinstance(result, ConsultationResult)
+            assert len(result.responses) == 2
             assert mock_individual.return_value.execute.call_count == 2
 
     @pytest.mark.asyncio
@@ -250,14 +252,18 @@ class TestSynthesisStrategy:
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
             mock_response = MockMemberResponse(personas[0], "Individual response")
-            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
+            from council_ai.core.session import ConsultationResult
+            mock_individual.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Test query?", responses=[mock_response])
+            )
 
             result = await strategy.execute(
                 council=council,
                 query="Test query?",
             )
 
-            assert len(result) == 1
+            assert isinstance(result, ConsultationResult)
+            assert len(result.responses) == 1
             mock_individual.return_value.execute.assert_called_once()
 
     @pytest.mark.asyncio

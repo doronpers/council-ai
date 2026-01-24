@@ -737,8 +737,7 @@ class Council:
 
         # Get responses based on mode using Strategy pattern
         strategy = get_strategy(mode.value)
-        strategy_result = None
-        result_or_responses = await strategy.execute(
+        strategy_result = await strategy.execute(
             council=self,
             query=query,
             context=context,
@@ -747,14 +746,8 @@ class Council:
             auto_recall=auto_recall,
         )
 
-        # Backwards-compatible handling: strategies may return either a
-        # ConsultationResult (new behavior) or a List[MemberResponse] (legacy).
-
-        if isinstance(result_or_responses, ConsultationResult):
-            strategy_result = result_or_responses
-            responses = strategy_result.responses
-        else:
-            responses = cast(List[MemberResponse], result_or_responses)
+        # All strategies now return ConsultationResult
+        responses = strategy_result.responses
 
         # Generate synthesis if needed
         synthesis = None
