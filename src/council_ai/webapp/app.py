@@ -33,6 +33,8 @@ from council_ai.providers.tts import TTSProviderFactory, generate_speech_with_fa
 # Import reviewer routes
 from council_ai.webapp.reviewer import router as reviewer_router
 
+from ..utils.paths import get_workspace_config_dir
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Council AI", version="1.0.0")
@@ -70,8 +72,8 @@ _tts_primary = None
 _tts_fallback = None
 _tts_initialized = False
 
-# Audio storage directory
-AUDIO_DIR = Path.home() / ".cache" / "council-ai" / "audio"
+# Audio storage directory - use workspace-relative cache
+AUDIO_DIR = get_workspace_config_dir("council-ai") / "cache" / "audio"
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 # Determine if we're in production (built assets exist) or development

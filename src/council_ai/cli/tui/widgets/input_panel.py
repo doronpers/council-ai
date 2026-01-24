@@ -23,7 +23,10 @@ class InputPanel(Input):
         super().__init__(*args, **kwargs)
         self._history: list[str] = []
         self._history_index = -1
-        self._history_file = Path.home() / ".council-ai" / "history.txt"
+        # Use workspace-relative path
+        from ..utils.paths import get_workspace_config_dir
+
+        self._history_file = get_workspace_config_dir("council-ai") / "history.txt"
         self._load_history()
 
     def _load_history(self) -> None:
@@ -58,7 +61,7 @@ class InputPanel(Input):
             event.prevent_default()
             event.stop()
         elif event.key == "enter":
-            input_text: str = cast(str, self.value).strip()  # type: ignore[has-type]
+            input_text: str = self.value.strip()  # type: ignore[has-type]
             if input_text:
                 # Add to history if not duplicate
                 if not self._history or self._history[-1] != input_text:

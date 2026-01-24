@@ -1,12 +1,12 @@
 """Debate consultation strategy."""
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import MemberResponse
+    from ..session import ConsultationResult, MemberResponse
 
 
 class DebateStrategy(ConsultationStrategy):
@@ -22,7 +22,7 @@ class DebateStrategy(ConsultationStrategy):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> List["MemberResponse"]:
+    ) -> "ConsultationResult":
         rounds = kwargs.get("rounds", 2)
         active_members = council._get_active_members(members)
 
@@ -46,15 +46,32 @@ class DebateStrategy(ConsultationStrategy):
             from .individual import IndividualStrategy
 
             individual = IndividualStrategy()
-            round_responses = await individual.execute(
+            round_result = await individual.execute(
                 council=council,
                 query=round_query,
                 context=round_context,
                 members=[m.id for m in active_members],
             )
+            # Accept either ConsultationResult (new) or list of MemberResponse (legacy)
+            from ..session import ConsultationResult
+
+            if isinstance(round_result, ConsultationResult):
+                round_responses = round_result.responses
+            else:
+                round_responses = round_result
+
             all_responses.extend(round_responses)
 
-        return all_responses
+        # Return ConsultationResult for consistency with other strategies
+        from ..session import ConsultationResult
+
+        mode_str = mode.value if mode is not None else "debate"
+        return ConsultationResult(
+            query=query,
+            responses=all_responses,
+            context=context,
+            mode=mode_str,
+        )
 
     async def stream(
         self,

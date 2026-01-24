@@ -1,4 +1,4 @@
-"""CLI command documentation and help utilities"""
+"""CLI command documentation and help utilities."""
 
 from typing import Dict, List, Optional, TypedDict
 
@@ -17,9 +17,6 @@ class CommandDoc(TypedDict):
     examples: List[str]
     common_options: List[str]
     quick_tips: List[str]
-
-
-console = Console()
 
 
 COMMAND_DOCS: Dict[str, CommandDoc] = {

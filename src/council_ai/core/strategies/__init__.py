@@ -4,7 +4,7 @@ from typing import Dict
 
 from .base import ConsultationStrategy
 
-# Map of mode to strategy instance (singleton pattern)
+# Map of mode to strategy instance (to be populated as we migrate)
 _STRATEGIES: Dict[str, ConsultationStrategy] = {}
 
 
@@ -42,5 +42,8 @@ def get_strategy(mode_name: str) -> ConsultationStrategy:
         else:
             raise ValueError(f"Unknown consultation mode: {mode_name}")
 
-    # Return the cached strategy instance (singleton pattern)
-    return _STRATEGIES[mode_name]
+    # Instantiate the strategy class before returning an instance.
+    # Note: Each call returns a new instance rather than a singleton.
+    # This is safe since strategies are stateless (no instance state between execute calls).
+    strategy_cls = _STRATEGIES[mode_name]
+    return strategy_cls()

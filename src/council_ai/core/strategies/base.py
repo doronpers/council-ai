@@ -27,8 +27,11 @@ class ConsultationStrategy(ABC):
         auto_recall: bool = True,
         **kwargs: Any,
     ) -> "ConsultationResult | list['MemberResponse']":
-        """
-        Execute the consultation strategy.
+        """Execute a consultation strategy.
+
+        All built-in strategies now return ConsultationResult. The union type
+        with list[MemberResponse] is maintained for backward compatibility with
+        any external strategy implementations.
 
         Args:
             council: The council instance
@@ -41,7 +44,8 @@ class ConsultationStrategy(ABC):
             **kwargs: Additional strategy-specific arguments
 
         Returns:
-            ConsultationResult: The result of the consultation
+            ConsultationResult | list[MemberResponse]: The result of the consultation.
+            All built-in strategies return ConsultationResult.
         """
         pass
 
