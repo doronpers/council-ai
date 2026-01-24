@@ -29,8 +29,9 @@ class ConsultationStrategy(ABC):
     ) -> "ConsultationResult | list['MemberResponse']":
         """Execute a consultation strategy.
 
-        During migration we accept either a ConsultationResult (new) or a
-        list of MemberResponse (legacy).
+        All built-in strategies now return ConsultationResult. The union type
+        with list[MemberResponse] is maintained for backward compatibility with
+        any external strategy implementations.
 
         Args:
             council: The council instance
@@ -43,7 +44,8 @@ class ConsultationStrategy(ABC):
             **kwargs: Additional strategy-specific arguments
 
         Returns:
-            ConsultationResult | list[MemberResponse]: The result of the consultation
+            ConsultationResult | list[MemberResponse]: The result of the consultation.
+            All built-in strategies return ConsultationResult.
         """
         pass
 

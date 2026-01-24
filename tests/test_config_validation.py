@@ -4,7 +4,7 @@ from council_ai.cli.config_validation import display_config_warning, validate_co
 
 # Test API keys used in tests are test-only and marked for detect-secrets allowlist
 TEST_API_KEY = "TEST_API_KEY_NOT_SECRET"  # pragma: allowlist secret
-INVALID_SHORT_KEY = "INVALID_SHORT_KEY"  # pragma: allowlist secret
+INVALID_SHORT_KEY = "short"  # pragma: allowlist secret
 
 
 def test_validate_configuration_valid():

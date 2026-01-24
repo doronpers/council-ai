@@ -1,6 +1,6 @@
 # Council AI - Roadmap & TODOs
 
-**Last Updated**: 2026-01-18
+**Last Updated**: 2026-01-19
 **Single Source of Truth**: This file contains all TODOs, planned features, and roadmap items.
 
 ---
@@ -22,6 +22,10 @@
 4. ✅ **Consultation Comparison** - Side-by-side comparison view for history entries
 5. ✅ **Error Boundaries** - App-level error boundaries with fallback UI
 
+### Web UI Improvements (2026-01-19)
+
+1. ✅ **Session Management UI** - Added session view/management in the history panel
+
 ### Core Improvements (2026-01-16)
 
 5. ✅ **Concurrent Streaming** - Optimized streaming consultations to run personas in parallel
@@ -41,13 +45,7 @@ _No high priority items at this time._
 
 ### Web UI Enhancements
 
-#### 1. Session Management UI
-
-- **Status**: 📝 TODO
-- **Description**: Backend has session endpoints (`/api/sessions`, `/api/sessions/{id}`), but no UI
-- **Implementation**: Add session view/management to history panel
-- **Files**: `src/council_ai/webapp/src/components/History/`
-- **Estimated Effort**: 4-6 hours
+_No medium-priority web UI enhancements at this time._
 
 ### Integration & Architecture
 
