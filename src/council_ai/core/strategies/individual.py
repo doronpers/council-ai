@@ -1,23 +1,20 @@
-"""
-Individual consultation strategy.
-"""
+"""Individual consultation strategy."""
 
 import asyncio
 import logging
-from typing import List, Optional, Any, Dict, AsyncIterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
+
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
-    from ..council import Council, ConsultationMode
-    from ..session import MemberResponse, Persona
+    from ..council import ConsultationMode, Council
+    from ..session import ConsultationResult, Persona  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
 
 class IndividualStrategy(ConsultationStrategy):
-    """
-    Each member responds separately and in parallel.
-    """
+    """Each member responds separately and in parallel."""
 
     async def execute(
         self,
@@ -29,7 +26,7 @@ class IndividualStrategy(ConsultationStrategy):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> List["MemberResponse"]:
+    ) -> "ConsultationResult":
         provider = council._get_provider()
         active_members = council._get_active_members(members)
 
@@ -37,7 +34,18 @@ class IndividualStrategy(ConsultationStrategy):
             council._get_member_response(provider, member, query, context)
             for member in active_members
         ]
-        return await asyncio.gather(*tasks)
+        responses = await asyncio.gather(*tasks)
+
+        # Build a ConsultationResult for consistency across strategies
+        from ..session import ConsultationResult, MemberResponse
+
+        mode_str = mode.value if mode is not None else "individual"
+        return ConsultationResult(
+            query=query,
+            responses=cast(List[MemberResponse], responses),
+            context=context,
+            mode=mode_str,
+        )
 
     async def stream(
         self,
@@ -50,9 +58,7 @@ class IndividualStrategy(ConsultationStrategy):
         auto_recall: bool = True,
         **kwargs: Any,
     ) -> AsyncIterator[Dict[str, Any]]:
-        """
-        Get individual responses from all members concurrently (streaming).
-        """
+        """Get individual responses from all members concurrently (streaming)."""
         provider = council._get_provider()
         active_members = council._get_active_members(members)
 
@@ -74,8 +80,9 @@ class IndividualStrategy(ConsultationStrategy):
             except Exception as e:
                 logger.error("Error in stream for %s: %s", member.name, e)
                 # We need MemberResponse here. Import it inside if needed or through TYPE_CHECKING
-                from ..session import MemberResponse
                 from datetime import datetime
+
+                from ..session import MemberResponse
 
                 response = MemberResponse(
                     persona=member,

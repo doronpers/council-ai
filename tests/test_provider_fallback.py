@@ -10,13 +10,18 @@ Tests cover:
 - Provider health checks
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from council_ai.core.config import get_available_providers, is_placeholder_key
 from council_ai.core.exceptions import ProviderUnavailableError
 
+# Test API key placeholders used in tests; intentionally non-secret placeholders
+TEST_KEY_PLACEHOLDER = "test_key_placeholder"  # pragma: allowlist secret
+TEST_KEY_ANTHROPIC = "test_key_anthropic_placeholder"  # pragma: allowlist secret
+TEST_KEY_OPENAI = "test_key_openai_placeholder"  # pragma: allowlist secret
+TEST_KEY_ANTHROPIC_REAL = "test_key_anthropic_real_placeholder"  # pragma: allowlist secret
 
 # ============================================================================
 # Provider Detection & Availability Tests
@@ -26,20 +31,20 @@ from council_ai.core.exceptions import ProviderUnavailableError
 class TestProviderDetection:
     """Test provider detection and availability checks."""
 
-    @patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-test-123"})
+    @patch.dict("os.environ", {"ANTHROPIC_API_KEY": TEST_KEY_ANTHROPIC})
     def test_detect_anthropic_from_env(self):
         """Test detecting Anthropic API key from environment."""
-        with patch("council_ai.core.config.os.environ", {"ANTHROPIC_API_KEY": "sk-test-123"}):
+        with patch("council_ai.core.config.os.environ", {"ANTHROPIC_API_KEY": TEST_KEY_ANTHROPIC}):
             from council_ai.core.config import get_available_providers
 
             providers = get_available_providers()
             anthropic_found = any(p[0] == "anthropic" and p[1] for p in providers)
             assert anthropic_found, "Should detect Anthropic API key from env"
 
-    @patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test-456"})
+    @patch.dict("os.environ", {"OPENAI_API_KEY": TEST_KEY_OPENAI})
     def test_detect_openai_from_env(self):
         """Test detecting OpenAI API key from environment."""
-        with patch("council_ai.core.config.os.environ", {"OPENAI_API_KEY": "sk-test-456"}):
+        with patch("council_ai.core.config.os.environ", {"OPENAI_API_KEY": TEST_KEY_OPENAI}):
             providers = get_available_providers()
             openai_found = any(p[0] == "openai" and p[1] for p in providers)
             assert openai_found, "Should detect OpenAI API key from env"
@@ -68,15 +73,13 @@ class TestProviderHealthCheck:
             mock_provider = MagicMock()
             mock_get_provider.return_value = mock_provider
             provider = get_provider(
-                "anthropic", api_key="test-key", model="claude-3-sonnet-20240229"
+                "anthropic", api_key=TEST_KEY_PLACEHOLDER, model="claude-3-sonnet-20240229"
             )
             assert provider is not None
 
     @pytest.mark.asyncio
     async def test_provider_connection_error(self):
         """Test handling provider connection errors gracefully."""
-        from council_ai.providers import get_provider
-
         with patch("council_ai.providers.get_provider") as mock_get_provider:
             mock_get_provider.side_effect = ConnectionError("Network timeout")
             with pytest.raises(ConnectionError):
@@ -98,9 +101,7 @@ class TestProviderFallback:
         """Test falling back to secondary provider when primary fails."""
         from council_ai.core.council import Council
 
-        with patch(
-            "council_ai.providers.get_provider"
-        ) as mock_get_provider, patch(
+        with patch("council_ai.providers.get_provider") as mock_get_provider, patch(
             "council_ai.core.config.get_available_providers"
         ) as mock_available:
             # Primary provider fails, secondary works
@@ -115,11 +116,11 @@ class TestProviderFallback:
 
             # Mock available providers
             mock_available.return_value = [
-                ("anthropic", "test-key-anthropic"),
-                ("openai", "test-key-openai"),
+                ("anthropic", TEST_KEY_ANTHROPIC),
+                ("openai", TEST_KEY_OPENAI),
             ]
 
-            council = Council(api_key="test-key", provider="openai")
+            council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="openai")
             # Council should successfully get a provider via fallback
             assert council._get_provider() is not None
 
@@ -129,12 +130,12 @@ class TestProviderFallback:
         # Test that fallback mechanism exists and works
         from council_ai.core.council import Council
 
-        with patch(
-            "council_ai.core.config.get_available_providers"
-        ) as mock_available, patch("council_ai.providers.get_provider") as mock_get:
+        with patch("council_ai.core.config.get_available_providers") as mock_available, patch(
+            "council_ai.providers.get_provider"
+        ) as mock_get:
             mock_available.return_value = [
-                ("anthropic", "key1"),
-                ("openai", "key2"),
+                ("anthropic", TEST_KEY_ANTHROPIC),
+                ("openai", TEST_KEY_OPENAI),
             ]
 
             mock_provider = MagicMock()
@@ -150,9 +151,9 @@ class TestProviderFallback:
         """Test fallback when providers fail in sequence."""
         from council_ai.core.council import Council
 
-        with patch(
-            "council_ai.core.config.get_available_providers"
-        ) as mock_available, patch("council_ai.providers.get_provider") as mock_get:
+        with patch("council_ai.core.config.get_available_providers") as mock_available, patch(
+            "council_ai.providers.get_provider"
+        ) as mock_get:
             # Setup sequence of failures
             mock_available.return_value = [
                 ("anthropic", "key1"),
@@ -181,9 +182,7 @@ class TestProviderFallback:
         """Test error handling when no providers configured."""
         from council_ai.core.council import Council
 
-        with patch(
-            "council_ai.core.config.get_available_providers"
-        ) as mock_available:
+        with patch("council_ai.core.config.get_available_providers") as mock_available:
             # No providers with keys
             mock_available.return_value = [
                 ("anthropic", None),
@@ -270,7 +269,7 @@ class TestProviderErrorHandling:
         with patch("council_ai.providers.get_provider") as mock_get:
             mock_get.return_value = None
 
-            council = Council(api_key="test-key", provider="invalid")
+            council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="invalid")
 
             with pytest.raises(ValueError, match="unavailable"):
                 council._get_provider()
@@ -281,9 +280,8 @@ class TestProviderErrorHandling:
         from council_ai.core.council import Council
 
         with patch("council_ai.core.config.get_available_providers") as mock_avail:
-            mock_avail.return_value = [("anthropic", "test-key")]
-
-            council = Council(api_key="test-key", provider="anthropic")
+            mock_avail.return_value = [("anthropic", TEST_KEY_PLACEHOLDER)]
+            council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="anthropic")
 
             # Should not raise until actually used
             provider = council._get_provider(fallback=False)
@@ -302,12 +300,10 @@ class TestProviderSelection:
         """Test selection of best available provider."""
         from council_ai.core.config import get_best_available_provider
 
-        with patch(
-            "council_ai.core.config.get_available_providers"
-        ) as mock_available:
+        with patch("council_ai.core.config.get_available_providers") as mock_available:
             mock_available.return_value = [
-                ("anthropic", "key1"),
-                ("openai", "key2"),
+                ("anthropic", TEST_KEY_ANTHROPIC),
+                ("openai", TEST_KEY_OPENAI),
                 ("gemini", None),
             ]
 
@@ -320,9 +316,7 @@ class TestProviderSelection:
         """Test when no providers are available."""
         from council_ai.core.config import get_best_available_provider
 
-        with patch(
-            "council_ai.core.config.get_available_providers"
-        ) as mock_available:
+        with patch("council_ai.core.config.get_available_providers") as mock_available:
             mock_available.return_value = [
                 ("anthropic", None),
                 ("openai", None),
@@ -341,7 +335,7 @@ class TestProviderSelection:
             mock_get.return_value = mock_provider
 
             council = Council(
-                api_key="test-key",
+                api_key=TEST_KEY_PLACEHOLDER,
                 provider="anthropic",
                 model="claude-3-sonnet-20240229",
             )
@@ -362,7 +356,9 @@ class TestProviderDiagnostics:
         """Test API key diagnostics."""
         from council_ai.core.diagnostics import diagnose_api_keys
 
-        with patch("council_ai.core.config.os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+        with patch(
+            "council_ai.core.config.os.environ", {"ANTHROPIC_API_KEY": TEST_KEY_PLACEHOLDER}
+        ):
             diag = diagnose_api_keys()
 
             assert "available_keys" in diag
@@ -376,8 +372,8 @@ class TestProviderDiagnostics:
         with patch(
             "council_ai.core.config.os.environ",
             {
-                "ANTHROPIC_API_KEY": "sk-ant-real-key-abcdef",
-                "OPENAI_API_KEY": "your-api-key-here",
+                "ANTHROPIC_API_KEY": TEST_KEY_ANTHROPIC_REAL,
+                "OPENAI_API_KEY": TEST_KEY_OPENAI,
             },
         ):
             diag = diagnose_api_keys()
@@ -389,7 +385,9 @@ class TestProviderDiagnostics:
         """Test diagnosing provider connectivity and availability."""
         from council_ai.core.diagnostics import diagnose_api_keys
 
-        with patch("council_ai.core.config.os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+        with patch(
+            "council_ai.core.config.os.environ", {"ANTHROPIC_API_KEY": TEST_KEY_PLACEHOLDER}
+        ):
             diag = diagnose_api_keys()
 
             assert "best_provider" in diag or "available_keys" in diag

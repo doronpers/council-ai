@@ -737,7 +737,8 @@ class Council:
 
         # Get responses based on mode using Strategy pattern
         strategy = get_strategy(mode.value)
-        strategy_result = await strategy.execute(
+        strategy_result = None
+        result_or_responses = await strategy.execute(
             council=self,
             query=query,
             context=context,
@@ -745,19 +746,15 @@ class Council:
             session_id=session_id,
             auto_recall=auto_recall,
         )
-        # All strategies now return ConsultationResult (Phase 3)
-        # Defensive check handles both return types during Phase 2→Phase 3 transition
-        # Once all Phase 2 PRs are merged, this can be simplified to:
-        # responses = strategy_result.responses
-        if isinstance(strategy_result, ConsultationResult):
-        if isinstance(strategy_result, ConsultationResult):
+
+        # Backwards-compatible handling: strategies may return either a
+        # ConsultationResult (new behavior) or a List[MemberResponse] (legacy).
+
+        if isinstance(result_or_responses, ConsultationResult):
+            strategy_result = result_or_responses
             responses = strategy_result.responses
         else:
-            logger.warning(
-                "A strategy returned a raw list of responses instead of ConsultationResult. "
-                "This is a deprecated behavior and will be removed in a future version."
-            )
-            responses = strategy_result
+            responses = cast(List[MemberResponse], result_or_responses)
 
         # Generate synthesis if needed
         synthesis = None
@@ -821,16 +818,33 @@ class Council:
             except Exception as e:
                 logger.debug(f"Analysis task error: {e}")
 
-        # Create result
-        result = ConsultationResult(
-            query=query,
-            context=context,
-            responses=responses,
-            synthesis=synthesis,
-            mode=mode,
-            timestamp=datetime.now(),
-            structured_synthesis=structured_synthesis,
-        )
+        # Create result. If the strategy returned a ConsultationResult, update it
+        # with any synthesis/structured synthesis we computed; otherwise build a new one.
+        if strategy_result is None:
+            result = ConsultationResult(
+                query=query,
+                context=context,
+                responses=responses,
+                synthesis=synthesis,
+                mode=mode,
+                timestamp=datetime.now(),
+                structured_synthesis=structured_synthesis,
+            )
+        else:
+            # Merge computed synthesis back into strategy-provided result when missing
+            if strategy_result.synthesis is None and synthesis is not None:
+                strategy_result.synthesis = synthesis
+            if strategy_result.structured_synthesis is None and structured_synthesis is not None:
+                strategy_result.structured_synthesis = structured_synthesis
+            # Ensure context/mode/timestamp are set
+            if strategy_result.context is None:
+                strategy_result.context = context
+            if strategy_result.mode is None:
+                strategy_result.mode = mode
+            if strategy_result.timestamp is None:
+                strategy_result.timestamp = datetime.now()
+
+            result = strategy_result
 
         # Update session
         session.add_consultation(result)
@@ -1129,6 +1143,9 @@ class Council:
         # Build result dict, handling any exceptions
         enhanced_contexts: Dict[str, Optional[str]] = {}
         for result in results:
+            if isinstance(result, asyncio.CancelledError):
+                # Propagate cancellation so higher-level tasks can terminate correctly
+                raise result
             if isinstance(result, Exception):
                 logger.warning(f"Web search enhancement failed: {result}")
                 continue
