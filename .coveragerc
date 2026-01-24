@@ -29,7 +29,6 @@ exclude_lines =
     if 0:
     if False:
     assert False
-    pass
 
 # Exclude specific directories from coverage
 ignore_errors = False

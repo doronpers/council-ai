@@ -477,3 +477,5 @@ class TestReasoningDocumentation:
             # Name should convey purpose
             assert len(name) > 0
             assert isinstance(name, str)
+            # Validate that the name is a valid ReasoningMode enum value
+            _ = ReasoningMode(name)

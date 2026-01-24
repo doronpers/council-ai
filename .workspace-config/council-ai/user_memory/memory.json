@@ -1,0 +1,50 @@
+{
+  "user_id": "fa8e631f-ab9c-4c86-9061-b856cc0cd6e0",
+  "total_consultations": 22,
+  "total_sessions": 0,
+  "preferred_domains": [],
+  "preferred_personas": [
+    [
+      "t3",
+      5
+    ],
+    [
+      "MD",
+      5
+    ],
+    [
+      "DK",
+      5
+    ],
+    [
+      "JT",
+      5
+    ],
+    [
+      "PH",
+      5
+    ]
+  ],
+  "common_topics": [
+    [
+      "query",
+      5
+    ]
+  ],
+  "session_history": [],
+  "last_session_date": null,
+  "created_at": "2026-01-24T15:50:23.044569+00:00",
+  "persona_counts": {
+    "t1": 4,
+    "t2": 4,
+    "t3": 5,
+    "t4": 4,
+    "MD": 5,
+    "DK": 5,
+    "JT": 5,
+    "PH": 5
+  },
+  "topic_counts": {
+    "query": 5
+  }
+}

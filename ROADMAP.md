@@ -1,6 +1,6 @@
 # Council AI - Roadmap & TODOs
 
-**Last Updated**: 2026-01-18
+**Last Updated**: 2026-01-19
 **Single Source of Truth**: This file contains all TODOs, planned features, and roadmap items.
 
 ---
@@ -21,6 +21,10 @@
 3. ✅ **Consultation Export** - Export menu for markdown and JSON results
 4. ✅ **Consultation Comparison** - Side-by-side comparison view for history entries
 5. ✅ **Error Boundaries** - App-level error boundaries with fallback UI
+
+### Web UI Improvements (2026-01-19)
+
+1. ✅ **Session Management UI** - Added session view/management in the history panel
 
 ### Core Improvements (2026-01-16)
 
