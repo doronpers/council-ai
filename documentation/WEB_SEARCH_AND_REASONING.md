@@ -89,6 +89,14 @@ result = council.consult(
 Search results are formatted as plain text and appended to the existing `context` for the
 member(s) that have web search enabled (council-level or persona-level).
 
+## Web App Integration
+
+The web UI exposes controls to enable web search and to select reasoning modes. You can
+turn web search on globally in the app settings or enable it per-persona in the member
+configuration. The UI also shows which personas have web search enabled and allows you
+to select the provider (if more than one provider is configured). For UI-specific details
+about where to find these toggles and how to use them, see `documentation/WEB_APP.md`.
+
 ---
 
 ## Reasoning Modes
@@ -198,6 +206,10 @@ export GOOGLE_CSE_ID="your-search-engine-id"
 # LLM Provider
 export ANTHROPIC_API_KEY="your-anthropic-key"
 ```
+
+The library will auto-detect which web search provider to use based on the available
+environment variables. If multiple provider credentials are present, the preference
+order is: **Tavily**, then **Serper**, then **Google Custom Search**.
 
 ### Programmatic Configuration
 

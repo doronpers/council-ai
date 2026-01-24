@@ -77,7 +77,7 @@ First-time users see a guided onboarding wizard that walks through:
 
 - Choosing a domain
 - Selecting members
-- Configuring provider and API key
+- Configuring provider and API key (see `documentation/WEB_SEARCH_AND_REASONING.md` for details on enabling web search and reasoning modes)
 - Writing the first query
 
 ### Components
