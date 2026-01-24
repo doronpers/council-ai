@@ -135,7 +135,6 @@ class MainScreen(Screen):
 
         # Start consultation - Textual apps run in async context
         # Use Textual's built-in method to run async functions
-        import asyncio
 
         # Textual's App class runs in an async context, so we can get the running loop
         try:
