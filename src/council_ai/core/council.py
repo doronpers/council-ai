@@ -1117,7 +1117,7 @@ class Council:
         # Build result dict, handling any exceptions
         enhanced_contexts: Dict[str, Optional[str]] = {}
         for result in results:
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 logger.warning(f"Web search enhancement failed: {result}")
                 continue
             member_id, enhanced = result

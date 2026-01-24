@@ -9,7 +9,7 @@ import asyncio
 import logging
 import time
 from functools import wraps
-from typing import Any, Callable, Optional, Set, Type, TypeVar, Union
+from typing import Any, Awaitable, Callable, Optional, Set, Type, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ def retry_with_backoff(
     max_delay: float = 60.0,
     exponential_factor: float = 2.0,
     retryable_exceptions: Optional[Set[Type[Exception]]] = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]]:
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Decorator to retry a function with exponential backoff.
 
@@ -95,9 +95,9 @@ def retry_with_backoff(
         ```
     """
 
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> T:
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             last_exception: Optional[Exception] = None
             delay = base_delay
 
@@ -140,7 +140,7 @@ def retry_with_backoff(
             raise RuntimeError(f"Unexpected retry loop exit in {func.__name__}")
 
         @wraps(func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> T:
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             last_exception: Optional[Exception] = None
             delay = base_delay
 
@@ -192,7 +192,7 @@ def retry_with_backoff(
 
 
 async def retry_async(
-    func: Callable[..., T],
+    func: Callable[..., Awaitable[T]],
     *args: Any,
     max_retries: int = 3,
     base_delay: float = 1.0,
@@ -227,7 +227,7 @@ async def retry_async(
         )
         ```
     """
-    decorated = retry_with_backoff(
+    decorated: Callable[..., Awaitable[T]] = retry_with_backoff(
         max_retries=max_retries,
         base_delay=base_delay,
         max_delay=max_delay,
