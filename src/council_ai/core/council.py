@@ -832,9 +832,9 @@ class Council:
             )
         else:
             # Merge computed synthesis back into strategy-provided result when missing
-            if not getattr(strategy_result, "synthesis", None) and synthesis:
+            if strategy_result.synthesis is None and synthesis is not None:
                 strategy_result.synthesis = synthesis
-            if not getattr(strategy_result, "structured_synthesis", None) and structured_synthesis:
+            if strategy_result.structured_synthesis is None and structured_synthesis is not None:
                 strategy_result.structured_synthesis = structured_synthesis
             # Ensure context/mode/timestamp are set
             if strategy_result.context is None:
