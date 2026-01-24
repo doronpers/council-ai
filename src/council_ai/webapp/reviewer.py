@@ -3,6 +3,8 @@ LLM Response Reviewer - Supreme Court Style Review System
 
 Provides endpoints for reviewing multiple LLM responses with a council of
 "justices" who evaluate accuracy, consistency, insights, and errors.
+
+See `documentation/REVIEWER_SETUP.md` for setup, launch options, and examples.
 """
 
 from __future__ import annotations
