@@ -1,15 +1,6 @@
-"""
-Comprehensive tests for consultation strategies.
+"""Comprehensive tests for consultation strategies."""
 
-Tests cover:
-- Debate strategy (multi-round debate logic)
-- Synthesis strategy (individual responses + synthesis)
-- Sequential strategy (ordered responses with context propagation)
-- Individual strategy (parallel responses)
-- Vote strategy (vote aggregation)
-"""
-
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

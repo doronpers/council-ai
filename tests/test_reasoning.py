@@ -14,7 +14,6 @@ import pytest
 
 from council_ai.core.reasoning import ReasoningMode, get_reasoning_prompt, get_reasoning_suffix
 
-
 # ============================================================================
 # ReasoningMode Enum Tests
 # ============================================================================
@@ -160,7 +159,7 @@ class TestPromptEnhancement:
 
     def test_prompt_with_special_characters(self):
         """Test enhancement works with special characters in prompt."""
-        base_prompt = "What's the \"best\" approach? (A) or (B)?"
+        base_prompt = 'What\'s the "best" approach? (A) or (B)?'
         enhanced = get_reasoning_prompt(ReasoningMode.CHAIN_OF_THOUGHT, base_prompt)
 
         assert base_prompt in enhanced
@@ -475,7 +474,6 @@ class TestReasoningDocumentation:
         }
 
         for name in meaningful_names:
-            mode = ReasoningMode(name)
             # Name should convey purpose
             assert len(name) > 0
             assert isinstance(name, str)

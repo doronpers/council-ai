@@ -1,9 +1,10 @@
 """API-level tests for reviewer endpoints using TestClient."""
 
-from fastapi.testclient import TestClient
-from types import SimpleNamespace
 import json
+from types import SimpleNamespace
+
 import pytest
+from fastapi.testclient import TestClient
 
 from council_ai.webapp.app import app
 
@@ -13,7 +14,10 @@ def test_stage_and_get_staged_review():
 
     req = {
         "question": "What is X?",
-        "responses": [{"persona_name": "p1", "content": "A"}, {"persona_name": "p2", "content": "B"}],
+        "responses": [
+            {"persona_name": "p1", "content": "A"},
+            {"persona_name": "p2", "content": "B"},
+        ],
     }
 
     r = client.post("/api/reviewer/stage", json=req)
@@ -39,7 +43,7 @@ def test_import_google_docs_missing_content():
 
 def test_import_google_docs_parse_success(monkeypatch):
     client = TestClient(app)
-    content = "Question: What is AI?\n\nResponse 1:\nAI is a field that studies...\n\nResponse 2:\nAI does tasks using data." 
+    content = "Question: What is AI?\n\nResponse 1:\nAI is a field that studies...\n\nResponse 2:\nAI does tasks using data."
 
     r = client.post("/api/reviewer/import/googledocs", json={"content": content})
     assert r.status_code == 200
@@ -84,14 +88,22 @@ def test_review_responses_happy_path(monkeypatch):
     class FakeResult:
         def __init__(self):
             # content should be JSON matching expected response format
-            body = json.dumps({
-                "response_assessments": [
-                    {"response_id": 1, "scores": {"accuracy": 8}, "overall_score": 8.0, "strengths": [], "weaknesses": []}
-                ],
-                "vote": "approve",
-                "opinion": "Good",
-                "recommended_winner": 1,
-            })
+            body = json.dumps(
+                {
+                    "response_assessments": [
+                        {
+                            "response_id": 1,
+                            "scores": {"accuracy": 8},
+                            "overall_score": 8.0,
+                            "strengths": [],
+                            "weaknesses": [],
+                        }
+                    ],
+                    "vote": "approve",
+                    "opinion": "Good",
+                    "recommended_winner": 1,
+                }
+            )
             self.responses = [FakeResponse("p1", "P1", body)]
             self.synthesis = json.dumps({"combined_best": "CB", "refined_final": "RF"})
 
@@ -103,9 +115,14 @@ def test_review_responses_happy_path(monkeypatch):
             if False:
                 yield
 
-    monkeypatch.setattr("council_ai.webapp.reviewer._build_review_council", lambda req: FakeCouncil())
+    monkeypatch.setattr(
+        "council_ai.webapp.reviewer._build_review_council", lambda req: FakeCouncil()
+    )
     # Ensure personas are recognized by the validator
-    fake_personas = [SimpleNamespace(id="p1", name="P1", title="T", emoji="👤", core_question="Q1"), SimpleNamespace(id="p2", name="P2", title="T2", emoji="🤖", core_question="Q2")]
+    fake_personas = [
+        SimpleNamespace(id="p1", name="P1", title="T", emoji="👤", core_question="Q1"),
+        SimpleNamespace(id="p2", name="P2", title="T2", emoji="🤖", core_question="Q2"),
+    ]
     monkeypatch.setattr("council_ai.webapp.reviewer.list_personas", lambda: fake_personas)
 
     client = TestClient(app)

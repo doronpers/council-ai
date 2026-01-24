@@ -1,57 +1,35 @@
-"""
-Comprehensive tests for the Reviewer module.
+"""Comprehensive tests for the Reviewer module."""
 
-Tests cover:
-- JSON extraction and parsing strategies
-- Error handling and recovery
-- Review request validation
-- Council building with persona weights
-- Review prompt building
-- Google Docs parsing
-- Synthesis prompt creation
-- Utility functions (token estimation, JSON repair, etc.)
-"""
-
-import asyncio
 import json
-import pytest
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from typing import Dict, Any, List
+from unittest.mock import Mock, patch
 
-from council_ai.webapp.reviewer import (
-    # Models
-    ReviewRequest,
-    LLMResponse,
-    JusticeOpinion,
-    ResponseAssessment,
-    GroupDecision,
-    SynthesizedResponse,
-    ReviewResult,
-    StagingRequest,
-    StagingResponse,
-    GoogleDocsImportRequest,
-    ErrorResponse,
-    # Utility functions
-    _extract_and_parse_json,
-    _extract_json_balanced,
-    _repair_json,
-    _estimate_tokens,
-    _extract_data_from_text,
-    _parse_anthropic_error,
-    _retry_with_backoff,
-    _create_fallback_synthesis,
-    _validate_review_request,
-    _build_review_council,
-    _format_responses_for_prompt,
-    _build_review_prompt,
-    _build_synthesis_prompt,
-    _parse_google_docs_content,
-    _extract_from_markdown,
-    _try_repair_and_parse,
-    _try_balanced_extraction,
-)
+import pytest
 from fastapi import HTTPException
 
+from council_ai.webapp.reviewer import (
+    GroupDecision,
+    JusticeOpinion,
+    LLMResponse,
+    ResponseAssessment,
+    ReviewRequest,
+    ReviewResult,
+    SynthesizedResponse,
+    _build_review_council,
+    _build_review_prompt,
+    _build_synthesis_prompt,
+    _create_fallback_synthesis,
+    _estimate_tokens,
+    _extract_and_parse_json,
+    _extract_data_from_text,
+    _extract_from_markdown,
+    _extract_json_balanced,
+    _format_responses_for_prompt,
+    _parse_anthropic_error,
+    _parse_google_docs_content,
+    _repair_json,
+    _retry_with_backoff,
+    _validate_review_request,
+)
 
 # ============================================================================
 # FIXTURES
@@ -321,10 +299,10 @@ class TestTokenEstimationAndExtraction:
 
     def test_extract_data_from_text_scores(self):
         """Test extracting scores from text."""
-        text = '''accuracy: 8.5
+        text = """accuracy: 8.5
         factual_consistency: 9.0
         unique_insights: 7.5
-        error_detection: 8.0'''
+        error_detection: 8.0"""
         data = _extract_data_from_text(text)
         assert "accuracy" in data.get("assessments", [{}])[0].get("scores", {})
 
@@ -389,6 +367,7 @@ class TestRetryWithBackoff:
     @pytest.mark.asyncio
     async def test_retry_success_first_attempt(self):
         """Test successful execution on first attempt."""
+
         async def success_func():
             return "success"
 
@@ -414,6 +393,7 @@ class TestRetryWithBackoff:
     @pytest.mark.asyncio
     async def test_retry_failure_non_rate_limit(self):
         """Test that non-rate-limit errors are not retried."""
+
         async def fail_func():
             raise ValueError("Invalid parameter")
 
@@ -423,10 +403,11 @@ class TestRetryWithBackoff:
     @pytest.mark.asyncio
     async def test_retry_failure_max_retries_exceeded(self):
         """Test failure when max retries exceeded."""
+
         async def fail_func():
             raise Exception("Rate limit error")
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="Rate limit error"):
             await _retry_with_backoff(fail_func, max_retries=1, base_delay=0.01)
 
     @pytest.mark.asyncio
@@ -484,9 +465,7 @@ class TestReviewRequestValidation:
         """Test validation passes with 5 responses."""
         # Pydantic validates max_length on model creation
         # Test that valid 5-response request passes validation
-        responses = [
-            LLMResponse(id=i, content=f"Response {i}") for i in range(1, 6)
-        ]
+        responses = [LLMResponse(id=i, content=f"Response {i}") for i in range(1, 6)]
         request = ReviewRequest(
             question="Test question?",
             responses=responses,
@@ -625,7 +604,7 @@ class TestCouncilBuilding:
         mock_council = Mock()
         mock_council_class.return_value = mock_council
 
-        council = _build_review_council(sample_review_request)
+        _build_review_council(sample_review_request)
 
         # Verify council was created
         assert mock_council_class.called

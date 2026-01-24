@@ -1,4 +1,4 @@
-"""CLI command documentation and help utilities"""
+"""CLI command documentation and help utilities."""
 
 from typing import Dict, Optional
 

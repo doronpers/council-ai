@@ -1,15 +1,8 @@
-"""
-Tests for Phase 4 TUI Hardening improvements
-"""
+"""Tests for Phase 4 TUI Hardening improvements."""
 
 import pytest
 
-from council_ai.cli.tui.keyboard import (
-    HelpPanel,
-    KeyBinding,
-    KeyboardShortcutManager,
-    NavigationHints,
-)
+from council_ai.cli.tui.keyboard import HelpPanel, KeyboardShortcutManager, NavigationHints
 from council_ai.cli.tui.scrolling import (
     ContentPersistenceManager,
     ResponseNavigator,

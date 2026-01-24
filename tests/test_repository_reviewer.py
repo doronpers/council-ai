@@ -1,9 +1,5 @@
 """Tests for the RepositoryReviewer tool."""
 
-from pathlib import Path
-import os
-
-import pytest
 from types import SimpleNamespace
 
 from council_ai.tools.reviewer import RepositoryReviewer
@@ -29,7 +25,9 @@ def test_gather_context_adds_key_files_and_structure(tmp_path):
     context = rr.gather_context(repo)
 
     assert context["project_name"] == "repo"
-    assert any(k["path"].endswith("README.md") for k in context["key_files"]) or any("README.md" in s for s in context["structure"])
+    assert any(k["path"].endswith("README.md") for k in context["key_files"]) or any(
+        "README.md" in s for s in context["structure"]
+    )
     assert isinstance(context["structure"], list)
 
 
@@ -59,9 +57,13 @@ def test_list_directory_structure_and_formatting(tmp_path):
     rr = RepositoryReviewer(council=SimpleNamespace())
 
     structure = rr._list_directory_structure(repo, max_depth=2)
-    assert any(isinstance(item, dict) for item in structure) or any(isinstance(item, str) for item in structure)
+    assert any(isinstance(item, dict) for item in structure) or any(
+        isinstance(item, str) for item in structure
+    )
 
-    formatted = rr.format_context({"project_name": "repo3", "structure": structure, "key_files": []})
+    formatted = rr.format_context(
+        {"project_name": "repo3", "structure": structure, "key_files": []}
+    )
     assert "# Review Context: repo3" in formatted
     assert "## Structure" in formatted
 

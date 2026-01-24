@@ -1,16 +1,16 @@
 """Tests for the Web Search tool providers and helper methods."""
 
-import os
-import pytest
-import httpx
 from types import SimpleNamespace
 
+import httpx
+import pytest
+
 from council_ai.tools.web_search import (
-    SearchResult,
-    SearchResponse,
-    TavilySearchProvider,
-    SerperSearchProvider,
     GoogleCustomSearchProvider,
+    SearchResponse,
+    SearchResult,
+    SerperSearchProvider,
+    TavilySearchProvider,
     WebSearchTool,
 )
 
@@ -31,13 +31,16 @@ class DummyResponse:
 
 class DummyAsyncClient:
     def __init__(self, *, json_data=None, method="post"):
+        """Initialize dummy async client."""
         self._json_data = json_data or {}
         self._method = method
 
     async def __aenter__(self):
+        """Enter async context manager."""
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
+        """Exit async context manager."""
         return False
 
     async def post(self, *args, **kwargs):
@@ -50,7 +53,9 @@ class DummyAsyncClient:
 @pytest.mark.asyncio
 async def test_tavily_search_success(monkeypatch):
     json_data = {"results": [{"title": "T1", "url": "http://t1", "content": "snippet"}]}
-    monkeypatch.setattr("httpx.AsyncClient", lambda *args, **kwargs: DummyAsyncClient(json_data=json_data))
+    monkeypatch.setattr(
+        "httpx.AsyncClient", lambda *args, **kwargs: DummyAsyncClient(json_data=json_data)
+    )
 
     provider = TavilySearchProvider(api_key="test-key")
     resp = await provider.search("test query", max_results=2)
@@ -62,8 +67,13 @@ async def test_tavily_search_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_serper_search_success(monkeypatch):
-    json_data = {"organic": [{"title": "S1", "link": "http://s1", "snippet": "s"}], "searchInformation": {"totalResults": "5"}}
-    monkeypatch.setattr("httpx.AsyncClient", lambda *args, **kwargs: DummyAsyncClient(json_data=json_data))
+    json_data = {
+        "organic": [{"title": "S1", "link": "http://s1", "snippet": "s"}],
+        "searchInformation": {"totalResults": "5"},
+    }
+    monkeypatch.setattr(
+        "httpx.AsyncClient", lambda *args, **kwargs: DummyAsyncClient(json_data=json_data)
+    )
 
     provider = SerperSearchProvider(api_key="serper-key")
     resp = await provider.search("hello", max_results=3)
@@ -75,8 +85,14 @@ async def test_serper_search_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_google_custom_search_success(monkeypatch):
-    json_data = {"items": [{"title": "G1", "link": "http://g1", "snippet": "g"}], "searchInformation": {"totalResults": "10"}}
-    monkeypatch.setattr("httpx.AsyncClient", lambda *args, **kwargs: DummyAsyncClient(json_data=json_data, method="get"))
+    json_data = {
+        "items": [{"title": "G1", "link": "http://g1", "snippet": "g"}],
+        "searchInformation": {"totalResults": "10"},
+    }
+    monkeypatch.setattr(
+        "httpx.AsyncClient",
+        lambda *args, **kwargs: DummyAsyncClient(json_data=json_data, method="get"),
+    )
 
     provider = GoogleCustomSearchProvider(api_key="gkey", search_engine_id="cx")
     resp = await provider.search("query", max_results=20)
@@ -109,7 +125,10 @@ def test_auto_detect_provider(monkeypatch):
 
 
 def test_format_search_results_and_function_def():
-    results = [SearchResult(title="T1", url="u1", snippet="s1"), SearchResult(title="T2", url="u2", snippet="s2")]
+    results = [
+        SearchResult(title="T1", url="u1", snippet="s1"),
+        SearchResult(title="T2", url="u2", snippet="s2"),
+    ]
     resp = SearchResponse(query="q", results=results, total_results=2)
 
     tool = WebSearchTool(provider=SimpleNamespace(search=lambda *a, **k: resp))
