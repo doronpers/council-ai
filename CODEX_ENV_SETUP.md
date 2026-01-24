@@ -256,8 +256,8 @@ api:
 Add these to your Codex **Environment Variables**:
 
 ```
-# Configure via config file instead (see below)
-# Configure via config file instead (see below)
+# For LM Studio configuration, use config file (see below)
+# Or set COUNCIL_CONFIG_DIR to point to your config directory
 ```
 
 Or use the config path format:
@@ -306,8 +306,8 @@ curl http://host.docker.internal:1234/v1/models
 
 If you want LM Studio to be the default provider when available:
 
-1. Set `# Configure via config file instead (see below)` in environment variables
-2. Or configure it in `config.yaml` as shown above
+1. Configure it in `config.yaml` as shown above (recommended)
+2. Or set `COUNCIL_CONFIG_DIR` environment variable to point to your config directory
 3. Council-ai will automatically detect if LM Studio is running and use it
 
 ### Fallback Behavior
