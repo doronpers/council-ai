@@ -1,6 +1,6 @@
 """Debate consultation strategy."""
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from .base import ConsultationStrategy
 
