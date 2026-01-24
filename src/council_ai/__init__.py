@@ -20,7 +20,7 @@ API Keys:
     Council AI automatically loads API keys from:
     1. .env file in project root (recommended)
     2. Environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)
-    3. Config file (~/.config/council-ai/config.yaml)
+    3. Config file (workspace: .workspace-config/council-ai/config.yaml or legacy: ~/.config/council-ai/config.yaml)
     4. CLI flags (--api-key)
 """
 

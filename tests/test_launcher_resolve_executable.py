@@ -49,4 +49,3 @@ def test_resolve_executable_prefers_first_match(monkeypatch, tmp_path):
         resolved = module.resolve_executable(["npm", "npm2"])
         assert resolved is not None
         assert resolved.endswith("npm")
-

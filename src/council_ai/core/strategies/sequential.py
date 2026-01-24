@@ -1,19 +1,16 @@
-"""
-Sequential consultation strategy.
-"""
+"""Sequential consultation strategy."""
 
-from typing import List, Optional, Any, Dict, AsyncIterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
+
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
-    from ..council import Council, ConsultationMode
-    from ..session import MemberResponse
+    from ..council import ConsultationMode, Council
+    from ..session import ConsultationResult
 
 
 class SequentialStrategy(ConsultationStrategy):
-    """
-    Members respond in order, each seeing previous responses.
-    """
+    """Members respond in order, each seeing previous responses."""
 
     async def execute(
         self,
@@ -25,7 +22,7 @@ class SequentialStrategy(ConsultationStrategy):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> List["MemberResponse"]:
+    ) -> "ConsultationResult":
         provider = council._get_provider()
         active_members = council._get_active_members(members)
 
@@ -41,7 +38,16 @@ class SequentialStrategy(ConsultationStrategy):
             # Add this response to context for next member
             accumulated_context += f"\n\n{member.emoji} {member.name} said:\n{response.content}"
 
-        return responses
+        # Build ConsultationResult for consistency
+        from ..session import ConsultationResult, MemberResponse
+
+        mode_str = mode.value if mode is not None else "sequential"
+        return ConsultationResult(
+            query=query,
+            responses=cast(List[MemberResponse], responses),
+            context=context,
+            mode=mode_str,
+        )
 
     async def stream(
         self,

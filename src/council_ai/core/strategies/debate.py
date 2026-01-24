@@ -46,13 +46,21 @@ class DebateStrategy(ConsultationStrategy):
             from .individual import IndividualStrategy
 
             individual = IndividualStrategy()
-            round_responses = await individual.execute(
+            round_result = await individual.execute(
                 council=council,
                 query=round_query,
                 context=round_context,
                 members=[m.id for m in active_members],
             )
-            from ..session import ConsultationResult, MemberResponse
+            # Accept either ConsultationResult (new) or list of MemberResponse (legacy)
+            from ..session import ConsultationResult
+
+            if isinstance(round_result, ConsultationResult):
+                round_responses = round_result.responses
+            else:
+                round_responses = round_result
+
+            all_responses.extend(round_responses)
 
             if isinstance(round_responses, ConsultationResult):
                 all_responses.extend(round_responses.responses)

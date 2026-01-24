@@ -113,6 +113,7 @@ def main():
     print("\n" + "=" * 60)
     print("  LLM Response Reviewer")
     print("  Supreme Court-style review of AI responses")
+    print("  See documentation/REVIEWER_SETUP.md for setup and launch options")
     print("=" * 60)
     print(f"\n  Starting server at: {url}")
     print(f"  Main Council UI:    http://{args.host}:{port}/")
