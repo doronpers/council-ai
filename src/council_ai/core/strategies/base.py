@@ -1,13 +1,11 @@
-"""
-Base class for consultation strategies.
-"""
+"""Base class for consultation strategies."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Any, Dict, AsyncIterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from ..council import Council, ConsultationMode
-    from ..session import ConsultationResult
+    from ..council import ConsultationMode, Council
+    from ..session import ConsultationResult, MemberResponse
 
 
 class ConsultationStrategy(ABC):
@@ -28,7 +26,7 @@ class ConsultationStrategy(ABC):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> "ConsultationResult":
+    ) -> "ConsultationResult | list['MemberResponse']":
         """
         Execute the consultation strategy.
 

@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import requests
+import requests  # type: ignore[import]
 import yaml
 from pydantic import BaseModel, Field
 

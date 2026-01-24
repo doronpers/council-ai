@@ -1,6 +1,7 @@
 """Input panel widget for TUI with history support."""
 
 from pathlib import Path
+from typing import cast
 
 from textual.message import Message
 from textual.widgets import Input
@@ -11,6 +12,8 @@ class InputPanel(Input):
 
     class Submitted(Message):
         """Message sent when input is submitted."""
+
+        value: str
 
         def __init__(self, value: str) -> None:
             self.value = value
@@ -55,14 +58,14 @@ class InputPanel(Input):
             event.prevent_default()
             event.stop()
         elif event.key == "enter":
-            value = self.value.strip()
-            if value:
+            input_text: str = cast(str, self.value).strip()  # type: ignore[has-type]
+            if input_text:
                 # Add to history if not duplicate
-                if not self._history or self._history[-1] != value:
-                    self._history.append(value)
+                if not self._history or self._history[-1] != input_text:
+                    self._history.append(input_text)
                 self._history_index = -1
                 self._save_history()
-                self.post_message(self.Submitted(value))
+                self.post_message(self.Submitted(input_text))
                 self.value = ""
             event.prevent_default()
             event.stop()

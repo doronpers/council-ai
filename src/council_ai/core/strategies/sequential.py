@@ -1,19 +1,16 @@
-"""
-Sequential consultation strategy.
-"""
+"""Sequential consultation strategy."""
 
-from typing import List, Optional, Any, Dict, AsyncIterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
-    from ..council import Council, ConsultationMode
+    from ..council import ConsultationMode, Council
     from ..session import MemberResponse
 
 
 class SequentialStrategy(ConsultationStrategy):
-    """
-    Members respond in order, each seeing previous responses.
-    """
+    """Members respond in order, each seeing previous responses."""
 
     async def execute(
         self,
