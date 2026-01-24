@@ -1,7 +1,7 @@
 """Synthesis consultation strategy."""
 
 import logging
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
 from .base import ConsultationStrategy
 
@@ -42,7 +42,7 @@ class SynthesisStrategy(ConsultationStrategy):
         from ..session import ConsultationResult
 
         if isinstance(result, ConsultationResult):
-            return result.responses
+            return result
         return result
 
     async def stream(
