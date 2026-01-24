@@ -250,14 +250,20 @@ class TestSynthesisStrategy:
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
             mock_response = MockMemberResponse(personas[0], "Individual response")
-            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
+            from council_ai.core.session import ConsultationResult
+
+            mock_individual.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Test query?", responses=[mock_response])
+            )
 
             result = await strategy.execute(
                 council=council,
                 query="Test query?",
             )
 
-            assert len(result) == 1
+            # Synthesis should return ConsultationResult, not list
+            assert isinstance(result, ConsultationResult)
+            assert len(result.responses) == 1
             mock_individual.return_value.execute.assert_called_once()
 
     @pytest.mark.asyncio
@@ -267,10 +273,14 @@ class TestSynthesisStrategy:
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
             mock_response = MockMemberResponse(personas[0], "Response")
-            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
+            from council_ai.core.session import ConsultationResult
+
+            mock_individual.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Test?", responses=[mock_response])
+            )
 
             test_context = "Important background info"
-            await strategy.execute(
+            result = await strategy.execute(
                 council=council,
                 query="Test?",
                 context=test_context,
@@ -278,6 +288,8 @@ class TestSynthesisStrategy:
 
             call_args = mock_individual.return_value.execute.call_args
             assert call_args[1]["context"] == test_context
+            # Ensure synthesis returns ConsultationResult
+            assert isinstance(result, ConsultationResult)
 
     @pytest.mark.asyncio
     async def test_synthesis_stream(self, setup):
@@ -557,7 +569,11 @@ class TestStrategyIntegration:
         response2 = MockMemberResponse(personas[0], "Sequential response")
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_ind:
-            mock_ind.return_value.execute = AsyncMock(return_value=[response1])
+            from council_ai.core.session import ConsultationResult
+
+            mock_ind.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Test?", responses=[response1])
+            )
             synthesis_result = await SynthesisStrategy().execute(
                 council=council,
                 query="Test?",
