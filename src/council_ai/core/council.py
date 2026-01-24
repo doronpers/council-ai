@@ -838,9 +838,12 @@ class Council:
             if not getattr(strategy_result, "structured_synthesis", None) and structured_synthesis:
                 strategy_result.structured_synthesis = structured_synthesis
             # Ensure context/mode/timestamp are set
-            strategy_result.context = strategy_result.context or context
-            strategy_result.mode = strategy_result.mode or mode
-            strategy_result.timestamp = strategy_result.timestamp or datetime.now()
+            if strategy_result.context is None:
+                strategy_result.context = context
+            if strategy_result.mode is None:
+                strategy_result.mode = mode
+            if strategy_result.timestamp is None:
+                strategy_result.timestamp = datetime.now()
 
             result = strategy_result
 
