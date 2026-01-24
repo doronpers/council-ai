@@ -104,7 +104,11 @@ class TestDebateStrategy:
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
             mock_response = MockMemberResponse(personas[0], "Alice's response")
-            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
+            from council_ai.core.session import ConsultationResult
+
+            mock_individual.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Q", responses=[mock_response])
+            )
 
             result = await strategy.execute(
                 council=council,
@@ -124,8 +128,13 @@ class TestDebateStrategy:
             mock_response1 = MockMemberResponse(personas[0], "Round 1 response")
             mock_response2 = MockMemberResponse(personas[0], "Round 2 response")
 
+            from council_ai.core.session import ConsultationResult
+
             mock_individual.return_value.execute = AsyncMock(
-                side_effect=[[mock_response1], [mock_response2]]
+                side_effect=[
+                    ConsultationResult(query="Q1", responses=[mock_response1]),
+                    ConsultationResult(query="Q2", responses=[mock_response2]),
+                ]
             )
 
             result = await strategy.execute(
@@ -144,7 +153,11 @@ class TestDebateStrategy:
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
             mock_response = MockMemberResponse(personas[0], "Response")
-            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
+            from council_ai.core.session import ConsultationResult
+
+            mock_individual.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Q", responses=[mock_response])
+            )
 
             await strategy.execute(
                 council=council,
@@ -193,7 +206,11 @@ class TestDebateStrategy:
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
             mock_response = MockMemberResponse(personas[0], "Response")
-            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
+            from council_ai.core.session import ConsultationResult
+
+            mock_individual.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Q", responses=[mock_response])
+            )
 
             await strategy.execute(
                 council=council,
@@ -458,7 +475,7 @@ class TestIndividualStrategy:
                 query="Test?",
             )
 
-            assert len(result) == 2
+            assert hasattr(result, "responses") and len(result.responses) == 2
 
 
 # ============================================================================

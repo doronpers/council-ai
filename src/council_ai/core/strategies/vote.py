@@ -39,9 +39,14 @@ REASONING: [your reasoning]
         from .individual import IndividualStrategy
 
         individual = IndividualStrategy()
-        return await individual.execute(
+        result = await individual.execute(
             council=council, query=vote_query, context=context, members=members
         )
+        from ..session import ConsultationResult
+
+        if isinstance(result, ConsultationResult):
+            return result.responses
+        return result
 
     async def stream(
         self,
