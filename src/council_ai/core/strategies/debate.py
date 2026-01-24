@@ -1,6 +1,6 @@
 """Debate consultation strategy."""
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
 from .base import ConsultationStrategy
 
@@ -53,9 +53,9 @@ class DebateStrategy(ConsultationStrategy):
                 members=[m.id for m in active_members],
             )
             # IndividualStrategy now always returns ConsultationResult
-            from ..session import ConsultationResult
+            from ..session import ConsultationResult as ResultType
 
-            if isinstance(round_result, ConsultationResult):
+            if isinstance(round_result, ResultType):
                 round_responses = round_result.responses
             else:
                 # Legacy fallback (should not happen with updated strategies)

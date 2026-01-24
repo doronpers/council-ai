@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -35,9 +35,7 @@ class MockCouncil:
     def __init__(self, personas: List[MockPersona]):
         self.personas = personas
         self._get_active_members = MagicMock(
-            return_value=[
-                MagicMock(id=p.id, name=p.name, emoji=p.emoji) for p in personas
-            ]
+            return_value=[MagicMock(id=p.id, name=p.name, emoji=p.emoji) for p in personas]
         )
 
     async def _generate_synthesis(
@@ -147,12 +145,8 @@ class TestDebateStrategy:
 
         mock_response = MockMemberResponse(personas[0], "Debate response")
 
-        with patch(
-            "council_ai.core.strategies.individual.IndividualStrategy"
-        ) as mock_individual:
-            mock_individual.return_value.execute = AsyncMock(
-                return_value=[mock_response]
-            )
+        with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
+            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
 
             result = await strategy.execute(
                 council=council,
@@ -172,12 +166,8 @@ class TestDebateStrategy:
 
         mock_response = MockMemberResponse(personas[0], "Debate response")
 
-        with patch(
-            "council_ai.core.strategies.individual.IndividualStrategy"
-        ) as mock_individual:
-            mock_individual.return_value.execute = AsyncMock(
-                return_value=[mock_response]
-            )
+        with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
+            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
 
             await strategy.execute(
                 council=council,
@@ -222,9 +212,7 @@ class TestSynthesisStrategy:
             from council_ai.core.session import ConsultationResult
 
             mock_individual.return_value.execute = AsyncMock(
-                return_value=ConsultationResult(
-                    query="Test query?", responses=[mock_response]
-                )
+                return_value=ConsultationResult(query="Test query?", responses=[mock_response])
             )
 
             result = await strategy.execute(
@@ -247,9 +235,7 @@ class TestSynthesisStrategy:
             from council_ai.core.session import ConsultationResult
 
             mock_individual.return_value.execute = AsyncMock(
-                return_value=ConsultationResult(
-                    query="Test query?", responses=[mock_response]
-                )
+                return_value=ConsultationResult(query="Test query?", responses=[mock_response])
             )
 
             result = await strategy.execute(
@@ -270,9 +256,7 @@ class TestSynthesisStrategy:
             from council_ai.core.session import ConsultationResult
 
             mock_individual.return_value.execute = AsyncMock(
-                return_value=ConsultationResult(
-                    query="Test query?", responses=[mock_response]
-                )
+                return_value=ConsultationResult(query="Test query?", responses=[mock_response])
             )
 
             result = await strategy.execute(

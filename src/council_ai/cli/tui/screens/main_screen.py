@@ -145,9 +145,9 @@ class MainScreen(Screen):
             self._consultation_tasks.append(task)
             # Add cleanup callback to remove task when done
             task.add_done_callback(
-                lambda t: self._consultation_tasks.remove(t)
-                if t in self._consultation_tasks
-                else None
+                lambda t: (
+                    self._consultation_tasks.remove(t) if t in self._consultation_tasks else None
+                )
             )
         except RuntimeError as e:
             # No event loop running - this shouldn't happen in Textual
@@ -356,3 +356,45 @@ class MainScreen(Screen):
     def _save_session_export(self, format: str = "markdown") -> str:
         """Export current session in specified format."""
         return self.content_manager.export_content(format=format)
+
+    def _handle_save_session(self) -> None:
+        """Handle save session keyboard shortcut."""
+        # Export session and show confirmation
+        exported = self._save_session_export()
+        self.response_panel.update(
+            f"[green]Session exported successfully![/green]\n{exported[:200]}..."
+        )
+
+    def _handle_show_help(self) -> None:
+        """Handle show help keyboard shortcut."""
+        self.action_help()
+
+    def _handle_focus_next_section(self) -> None:
+        """Handle focus next section keyboard shortcut."""
+        # Cycle through focusable panels
+        from textual.widgets import Widget
+
+        focusable: list[Widget] = [self.input_panel, self.response_panel, self.history_panel]
+        current = self.focused
+        try:
+            current_index = focusable.index(current)  # type: ignore[arg-type]
+            next_index = (current_index + 1) % len(focusable)
+            focusable[next_index].focus()
+        except (ValueError, AttributeError):
+            # If current widget not in list, focus first
+            focusable[0].focus()
+
+    def _handle_focus_previous_section(self) -> None:
+        """Handle focus previous section keyboard shortcut."""
+        # Cycle through focusable panels in reverse
+        from textual.widgets import Widget
+
+        focusable: list[Widget] = [self.input_panel, self.response_panel, self.history_panel]
+        current = self.focused
+        try:
+            current_index = focusable.index(current)  # type: ignore[arg-type]
+            prev_index = (current_index - 1) % len(focusable)
+            focusable[prev_index].focus()
+        except (ValueError, AttributeError):
+            # If current widget not in list, focus last
+            focusable[-1].focus()

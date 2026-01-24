@@ -6,7 +6,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
@@ -201,7 +201,7 @@ class TTSResponse(BaseModel):
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index() -> HTMLResponse:
+async def index() -> Union[HTMLResponse, FileResponse]:
     """Serve the main HTML page."""
     if IS_PRODUCTION:
         # Serve built HTML from static directory
@@ -252,7 +252,7 @@ async def index() -> HTMLResponse:
 
 
 @app.get("/reviewer", response_class=HTMLResponse)
-async def reviewer_ui() -> HTMLResponse:
+async def reviewer_ui() -> Union[HTMLResponse, FileResponse]:
     """Serve the LLM Response Reviewer UI."""
     reviewer_html = WEBAPP_DIR / "reviewer_ui.html"
     if reviewer_html.exists():

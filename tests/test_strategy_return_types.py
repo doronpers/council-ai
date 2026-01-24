@@ -3,7 +3,7 @@
 
 import inspect
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -146,8 +146,8 @@ async def test_council_handles_strategy_returning_list_of_memberresponses(
 def test_all_built_in_strategies_return_consultationresult_signature():
     """Ensure execute signature of built-in strategies returns ConsultationResult."""
     from council_ai.core.strategies.debate import DebateStrategy
-    from council_ai.core.strategies.synthesis import SynthesisStrategy
     from council_ai.core.strategies.individual import IndividualStrategy
+    from council_ai.core.strategies.synthesis import SynthesisStrategy
 
     strategies = [DebateStrategy, SynthesisStrategy, IndividualStrategy]
 
@@ -155,8 +155,7 @@ def test_all_built_in_strategies_return_consultationresult_signature():
         execute_sig = inspect.signature(strategy_cls.execute)
         return_annotation = execute_sig.return_annotation
         assert (
-            return_annotation == "ConsultationResult"
-            or return_annotation is ConsultationResult
+            return_annotation == "ConsultationResult" or return_annotation is ConsultationResult
         ), f"{strategy_cls.__name__}.execute must return ConsultationResult"
 
 
@@ -164,8 +163,8 @@ def test_all_built_in_strategies_return_consultationresult_signature():
 async def test_stream_methods_are_async_generators(monkeypatch, mock_env_keys):
     """Ensure stream(...) methods on strategies are async iterators."""
     from council_ai.core.strategies.debate import DebateStrategy
-    from council_ai.core.strategies.synthesis import SynthesisStrategy
     from council_ai.core.strategies.individual import IndividualStrategy
+    from council_ai.core.strategies.synthesis import SynthesisStrategy
 
     strategies = [DebateStrategy(), SynthesisStrategy(), IndividualStrategy()]
 

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import ConsultationResult, MemberResponse
+    from ..session import ConsultationResult
 
 
 class ConsultationStrategy(ABC):

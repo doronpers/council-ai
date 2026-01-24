@@ -1,7 +1,5 @@
 """Input panel widget for TUI with history support."""
 
-from pathlib import Path
-
 from textual.message import Message
 from textual.widgets import Input
 

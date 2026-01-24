@@ -51,9 +51,10 @@ class TestProviderDetection:
 
     def test_no_providers_available(self):
         """Test behavior when no providers are available."""
-        with patch("council_ai.core.config.os.environ", {}), patch(
-            "council_ai.core.config.load_config"
-        ) as mock_config:
+        with (
+            patch("council_ai.core.config.os.environ", {}),
+            patch("council_ai.core.config.load_config") as mock_config,
+        ):
             mock_config.return_value = MagicMock(api=MagicMock(api_key=None))
             providers = get_available_providers()
             # Should still return provider list but without keys
@@ -101,9 +102,10 @@ class TestProviderFallback:
         """Test falling back to secondary provider when primary fails."""
         from council_ai.core.council import Council
 
-        with patch("council_ai.providers.get_provider") as mock_get_provider, patch(
-            "council_ai.core.config.get_available_providers"
-        ) as mock_available:
+        with (
+            patch("council_ai.providers.get_provider") as mock_get_provider,
+            patch("council_ai.core.config.get_available_providers") as mock_available,
+        ):
             # Primary provider fails, secondary works
             anthropic_provider = MagicMock()
             anthropic_provider.post.return_value = {"content": [{"text": "response"}]}
@@ -130,9 +132,10 @@ class TestProviderFallback:
         # Test that fallback mechanism exists and works
         from council_ai.core.council import Council
 
-        with patch("council_ai.core.config.get_available_providers") as mock_available, patch(
-            "council_ai.providers.get_provider"
-        ) as mock_get:
+        with (
+            patch("council_ai.core.config.get_available_providers") as mock_available,
+            patch("council_ai.providers.get_provider") as mock_get,
+        ):
             mock_available.return_value = [
                 ("anthropic", TEST_KEY_ANTHROPIC),
                 ("openai", TEST_KEY_OPENAI),
@@ -151,9 +154,10 @@ class TestProviderFallback:
         """Test fallback when providers fail in sequence."""
         from council_ai.core.council import Council
 
-        with patch("council_ai.core.config.get_available_providers") as mock_available, patch(
-            "council_ai.providers.get_provider"
-        ) as mock_get:
+        with (
+            patch("council_ai.core.config.get_available_providers") as mock_available,
+            patch("council_ai.providers.get_provider") as mock_get,
+        ):
             # Setup sequence of failures
             mock_available.return_value = [
                 ("anthropic", "key1"),

@@ -6,8 +6,9 @@ This test specifically addresses the issue:
 The issue was that strategies had inconsistent return types, which could cause
 TypeError when Council.consult_async tries to iterate over responses or check len().
 """
+
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -106,7 +107,9 @@ async def test_synthesis_strategy_backwards_compatibility():
 
         # When IndividualStrategy returns a list, SynthesisStrategy should return it as-is
         # for backwards compatibility
-        assert isinstance(result, list), f"Expected list for legacy mode, got {type(result).__name__}"
+        assert isinstance(
+            result, list
+        ), f"Expected list for legacy mode, got {type(result).__name__}"
         assert len(result) == 1
         assert result[0] == response
 

@@ -6,7 +6,7 @@ import pytest
 
 from council_ai.core.council import Council, CouncilConfig
 from council_ai.core.persona import Persona
-from council_ai.tools.web_search import WebSearchTool, SearchResponse
+from council_ai.tools.web_search import SearchResponse, WebSearchTool
 
 
 class FakeWebSearchProvider:
