@@ -13,7 +13,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -737,7 +737,7 @@ class Council:
 
         # Get responses based on mode using Strategy pattern
         strategy = get_strategy(mode.value)
-        responses = await strategy.execute(
+        strategy_result = await strategy.execute(
             council=self,
             query=query,
             context=context,
@@ -745,7 +745,15 @@ class Council:
             session_id=session_id,
             auto_recall=auto_recall,
         )
-        responses = cast(List[MemberResponse], responses)
+        # All strategies now return ConsultationResult (Phase 3)
+        # Defensive check handles both return types during Phase 2→Phase 3 transition
+        # Once all Phase 2 PRs are merged, this can be simplified to:
+        # responses = strategy_result.responses
+        if isinstance(strategy_result, ConsultationResult):
+            responses = strategy_result.responses
+        else:
+            # Fallback for strategies still returning list (before Phase 2 merge)
+            responses = strategy_result
 
         # Generate synthesis if needed
         synthesis = None
