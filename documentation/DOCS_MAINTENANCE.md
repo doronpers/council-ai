@@ -22,7 +22,7 @@ This short guide explains how to contribute, maintain, and propose consolidation
 - [ ] Ensure text is clear and concise; prefer short sections and examples.
 - [ ] Run `pre-commit` and fix any formatting or lint issues.
 - [ ] Verify internal links work and update `documentation/README.md` TOC if adding/removing top-level pages.
-- [ ] If the change is substantive (feature docs or migration), add a brief entry to `CHANGELOG.md` under "Unreleased - Docs".
+- [ ] If the change is substantive (feature docs or migration), add a brief entry to `CHANGELOG.md` under the appropriate "Unreleased" subsection (for example, "Added" for new docs or "Changed" for updates).
 - [ ] Provide a short PR description that explains the purpose and scope of the doc change.
 
 ## When to consolidate
