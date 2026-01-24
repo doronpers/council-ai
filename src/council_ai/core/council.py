@@ -72,9 +72,9 @@ class CouncilConfig(BaseModel):
     # Web search and reasoning capabilities
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
-    reasoning_mode: Optional[str] = (
-        "chain_of_thought"  # Default to chain_of_thought to show thinking process
-    )
+    reasoning_mode: Optional[
+        str
+    ] = "chain_of_thought"  # Default to chain_of_thought to show thinking process
     # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
     progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
@@ -164,9 +164,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
-            []
-        )
+        self._pre_consult_hooks: List[
+            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
+        ] = []
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -1149,8 +1149,10 @@ class Council:
             if isinstance(result, Exception):
                 logger.warning(f"Web search enhancement failed: {result}")
                 continue
-            member_id, enhanced = result
-            enhanced_contexts[member_id] = enhanced
+            # Type guard: at this point, result must be a tuple
+            if isinstance(result, tuple):
+                member_id, enhanced = result
+                enhanced_contexts[member_id] = enhanced
 
         return enhanced_contexts
 
