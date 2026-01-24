@@ -6,6 +6,21 @@ A Supreme Court-style review system for evaluating multiple LLM responses with s
 
 ## Quick Start
 
+**Quick Start (one-liner):**
+
+```bash
+# Install and launch the dedicated reviewer (default port: 8765)
+pip install -e ".[all]" && python bin/launch-reviewer.py
+```
+
+**Quick API example (curl):**
+
+```bash
+curl -X POST http://localhost:8765/api/reviewer/review \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is the capital of France?", "responses": [{"id": 1, "content": "Paris is the capital of France."}]}'
+```
+
 ### Prerequisites
 
 1. **Install Council AI**
@@ -47,6 +62,8 @@ python bin/launch-reviewer.py
 ```
 
 Opens automatically at `http://localhost:8765/reviewer`
+
+For platform-specific 1-click launchers and alternative web-app launchers, see `documentation/WEB_APP.md` (section: 1-click launchers).
 
 #### Option 2: Using Council CLI
 

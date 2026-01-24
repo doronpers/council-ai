@@ -40,6 +40,8 @@ The repo includes convenience launchers:
 - **LAN mode**: `bin/launch-council-lan.command` / `bin/launch-council-lan.bat` (binds host so other devices can connect)
 - **Persistent**: `bin/launch-council-persistent.command` / `bin/launch-council-persistent.bat` (auto-restart)
 
+For reviewer-specific launchers and options (ports, no-browser, reload), see `documentation/REVIEWER_SETUP.md` (section: Launch the Reviewer).
+
 For accessing a running host from another device:
 
 - `connect-to-council.bat` (Windows helper)
