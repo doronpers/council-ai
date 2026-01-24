@@ -1,4 +1,6 @@
-"""Consultation strategies package."""
+"""
+Consultation strategies package.
+"""
 
 from typing import Dict
 
@@ -42,8 +44,4 @@ def get_strategy(mode_name: str) -> ConsultationStrategy:
         else:
             raise ValueError(f"Unknown consultation mode: {mode_name}")
 
-    # Instantiate the strategy class before returning an instance.
-    # Note: Each call returns a new instance rather than a singleton.
-    # This is safe since strategies are stateless (no instance state between execute calls).
-    strategy_cls = _STRATEGIES[mode_name]
-    return strategy_cls()
+    return _STRATEGIES[mode_name]
