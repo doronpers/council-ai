@@ -147,7 +147,7 @@ class ConfigManager:
             for option in options:
                 if not option:
                     continue
-                path = Path(option)
+                path = Path(str(option))
                 try:
                     path.parent.mkdir(parents=True, exist_ok=True)
                     self.path = path
