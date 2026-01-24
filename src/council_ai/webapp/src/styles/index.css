@@ -12,6 +12,9 @@
 /* Main application styles - Dieter Rams Inspired */
 @import '../../assets/css/main.css';
 
+/* Session management styles */
+@import './sessions.css';
+
 /* Member selection grid styles */
 @import '../../assets/css/selection.css';
 

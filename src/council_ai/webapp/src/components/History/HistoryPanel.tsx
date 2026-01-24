@@ -8,6 +8,7 @@ import { truncate } from '../../utils/helpers';
 import HistorySearch from './HistorySearch';
 import HistoryFilters from './HistoryFilters';
 import HistoryItem from './HistoryItem';
+import SessionManager from './SessionManager';
 import Modal from '../Layout/Modal';
 import ComparisonView from '../Results/ComparisonView';
 import { useNotifications } from '../Layout/NotificationContainer';
@@ -18,6 +19,7 @@ interface CompareSelection {
 }
 
 const HistoryPanel: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'consultations' | 'sessions'>('consultations');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,164 +111,192 @@ const HistoryPanel: React.FC = () => {
 
   return (
     <section className="panel" id="history-section">
-      <h2>Recent Consultations</h2>
-
-      <div className="history-search-wrapper">
-        <HistorySearch
-          onResultsChange={setSearchResults}
-          onSearchingChange={setIsSearching}
-          onQueryChange={setSearchQuery}
-          onError={(message) => showNotification(`History search failed: ${message}`, 'error')}
-        />
+      <div className="history-panel-header">
+        <h2>Consultation History</h2>
+        <div className="history-tabs" role="tablist" aria-label="History views">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'consultations'}
+            className={`tab ${activeTab === 'consultations' ? 'active' : ''}`}
+            onClick={() => setActiveTab('consultations')}
+          >
+            Consultations
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'sessions'}
+            className={`tab ${activeTab === 'sessions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('sessions')}
+          >
+            Sessions
+          </button>
+        </div>
       </div>
 
-      <HistoryFilters onFilterChange={setFilters} />
-
-      {(compareLeft || compareRight) && (
-        <div className="history-compare-bar">
-          <div className="history-compare-slots">
-            <div
-              className={`history-compare-slot ${compareLeft ? 'history-compare-slot--active' : ''}`}
-            >
-              <span className="history-compare-label">A</span>
-              <span className="history-compare-text">
-                {compareLeft ? truncate(compareLeft.entry.query, 40) : 'Select a consultation'}
-              </span>
-            </div>
-            <div
-              className={`history-compare-slot ${compareRight ? 'history-compare-slot--active' : ''}`}
-            >
-              <span className="history-compare-label">B</span>
-              <span className="history-compare-text">
-                {compareRight ? truncate(compareRight.entry.query, 40) : 'Select a consultation'}
-              </span>
-            </div>
-          </div>
-          <div className="history-compare-actions">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={clearComparison}>
-              Clear
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="empty-state">
-          <span className="loading"></span> Loading history...
-        </div>
-      )}
-
-      {error && (
-        <div className="empty-state">
-          <p className="error">{error}</p>
-        </div>
-      )}
-
-      {!isLoading && !error && displayHistory.length === 0 && (
-        <div className="empty-state">
-          <p>
-            {searchQuery
-              ? isSearching
-                ? 'Searching history...'
-                : 'No matching results found'
-              : 'No recent consultations'}
-          </p>
-          {!searchQuery && <p className="hint">Your consultation history will appear here.</p>}
-          {searchQuery && !isSearching && (
-            <button
-              type="button"
-              className="btn-secondary empty-state-clear-btn"
-              onClick={() => setSearchQuery('')}
-            >
-              Clear search
-            </button>
-          )}
-        </div>
-      )}
-
-      {!isLoading && !error && displayHistory.length > 0 && (
+      {activeTab === 'consultations' ? (
         <>
-          <div
-            id="history-list"
-            className={`history-list ${isSearching ? 'history-list--searching' : ''}`}
-          >
-            {displayHistory.map((entry) => (
-              <HistoryItem
-                key={entry.id}
-                entry={entry}
-                onDeleted={fetchHistory}
-                onView={setViewingResult}
-                onCompare={handleCompareSelection}
-              />
-            ))}
+          <div className="history-search-wrapper">
+            <HistorySearch
+              onResultsChange={setSearchResults}
+              onSearchingChange={setIsSearching}
+              onQueryChange={setSearchQuery}
+              onError={(message) => showNotification(`History search failed: ${message}`, 'error')}
+            />
           </div>
 
-          {!searchQuery && hasMore && (
-            <div className="history-load-more">
-              <button type="button" className="btn btn-secondary" onClick={handleLoadMore}>
-                Load More Consultations
-              </button>
-            </div>
-          )}
-        </>
-      )}
+          <HistoryFilters onFilterChange={setFilters} />
 
-      <Modal
-        isOpen={!!viewingResult}
-        onClose={() => setViewingResult(null)}
-        title="Consultation Details"
-      >
-        {viewingResult && (
-          <>
-            <div className="detail-section">
-              <span className="detail-label">Query:</span>
-              <div className="detail-content">{viewingResult.query}</div>
-            </div>
-            {viewingResult.context && (
-              <div className="detail-section">
-                <span className="detail-label">Context:</span>
-                <div className="detail-content">{viewingResult.context}</div>
-              </div>
-            )}
-            <div className="detail-section">
-              <span className="detail-label">Responses ({viewingResult.responses.length}):</span>
-              <div className="detail-content detail-content--scrollable">
-                {viewingResult.responses.map((response, i) => (
-                  <div
-                    key={`${response.persona_name}-${i}-${response.content.substring(0, 20)}`}
-                    className="response-item"
-                  >
-                    <div className="response-item-header">
-                      {response.persona_emoji} {response.persona_name} ({response.persona_title})
-                    </div>
-                    <div className="response-item-content">{response.content}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {viewingResult.synthesis && (
-              <div className="detail-section">
-                <span className="detail-label">Synthesis:</span>
-                <div className="detail-content detail-content--highlight">
-                  {viewingResult.synthesis}
+          {(compareLeft || compareRight) && (
+            <div className="history-compare-bar">
+              <div className="history-compare-slots">
+                <div
+                  className={`history-compare-slot ${compareLeft ? 'history-compare-slot--active' : ''}`}
+                >
+                  <span className="history-compare-label">A</span>
+                  <span className="history-compare-text">
+                    {compareLeft ? truncate(compareLeft.entry.query, 40) : 'Select a consultation'}
+                  </span>
+                </div>
+                <div
+                  className={`history-compare-slot ${compareRight ? 'history-compare-slot--active' : ''}`}
+                >
+                  <span className="history-compare-label">B</span>
+                  <span className="history-compare-text">
+                    {compareRight ? truncate(compareRight.entry.query, 40) : 'Select a consultation'}
+                  </span>
                 </div>
               </div>
-            )}
-          </>
-        )}
-      </Modal>
+              <div className="history-compare-actions">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={clearComparison}>
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
 
-      <Modal isOpen={!!comparisonReady} onClose={clearComparison} title="Consultation Comparison">
-        {comparisonReady && (
-          <ComparisonView
-            leftResult={compareLeft.result}
-            rightResult={compareRight.result}
-            leftLabel={truncate(compareLeft.entry.query, 40)}
-            rightLabel={truncate(compareRight.entry.query, 40)}
-            onSwap={swapComparison}
-          />
-        )}
-      </Modal>
+          {isLoading && (
+            <div className="empty-state">
+              <span className="loading"></span> Loading history...
+            </div>
+          )}
+
+          {error && (
+            <div className="empty-state">
+              <p className="error">{error}</p>
+            </div>
+          )}
+
+          {!isLoading && !error && displayHistory.length === 0 && (
+            <div className="empty-state">
+              <p>
+                {searchQuery
+                  ? isSearching
+                    ? 'Searching history...'
+                    : 'No matching results found'
+                  : 'No recent consultations'}
+              </p>
+              {!searchQuery && <p className="hint">Your consultation history will appear here.</p>}
+              {searchQuery && !isSearching && (
+                <button
+                  type="button"
+                  className="btn-secondary empty-state-clear-btn"
+                  onClick={() => setSearchQuery('')}
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
+          )}
+
+          {!isLoading && !error && displayHistory.length > 0 && (
+            <>
+              <div
+                id="history-list"
+                className={`history-list ${isSearching ? 'history-list--searching' : ''}`}
+              >
+                {displayHistory.map((entry) => (
+                  <HistoryItem
+                    key={entry.id}
+                    entry={entry}
+                    onDeleted={fetchHistory}
+                    onView={setViewingResult}
+                    onCompare={handleCompareSelection}
+                  />
+                ))}
+              </div>
+
+              {!searchQuery && hasMore && (
+                <div className="history-load-more">
+                  <button type="button" className="btn btn-secondary" onClick={handleLoadMore}>
+                    Load More Consultations
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          <Modal
+            isOpen={!!viewingResult}
+            onClose={() => setViewingResult(null)}
+            title="Consultation Details"
+          >
+            {viewingResult && (
+              <>
+                <div className="detail-section">
+                  <span className="detail-label">Query:</span>
+                  <div className="detail-content">{viewingResult.query}</div>
+                </div>
+                {viewingResult.context && (
+                  <div className="detail-section">
+                    <span className="detail-label">Context:</span>
+                    <div className="detail-content">{viewingResult.context}</div>
+                  </div>
+                )}
+                <div className="detail-section">
+                  <span className="detail-label">Responses ({viewingResult.responses.length}):</span>
+                  <div className="detail-content detail-content--scrollable">
+                    {viewingResult.responses.map((response, i) => (
+                      <div
+                        key={`${response.persona_name}-${i}-${response.content.substring(0, 20)}`}
+                        className="response-item"
+                      >
+                        <div className="response-item-header">
+                          {response.persona_emoji} {response.persona_name} ({response.persona_title})
+                        </div>
+                        <div className="response-item-content">{response.content}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {viewingResult.synthesis && (
+                  <div className="detail-section">
+                    <span className="detail-label">Synthesis:</span>
+                    <div className="detail-content detail-content--highlight">
+                      {viewingResult.synthesis}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </Modal>
+
+          <Modal isOpen={!!comparisonReady} onClose={clearComparison} title="Consultation Comparison">
+            {comparisonReady && (
+              <ComparisonView
+                leftResult={compareLeft.result}
+                rightResult={compareRight.result}
+                leftLabel={truncate(compareLeft.entry.query, 40)}
+                rightLabel={truncate(compareRight.entry.query, 40)}
+                onSwap={swapComparison}
+              />
+            )}
+          </Modal>
+        </>
+      ) : (
+        <SessionManager />
+      )}
     </section>
   );
 };
