@@ -766,7 +766,17 @@ class Council:
         # Generate synthesis if needed
         synthesis = None
         structured_synthesis = None
-        if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
+
+        # Check if strategy already provided synthesis to avoid redundant generation
+        strategy_has_synthesis = strategy_result is not None and (
+            strategy_result.synthesis is not None
+            or strategy_result.structured_synthesis is not None
+        )
+
+        if (
+            mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE)
+            and not strategy_has_synthesis
+        ):
             synthesis_provider = self._get_synthesis_provider(provider)
             # Try structured synthesis if enabled in config
             if getattr(self.config, "use_structured_output", False):
