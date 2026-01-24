@@ -10,8 +10,26 @@ from council_ai.core.council import ConsultationMode
 from council_ai.core.session import ConsultationResult, MemberResponse
 
 
+@pytest.fixture
+def mock_env_keys(monkeypatch):
+    """Mock environment variables for API keys."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
+
+
+@pytest.fixture
+def mock_get_api_key(monkeypatch):
+    """Mock get_api_key function."""
+    with patch("council_ai.core.council.get_api_key") as mock:
+        mock.side_effect = lambda name: f"key-for-{name}"
+        yield mock
+
+
 @pytest.mark.anyio
-async def test_council_handles_strategy_returning_consultationresult(monkeypatch):
+async def test_council_handles_strategy_returning_consultationresult(
+    monkeypatch, mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
+):
+    """Test that council properly handles strategies that return ConsultationResult."""
     council = Council(api_key="test-key")
 
     # Mock the provider to avoid API key requirements
@@ -39,7 +57,10 @@ async def test_council_handles_strategy_returning_consultationresult(monkeypatch
 
 
 @pytest.mark.anyio
-async def test_council_handles_strategy_returning_list(monkeypatch):
+async def test_council_handles_strategy_returning_list(
+    monkeypatch, mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
+):
+    """Test that council properly handles strategies that return List[MemberResponse]."""
     council = Council(api_key="test-key")
 
     # Mock the provider to avoid API key requirements

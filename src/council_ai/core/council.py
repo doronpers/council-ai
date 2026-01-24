@@ -13,7 +13,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -753,8 +753,15 @@ class Council:
         if isinstance(result_or_responses, ConsultationResult):
             strategy_result = result_or_responses
             responses = strategy_result.responses
+        elif isinstance(result_or_responses, list):
+            # Runtime type validation instead of cast for type safety
+            responses = result_or_responses
         else:
-            responses = cast(List[MemberResponse], result_or_responses)
+            # This should never happen if strategies follow the contract
+            raise TypeError(
+                f"Strategy returned unexpected type: {type(result_or_responses)}. "
+                "Expected ConsultationResult or List[MemberResponse]."
+            )
 
         # Generate synthesis if needed
         synthesis = None
