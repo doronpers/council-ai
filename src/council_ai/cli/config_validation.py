@@ -5,7 +5,7 @@ Validates configuration settings and provides helpful guidance
 """
 
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
 
@@ -138,7 +138,7 @@ class ConfigValidator:
         return "Run 'council config show' to see all settings"
 
 
-def validate_configuration(config_dict: Dict[str, any]) -> Tuple[bool, List[str]]:
+def validate_configuration(config_dict: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """
     Validate entire configuration dictionary.
     Returns (is_valid, list_of_error_messages)
@@ -161,10 +161,19 @@ def validate_configuration(config_dict: Dict[str, any]) -> Tuple[bool, List[str]
         if value_error:
             errors.append(f"{key}: {value_error}")
 
+    # If provider is invalid and an API key was provided, surface API key validation too
+    provider = config_dict.get("api.provider")
+    if (
+        provider
+        and provider not in ConfigValidator.VALID_PROVIDERS
+        and "api.api_key" in config_dict
+    ):
+        errors.append("api.api_key: API key cannot be validated when provider is invalid")
+
     return len(errors) == 0, errors
 
 
-def display_config_warning(key: str, value: any, warning: str) -> None:
+def display_config_warning(key: str, value: Any, warning: str) -> None:
     """Display configuration warning to user"""
     console.print("[yellow]⚠️  Configuration Warning[/yellow]")
     console.print(f"  Key: {key}")

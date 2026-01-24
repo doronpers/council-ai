@@ -39,18 +39,11 @@ class SynthesisStrategy(ConsultationStrategy):
             auto_recall=auto_recall,
             **kwargs,
         )
-        from ..session import ConsultationResult, MemberResponse
-
-        mode_str = mode.value if mode is not None else "synthesis"
+        from ..session import ConsultationResult
 
         if isinstance(result, ConsultationResult):
-            return result
-        return ConsultationResult(
-            query=query,
-            responses=cast(List[MemberResponse], result),
-            context=context,
-            mode=mode_str,
-        )
+            return result.responses
+        return result
 
     async def stream(
         self,

@@ -1,6 +1,4 @@
-"""
-History and session management commands.
-"""
+"""History and session management commands."""
 
 import sys
 from pathlib import Path

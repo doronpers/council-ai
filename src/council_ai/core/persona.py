@@ -256,9 +256,13 @@ class PersonaManager:
 
     def _get_user_path(self) -> Path:
         """Get path to user's custom personas."""
-        config_dir = Path(
-            os.environ.get("COUNCIL_CONFIG_DIR", Path.home() / ".config" / "council-ai")
-        )
+        from ..utils.paths import get_workspace_config_dir
+
+        config_dir_env = os.environ.get("COUNCIL_CONFIG_DIR")
+        if config_dir_env:
+            config_dir = Path(config_dir_env)
+        else:
+            config_dir = get_workspace_config_dir("council-ai")
         return config_dir / "personas"
 
     def _get_personal_path(self) -> Optional[Path]:

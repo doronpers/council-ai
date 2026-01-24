@@ -1,5 +1,6 @@
 """Main consultation screen for TUI."""
 
+import asyncio
 import re
 from typing import Optional
 

@@ -1,6 +1,4 @@
-"""
-Diagnostic and maintenance commands.
-"""
+"""Diagnostic and maintenance commands."""
 
 import asyncio
 import os

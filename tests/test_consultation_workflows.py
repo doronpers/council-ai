@@ -17,9 +17,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from council_ai.core.council import Council
-from council_ai.core.session import ConsultationResult, Session
-
 # ============================================================================
 # Fixture Setup
 # ============================================================================
@@ -103,8 +100,6 @@ class TestFullConsultationWorkflow:
     @pytest.mark.asyncio
     async def test_consultation_with_context(self, mock_provider, mock_personas):
         """Test consultation with background context."""
-        context = "Important background information for this consultation"
-
         council = MagicMock()
         council.list_members.return_value = mock_personas
 
@@ -456,10 +451,6 @@ class TestMultiStepWorkflows:
         all_results = []
 
         for round_num in range(refinement_rounds):
-            context = (
-                f"Previous refinements: {round_num}" if round_num > 0 else "Initial consultation"
-            )
-
             responses = []
             for persona in mock_personas:
                 response = MagicMock()
@@ -490,7 +481,7 @@ class TestMultiStepWorkflows:
             results_by_approach[approach] = responses
 
         assert len(results_by_approach) == 3
-        for approach, responses in results_by_approach.items():
+        for _approach, responses in results_by_approach.items():
             assert len(responses) == 3
 
 

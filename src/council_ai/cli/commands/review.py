@@ -1,6 +1,4 @@
-"""
-Code review command.
-"""
+"""Code review command."""
 
 from pathlib import Path
 
