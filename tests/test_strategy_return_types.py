@@ -34,7 +34,7 @@ def mock_get_provider(monkeypatch):
         mock_manager = MagicMock()
         llm_manager_cls.return_value = mock_manager
 
-        def _fake_get_provider(self, fallback=False):
+        def _fake_get_provider(self, fallback: bool = False):
             return object()
 
         monkeypatch.setattr(Council, "_get_provider", _fake_get_provider)
@@ -51,15 +51,19 @@ def mock_llm_manager():
 async def test_council_handles_strategy_returning_consultationresult(
     monkeypatch, mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
 ):
-    """Test that council properly handles strategies that return ConsultationResult."""
+    """Council should pass through ConsultationResult returned by a strategy."""
     council = Council(api_key="test-key")
 
-    # Mock the provider to avoid API key requirements (defensive even with fixture)
+    # Defensive: ensure _get_provider returns a dummy provider
     monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
 
     # Create a fake strategy that returns a ConsultationResult
     persona = Persona(id="T1", name="Test1", title="T", core_question="?", razor=".")
-    member_response = MemberResponse(persona=persona, content="Advice", timestamp=datetime.now())
+    member_response = MemberResponse(
+        persona=persona,
+        content="Advice",
+        timestamp=datetime.now(),
+    )
     fake_result = ConsultationResult(query="Test Q", responses=[member_response])
 
     class DummyStrategy:
@@ -75,7 +79,7 @@ async def test_council_handles_strategy_returning_consultationresult(
         lambda mode_value: DummyStrategy(),
     )
 
-    # Also avoid starting a real session
+    # Avoid starting a real session
     monkeypatch.setattr(
         council,
         "_start_session",
@@ -88,6 +92,7 @@ async def test_council_handles_strategy_returning_consultationresult(
     )
 
     assert isinstance(result, ConsultationResult)
+    # Should be the exact object returned by the strategy
     assert result is fake_result
     assert result.responses[0].content == "Advice"
 
@@ -96,13 +101,17 @@ async def test_council_handles_strategy_returning_consultationresult(
 async def test_council_handles_strategy_returning_list_of_memberresponses(
     monkeypatch, mock_get_provider, mock_llm_manager, mock_get_api_key, mock_env_keys
 ):
-    """Test that council wraps legacy List[MemberResponse] into ConsultationResult."""
+    """Council should wrap legacy List[MemberResponse] into ConsultationResult."""
     council = Council(api_key="test-key")
 
     monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
 
     persona = Persona(id="T1", name="Test1", title="T", core_question="?", razor=".")
-    member_response = MemberResponse(persona=persona, content="Legacy", timestamp=datetime.now())
+    member_response = MemberResponse(
+        persona=persona,
+        content="Legacy",
+        timestamp=datetime.now(),
+    )
     fake_list = [member_response]
 
     class LegacyStrategy:
@@ -187,7 +196,6 @@ async def test_stream_methods_are_async_generators(monkeypatch, mock_env_keys):
         async for _ in stream:
             break
 
-    # Use AsyncMock to drive consume_stream
     for strategy in strategies:
         await consume_stream(strategy)
 
@@ -204,7 +212,11 @@ async def test_consult_async_returns_consultationresult(monkeypatch, mock_env_ke
         lambda *args, **kwargs: MagicMock(session_id="test-session"),
     )
 
-    for mode in [ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE, ConsultationMode.INDIVIDUAL]:
+    for mode in [
+        ConsultationMode.SYNTHESIS,
+        ConsultationMode.DEBATE,
+        ConsultationMode.INDIVIDUAL,
+    ]:
         result = await council.consult_async(query="Test", mode=mode.value)
         assert isinstance(result, ConsultationResult)
         assert result.mode in {mode.value, "debate", "synthesis", "individual"}
