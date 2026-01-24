@@ -134,8 +134,8 @@ class TestProviderFallback:
             "council_ai.providers.get_provider"
         ) as mock_get:
             mock_available.return_value = [
-                ("anthropic", "key1"),
-                ("openai", "key2"),
+                ("anthropic", TEST_KEY_ANTHROPIC),
+                ("openai", TEST_KEY_OPENAI),
             ]
 
             mock_provider = MagicMock()
