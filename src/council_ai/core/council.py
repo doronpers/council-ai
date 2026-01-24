@@ -72,9 +72,9 @@ class CouncilConfig(BaseModel):
     # Web search and reasoning capabilities
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
-    reasoning_mode: Optional[
-        str
-    ] = "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    reasoning_mode: Optional[str] = (
+        "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    )
     # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
     progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
@@ -164,9 +164,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[
-            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
-        ] = []
+        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
+            []
+        )
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -759,7 +759,17 @@ class Council:
         # Generate synthesis if needed
         synthesis = None
         structured_synthesis = None
-        if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
+
+        # Check if strategy already provided synthesis to avoid redundant generation
+        strategy_has_synthesis = strategy_result is not None and (
+            strategy_result.synthesis is not None
+            or strategy_result.structured_synthesis is not None
+        )
+
+        if (
+            mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE)
+            and not strategy_has_synthesis
+        ):
             synthesis_provider = self._get_synthesis_provider(provider)
             # Try structured synthesis if enabled in config
             if getattr(self.config, "use_structured_output", False):
