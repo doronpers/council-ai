@@ -40,6 +40,8 @@ The repo includes convenience launchers:
 - **LAN mode**: `bin/launch-council-lan.command` / `bin/launch-council-lan.bat` (binds host so other devices can connect)
 - **Persistent**: `bin/launch-council-persistent.command` / `bin/launch-council-persistent.bat` (auto-restart)
 
+For reviewer-specific launchers and options (ports, no-browser, reload), see `documentation/REVIEWER_SETUP.md` (section: Launch the Reviewer).
+
 For accessing a running host from another device:
 
 - `connect-to-council.bat` (Windows helper)
@@ -77,7 +79,7 @@ First-time users see a guided onboarding wizard that walks through:
 
 - Choosing a domain
 - Selecting members
-- Configuring provider and API key
+- Configuring provider and API key (see `documentation/WEB_SEARCH_AND_REASONING.md` for details on enabling web search and reasoning modes)
 - Writing the first query
 
 ### Components
