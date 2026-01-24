@@ -1,13 +1,13 @@
 """Synthesis consultation strategy."""
 
 import logging
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import MemberResponse
+    from ..session import ConsultationResult, MemberResponse
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +25,11 @@ class SynthesisStrategy(ConsultationStrategy):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> List["MemberResponse"]:
+    ) -> "ConsultationResult":
         from .individual import IndividualStrategy
 
         individual = IndividualStrategy()
-        return await individual.execute(
+        result = await individual.execute(
             council=council,
             query=query,
             context=context,
@@ -38,6 +38,18 @@ class SynthesisStrategy(ConsultationStrategy):
             session_id=session_id,
             auto_recall=auto_recall,
             **kwargs,
+        )
+        from ..session import ConsultationResult, MemberResponse
+
+        mode_str = mode.value if mode is not None else "synthesis"
+
+        if isinstance(result, ConsultationResult):
+            return result
+        return ConsultationResult(
+            query=query,
+            responses=cast(List[MemberResponse], result),
+            context=context,
+            mode=mode_str,
         )
 
     async def stream(
