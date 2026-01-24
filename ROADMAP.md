@@ -24,7 +24,17 @@
 
 ### Web UI Improvements (2026-01-19)
 
-1. ✅ **Session Management UI** - Added session view/management in the history panel
+#### 1. Session Management UI
+
+- **Status**: ✅ COMPLETED
+- **Description**: Added session view/management in the history panel
+- **Implementation**: Added HistoryPanel session list and details view
+- **Completed**: 2026-01-19
+
+### Core Improvements (2026-01-24)
+
+1. ✅ **Pattern-Coach Mode** - Implemented Pattern-Coach Mode integrating with `shared-ai-utils` PatternManager
+2. ✅ **QA Command** - Implemented `council qa` command evaluating content via `sono-eval`
 
 ### Core Improvements (2026-01-16)
 
@@ -68,30 +78,6 @@ _No high priority items at this time._
   - Supports dot-notation key access
 - **Files**: `pyproject.toml`, `src/council_ai/core/config.py`
 - **Completed**: 2026-01-16
-
-#### 7. Add Pattern-Coach Mode
-
-- **Status**: 📝 TODO
-- **Complexity**: Medium-High
-- **Recommended Models**: 1. Claude Opus 4.5, 2. GPT-5.2-Codex, 3. GPT-5.1-Codex-Max
-- **Description**: Add pattern-aware council mode with recommendations from feedback-loop
-- **Implementation**:
-  - Add council "pattern-coach" mode hitting feedback-loop (library or REST)
-  - Allow feedback-loop to call council personas for pattern review
-- **Files**: `src/council_ai/core/council.py`, new mode implementation
-- **Reference**: `planning/integration-plan.md`
-
-#### 8. Add QA Command for sono-eval
-
-- **Status**: 📝 TODO
-- **Complexity**: Medium
-- **Recommended Models**: 1. GPT-5.1-Codex, 2. Claude Sonnet 4.5, 3. Gemini 3 Pro
-- **Description**: Optional QA command to run council outputs through sono-eval assessment
-- **Implementation**:
-  - Add council QA command that calls sono-eval assessment engine
-  - Add "assessment" domain preset that points to sono-eval API
-- **Files**: `src/council_ai/cli.py`, new command
-- **Reference**: `planning/integration-plan.md`
 
 ---
 

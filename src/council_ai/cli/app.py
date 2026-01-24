@@ -58,6 +58,7 @@ def register_commands():
         init_command,
         interactive_command,
         q_command,
+        qa_command,
         quickstart_command,
         review_command,
         show_providers_command,
@@ -75,6 +76,7 @@ def register_commands():
     main.add_command(init_command)
     main.add_command(quickstart_command)
     main.add_command(consult_command)
+    main.add_command(qa_command)
     main.add_command(q_command)
     main.add_command(interactive_command)
     main.add_command(tui_command)
