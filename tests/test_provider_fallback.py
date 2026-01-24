@@ -302,8 +302,8 @@ class TestProviderSelection:
 
         with patch("council_ai.core.config.get_available_providers") as mock_available:
             mock_available.return_value = [
-                ("anthropic", "key1"),
-                ("openai", "key2"),
+                ("anthropic", TEST_KEY_ANTHROPIC),
+                ("openai", TEST_KEY_OPENAI),
                 ("gemini", None),
             ]
 
