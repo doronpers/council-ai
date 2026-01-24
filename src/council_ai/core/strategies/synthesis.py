@@ -39,7 +39,18 @@ class SynthesisStrategy(ConsultationStrategy):
             auto_recall=auto_recall,
             **kwargs,
         )
-        return result
+        from ..session import ConsultationResult
+
+        if isinstance(result, ConsultationResult):
+            return result
+        # Legacy fallback: wrap list in ConsultationResult
+        mode_str = mode.value if mode is not None else "synthesis"
+        return ConsultationResult(
+            query=query,
+            responses=result,
+            context=context,
+            mode=mode_str,
+        )
 
     async def stream(
         self,

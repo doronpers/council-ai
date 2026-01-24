@@ -36,6 +36,8 @@ class TestExceptions:
         error = RateLimitError("openai")
         assert error.provider == "openai"
         assert "rate limit" in str(error).lower()
+        # Test default None value
+        assert error.retry_after is None
 
         error_with_retry = RateLimitError("openai", retry_after=60)
         assert error_with_retry.retry_after == 60
@@ -66,15 +68,27 @@ class TestExceptions:
 
     def test_consultation_error(self):
         """Test ConsultationError."""
+        # Test with provided partial_responses
         partial = [{"response": "partial"}]
         error = ConsultationError("Failed mid-consultation", partial_responses=partial)
         assert error.partial_responses == partial
         assert "Failed mid-consultation" in str(error)
 
+        # Test default None value (should be converted to empty list)
+        error_default = ConsultationError("Failed without partial responses")
+        assert error_default.partial_responses == []
+        assert "Failed without partial responses" in str(error_default)
+
     def test_provider_unavailable_error(self):
         """Test ProviderUnavailableError."""
+        # Test with provided attempted_providers
         providers = ["anthropic", "openai"]
         error = ProviderUnavailableError(attempted_providers=providers)
         assert error.attempted_providers == providers
         assert "anthropic" in str(error)
         assert "openai" in str(error)
+
+        # Test default None value (should be converted to empty list)
+        error_default = ProviderUnavailableError()
+        assert error_default.attempted_providers == []
+        assert "No available providers" in str(error_default)

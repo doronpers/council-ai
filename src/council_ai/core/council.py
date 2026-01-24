@@ -13,7 +13,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -72,9 +72,9 @@ class CouncilConfig(BaseModel):
     # Web search and reasoning capabilities
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
-    reasoning_mode: Optional[
-        str
-    ] = "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    reasoning_mode: Optional[str] = (
+        "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    )
     # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
     progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
@@ -164,9 +164,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[
-            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
-        ] = []
+        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
+            []
+        )
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -737,8 +737,7 @@ class Council:
 
         # Get responses based on mode using Strategy pattern
         strategy = get_strategy(mode.value)
-        strategy_result = None
-        result_or_responses = await strategy.execute(
+        strategy_result = await strategy.execute(
             council=self,
             query=query,
             context=context,
@@ -747,19 +746,23 @@ class Council:
             auto_recall=auto_recall,
         )
 
-        # Backwards-compatible handling: strategies may return either a
-        # ConsultationResult (new behavior) or a List[MemberResponse] (legacy).
-
-        if isinstance(result_or_responses, ConsultationResult):
-            strategy_result = result_or_responses
-            responses = strategy_result.responses
-        else:
-            responses = cast(List[MemberResponse], result_or_responses)
+        # All strategies now return ConsultationResult
+        responses = strategy_result.responses
 
         # Generate synthesis if needed
         synthesis = None
         structured_synthesis = None
-        if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
+
+        # Check if strategy already provided synthesis to avoid redundant generation
+        strategy_has_synthesis = strategy_result is not None and (
+            strategy_result.synthesis is not None
+            or strategy_result.structured_synthesis is not None
+        )
+
+        if (
+            mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE)
+            and not strategy_has_synthesis
+        ):
             synthesis_provider = self._get_synthesis_provider(provider)
             # Try structured synthesis if enabled in config
             if getattr(self.config, "use_structured_output", False):
@@ -826,7 +829,7 @@ class Council:
                 context=context,
                 responses=responses,
                 synthesis=synthesis,
-                mode=mode,
+                mode=mode.value,  # Convert enum to string
                 timestamp=datetime.now(),
                 structured_synthesis=structured_synthesis,
             )
@@ -840,7 +843,7 @@ class Council:
             if strategy_result.context is None:
                 strategy_result.context = context
             if strategy_result.mode is None:
-                strategy_result.mode = mode
+                strategy_result.mode = mode.value  # Convert enum to string
             if strategy_result.timestamp is None:
                 strategy_result.timestamp = datetime.now()
 
@@ -1073,7 +1076,7 @@ class Council:
             context=context,
             responses=responses,
             synthesis=synthesis,
-            mode=mode,
+            mode=mode.value,
             timestamp=datetime.now(),
             structured_synthesis=structured_synthesis,
         )
@@ -1143,14 +1146,16 @@ class Council:
         # Build result dict, handling any exceptions
         enhanced_contexts: Dict[str, Optional[str]] = {}
         for result in results:
-            if isinstance(result, asyncio.CancelledError):
-                # Propagate cancellation so higher-level tasks can terminate correctly
+            if isinstance(result, (asyncio.CancelledError, KeyboardInterrupt)):
+                # Propagate cancellation/interruption so higher-level tasks can terminate correctly
                 raise result
             if isinstance(result, Exception):
                 logger.warning(f"Web search enhancement failed: {result}")
                 continue
-            member_id, enhanced = result
-            enhanced_contexts[member_id] = enhanced
+            # Type guard: at this point, result must be a tuple
+            if isinstance(result, tuple):
+                member_id, enhanced = result
+                enhanced_contexts[member_id] = enhanced
 
         return enhanced_contexts
 
