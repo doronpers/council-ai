@@ -10,6 +10,8 @@ To run:
    - export ANTHROPIC_API_KEY="your-key"
    - export TAVILY_API_KEY="your-key" (optional, for web search)
 3. Run: python examples/web_search_reasoning_example.py
+
+See `documentation/WEB_SEARCH_AND_REASONING.md` for detailed configuration, discussion of providers, and reasoning mode examples.
 """
 
 import os

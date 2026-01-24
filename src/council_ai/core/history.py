@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
+from ..utils.paths import get_workspace_config_dir
 from .session import ConsultationResult, Session
 
 logger = logging.getLogger(__name__)
@@ -31,17 +32,18 @@ class ConsultationHistory:
         if storage_path:
             self.storage_dir = Path(storage_path)
         else:
-            # Use config directory
+            # Use workspace-relative config directory
             options = [
                 os.environ.get("COUNCIL_CONFIG_DIR"),
-                Path.home() / ".config" / "council-ai",
+                get_workspace_config_dir("council-ai"),
+                Path.home() / ".config" / "council-ai",  # Legacy fallback
                 Path("/tmp/council-ai"),  # nosec B108
             ]
 
             for option in options:
                 if not option:
                     continue
-                path = Path(option)
+                path = Path(str(option))
                 try:
                     path.mkdir(parents=True, exist_ok=True)
                     self.storage_dir = path / "history"
@@ -50,7 +52,7 @@ class ConsultationHistory:
                 except OSError:
                     continue
             else:
-                # Fallback
+                # Fallback to legacy location
                 self.storage_dir = Path.home() / ".council-ai" / "history"
                 self.storage_dir.mkdir(parents=True, exist_ok=True)
 

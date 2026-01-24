@@ -4,6 +4,8 @@ Custom exceptions for Council AI.
 Provides a hierarchy of exceptions for better error handling and user messaging.
 """
 
+from typing import Any, List, Optional
+
 
 class CouncilError(Exception):
     """Base exception for all Council AI errors."""
@@ -35,7 +37,7 @@ class APIKeyError(APIError):
 class RateLimitError(APIError):
     """API rate limit exceeded."""
 
-    def __init__(self, provider: str, retry_after: int = None, message: str = ""):
+    def __init__(self, provider: str, retry_after: Optional[int] = None, message: str = ""):
         self.provider = provider
         self.retry_after = retry_after
         default_msg = f"Rate limit exceeded for provider '{provider}'"
@@ -85,7 +87,7 @@ class DomainNotFoundError(CouncilError):
 class ConsultationError(CouncilError):
     """Error during consultation process."""
 
-    def __init__(self, message: str, partial_responses: list = None):
+    def __init__(self, message: str, partial_responses: Optional[List[Any]] = None):
         self.partial_responses = partial_responses or []
         super().__init__(message)
 
@@ -93,7 +95,7 @@ class ConsultationError(CouncilError):
 class ProviderUnavailableError(APIError):
     """No available providers for the request."""
 
-    def __init__(self, attempted_providers: list = None, message: str = ""):
+    def __init__(self, attempted_providers: Optional[List[str]] = None, message: str = ""):
         self.attempted_providers = attempted_providers or []
         default_msg = "No available providers"
         if attempted_providers:

@@ -1,6 +1,4 @@
-"""
-Tests for Phase 3 CLI Hardening improvements
-"""
+"""Tests for Phase 3 CLI Hardening improvements."""
 
 import pytest
 
@@ -136,7 +134,7 @@ class TestHelpSystem:
 
     def test_command_docs_have_examples(self):
         """Test all commands have at least one example"""
-        for command, doc in COMMAND_DOCS.items():
+        for _command, doc in COMMAND_DOCS.items():
             assert "examples" in doc
             assert len(doc["examples"]) > 0
 

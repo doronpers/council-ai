@@ -119,9 +119,7 @@ class StorageError(CLIError):
 
 
 def suggest_command_fixes(command: str, error_type: str) -> str:
-    """
-    Suggest similar commands or common fixes based on error type
-    """
+    """Suggest similar commands or common fixes based on error type"""
     suggestions: Dict[str, Dict[str, List[str]]] = {
         "typo": {
             "consult": ["Did you mean: council consult"],

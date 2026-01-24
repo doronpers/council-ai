@@ -1,20 +1,10 @@
 """Tests for personal integration detection and operations."""
 
-from pathlib import Path
 import os
 import stat
-import shutil
+from pathlib import Path
 
-import pytest
-
-from council_ai.core.personal_integration import (
-    PersonalIntegration,
-    detect_personal_repo,
-    is_personal_configured,
-    integrate_personal,
-    verify_personal_integration,
-    get_personal_status,
-)
+from council_ai.core.personal_integration import PersonalIntegration, detect_personal_repo
 
 
 def make_personal_repo(base: Path):

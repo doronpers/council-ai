@@ -5,7 +5,7 @@ Centralizes keyboard navigation and command bindings for the TUI.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 from rich.console import Console
 
@@ -109,7 +109,7 @@ class KeyboardShortcutManager:
         table.add_column("Category", style="yellow")
 
         # Group by category
-        categories = {}
+        categories: Dict[str, List[Tuple[str, KeyBinding]]] = {}
         for key, binding in self.bindings.items():
             cat = binding.category
             if cat not in categories:
@@ -118,7 +118,7 @@ class KeyboardShortcutManager:
 
         # Sort and display
         for category in sorted(categories.keys()):
-            for key, binding in sorted(categories[category], key=lambda x: x[0]):
+            for _key, binding in sorted(categories[category], key=lambda x: x[0]):
                 table.add_row(
                     f"[bold]{binding.key}[/bold]",
                     binding.description,

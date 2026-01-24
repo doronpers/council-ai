@@ -231,6 +231,8 @@ export GEMINI_API_KEY="your-key"       # For Gemini
 
 ### Option 3: Config File
 
+**Location**: Configuration is stored in workspace-relative `.workspace-config/council-ai/config.yaml` (or legacy `~/.config/council-ai/config.yaml`).
+
 ```bash
 council config set api.api_key your-key
 ```
@@ -246,7 +248,7 @@ council init
 1. CLI flags (`--api-key`)
 2. Environment variables
 3. `.env` file (auto-loaded)
-4. Config file (`~/.config/council-ai/config.yaml`)
+4. Config file (workspace: `.workspace-config/council-ai/config.yaml` or legacy: `~/.config/council-ai/config.yaml`)
 
 ### CLI Usage
 
@@ -395,10 +397,10 @@ council domain list
 
 **Via YAML:**
 
-Create a YAML file in `~/.config/council-ai/personas/` or a custom directory specified in your config file.
+Create a YAML file in `.workspace-config/council-ai/personas/` (or legacy `~/.config/council-ai/personas/`) or a custom directory specified in your config file.
 
 ```yaml
-# ~/.config/council-ai/personas/my_advisor.yaml
+# .workspace-config/council-ai/personas/my_advisor.yaml
 id: my_advisor
 name: My Custom Advisor
 title: Domain Expert
@@ -843,7 +845,7 @@ OPENAI_API_KEY=your-openai-key-here  # Fallback
 
 **Configuration:**
 
-Create or edit `~/.config/council-ai/config.yaml`:
+Create or edit `.workspace-config/council-ai/config.yaml` (or legacy `~/.config/council-ai/config.yaml`):
 
 ```yaml
 tts:
