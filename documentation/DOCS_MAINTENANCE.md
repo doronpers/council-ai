@@ -22,7 +22,7 @@ This short guide explains how to contribute, maintain, and propose consolidation
 - [ ] Ensure text is clear and concise; prefer short sections and examples.
 - [ ] Run `pre-commit` and fix any formatting or lint issues.
 - [ ] Verify internal links work and update `documentation/README.md` TOC if adding/removing top-level pages.
-- [ ] If the change is substantive (feature docs or migration), add a brief entry to `CHANGELOG.md` under "Unreleased - Docs".
+- [ ] If the change is substantive (feature docs or migration), add a brief entry to `CHANGELOG.md` under the appropriate "Unreleased" subsection (for example, "Added" for new docs or "Changed" for updates).
 - [ ] Provide a short PR description that explains the purpose and scope of the doc change.
 
 ## When to consolidate
@@ -35,12 +35,10 @@ Consider consolidation when:
 
 ## How to propose a consolidation
 
-1. Document your proposal in `documentation/CONSOLIDATION_PLAN.md` with:
-   - pages to merge
-   - suggested canonical home for the content
-   - short migration steps (redirects, link updates)
-2. Open an issue describing the proposed consolidation and link the plan.
-3. Open a small PR that performs the consolidation, updates links, and runs `pre-commit`.
+1. **Propose**: Open an issue describing the pages to consolidate, the proposed canonical location, and the reason for the change. This allows for discussion before implementation.
+2. **Implement**: Once the proposal is approved, open a small PR that performs the consolidation.
+   - Update links, run `pre-commit`, and add a changelog entry if the change is significant.
+   - For larger efforts, you may be asked to update `documentation/CONSOLIDATION_PLAN.md` to track the items.
 
 ## Contact & review
 

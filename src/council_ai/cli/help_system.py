@@ -1,6 +1,6 @@
-"""CLI command documentation and help utilities"""
+"""CLI command documentation and help utilities."""
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional, TypedDict
 
 from rich.console import Console
 from rich.panel import Panel
@@ -9,7 +9,17 @@ from rich.table import Table
 console = Console()
 
 
-COMMAND_DOCS: Dict[str, Dict[str, str]] = {
+class CommandDoc(TypedDict):
+    """TypedDict for individual command documentation entries."""
+
+    description: str
+    usage: str
+    examples: List[str]
+    common_options: List[str]
+    quick_tips: List[str]
+
+
+COMMAND_DOCS: Dict[str, CommandDoc] = {
     "consult": {
         "description": "Get advice from the AI council on any topic",
         "usage": "council consult 'Your question or topic'",
