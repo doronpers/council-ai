@@ -104,7 +104,11 @@ class TestDebateStrategy:
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
             mock_response = MockMemberResponse(personas[0], "Alice's response")
-            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
+            from council_ai.core.session import ConsultationResult
+
+            mock_individual.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Q", responses=[mock_response])
+            )
 
             result = await strategy.execute(
                 council=council,
@@ -124,8 +128,13 @@ class TestDebateStrategy:
             mock_response1 = MockMemberResponse(personas[0], "Round 1 response")
             mock_response2 = MockMemberResponse(personas[0], "Round 2 response")
 
+            from council_ai.core.session import ConsultationResult
+
             mock_individual.return_value.execute = AsyncMock(
-                side_effect=[[mock_response1], [mock_response2]]
+                side_effect=[
+                    ConsultationResult(query="Q1", responses=[mock_response1]),
+                    ConsultationResult(query="Q2", responses=[mock_response2]),
+                ]
             )
 
             result = await strategy.execute(
@@ -144,7 +153,11 @@ class TestDebateStrategy:
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
             mock_response = MockMemberResponse(personas[0], "Response")
-            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
+            from council_ai.core.session import ConsultationResult
+
+            mock_individual.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Q", responses=[mock_response])
+            )
 
             await strategy.execute(
                 council=council,
@@ -193,7 +206,11 @@ class TestDebateStrategy:
 
         with patch("council_ai.core.strategies.individual.IndividualStrategy") as mock_individual:
             mock_response = MockMemberResponse(personas[0], "Response")
-            mock_individual.return_value.execute = AsyncMock(return_value=[mock_response])
+            from council_ai.core.session import ConsultationResult
+
+            mock_individual.return_value.execute = AsyncMock(
+                return_value=ConsultationResult(query="Q", responses=[mock_response])
+            )
 
             await strategy.execute(
                 council=council,
@@ -343,10 +360,18 @@ class TestSequentialStrategy:
                 query="Test?",
             )
 
-            assert len(result) == 3
-            assert result[0].content == "Alice response"
-            assert result[1].content == "Bob response"
-            assert result[2].content == "Charlie response"
+            # Accept either a list (legacy) or ConsultationResult (new)
+            from council_ai.core.session import ConsultationResult
+
+            if isinstance(result, ConsultationResult):
+                responses = result.responses
+            else:
+                responses = result
+
+            assert len(responses) == 3
+            assert responses[0].content == "Alice response"
+            assert responses[1].content == "Bob response"
+            assert responses[2].content == "Charlie response"
 
     @pytest.mark.asyncio
     async def test_sequential_context_accumulation(self, setup):
@@ -458,7 +483,7 @@ class TestIndividualStrategy:
                 query="Test?",
             )
 
-            assert len(result) == 2
+            assert hasattr(result, "responses") and len(result.responses) == 2
 
 
 # ============================================================================
@@ -547,5 +572,19 @@ class TestStrategyIntegration:
                 query="Test?",
             )
 
-        assert len(synthesis_result) >= 0
-        assert len(sequential_result) >= 0
+        # Accept either list or ConsultationResult shapes
+        from council_ai.core.session import ConsultationResult
+
+        seq_len = (
+            len(sequential_result.responses)
+            if isinstance(sequential_result, ConsultationResult)
+            else len(sequential_result)
+        )
+        syn_len = (
+            len(synthesis_result.responses)
+            if isinstance(synthesis_result, ConsultationResult)
+            else len(synthesis_result)
+        )
+
+        assert syn_len >= 0
+        assert seq_len >= 0

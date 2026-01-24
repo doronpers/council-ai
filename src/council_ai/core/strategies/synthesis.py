@@ -29,7 +29,7 @@ class SynthesisStrategy(ConsultationStrategy):
         from .individual import IndividualStrategy
 
         individual = IndividualStrategy()
-        return await individual.execute(
+        result = await individual.execute(
             council=council,
             query=query,
             context=context,
@@ -39,6 +39,11 @@ class SynthesisStrategy(ConsultationStrategy):
             auto_recall=auto_recall,
             **kwargs,
         )
+        from ..session import ConsultationResult
+
+        if isinstance(result, ConsultationResult):
+            return result.responses
+        return result
 
     async def stream(
         self,

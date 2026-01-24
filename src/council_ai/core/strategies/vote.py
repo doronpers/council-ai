@@ -1,12 +1,12 @@
 """Vote consultation strategy."""
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import MemberResponse
+    from ..session import ConsultationResult
 
 
 class VoteStrategy(ConsultationStrategy):
@@ -22,7 +22,7 @@ class VoteStrategy(ConsultationStrategy):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> List["MemberResponse"]:
+    ) -> "ConsultationResult":
         vote_query = f"""
 {query}
 
@@ -39,8 +39,20 @@ REASONING: [your reasoning]
         from .individual import IndividualStrategy
 
         individual = IndividualStrategy()
-        return await individual.execute(
+        result = await individual.execute(
             council=council, query=vote_query, context=context, members=members
+        )
+        from ..session import ConsultationResult, MemberResponse
+
+        mode_str = mode.value if mode is not None else "vote"
+
+        if isinstance(result, ConsultationResult):
+            return result
+        return ConsultationResult(
+            query=vote_query,
+            responses=cast(List[MemberResponse], result),
+            context=context,
+            mode=mode_str,
         )
 
     async def stream(

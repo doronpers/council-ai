@@ -1,6 +1,5 @@
 """Input panel widget for TUI with history support."""
 
-from pathlib import Path
 from typing import cast
 
 from textual.message import Message
@@ -23,7 +22,10 @@ class InputPanel(Input):
         super().__init__(*args, **kwargs)
         self._history: list[str] = []
         self._history_index = -1
-        self._history_file = Path.home() / ".council-ai" / "history.txt"
+        # Use workspace-relative path
+        from ..utils.paths import get_workspace_config_dir
+
+        self._history_file = get_workspace_config_dir("council-ai") / "history.txt"
         self._load_history()
 
     def _load_history(self) -> None:

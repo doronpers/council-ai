@@ -161,6 +161,15 @@ def validate_configuration(config_dict: Dict[str, Any]) -> Tuple[bool, List[str]
         if value_error:
             errors.append(f"{key}: {value_error}")
 
+    # If provider is invalid and an API key was provided, surface API key validation too
+    provider = config_dict.get("api.provider")
+    if (
+        provider
+        and provider not in ConfigValidator.VALID_PROVIDERS
+        and "api.api_key" in config_dict
+    ):
+        errors.append("api.api_key: API key cannot be validated when provider is invalid")
+
     return len(errors) == 0, errors
 
 
