@@ -11,8 +11,8 @@ focus_areas:
 - Material honesty
 id: DR
 metadata:
-  archetype: quality_advocate
   real_person: Dieter Rams
+  era: 1932–2019
 model: mixtral-8x7b-v0.1
 model_params:
   frequency_penalty: 0.4
