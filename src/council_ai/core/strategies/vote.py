@@ -6,7 +6,7 @@ from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import ConsultationResult
+    from ..session import ConsultationResult, MemberResponse
 
 
 class VoteStrategy(ConsultationStrategy):

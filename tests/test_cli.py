@@ -62,7 +62,7 @@ class TestMainCLI:
         """Test version option."""
         result = runner.invoke(main, ["--version"])
         assert result.exit_code == 0
-        assert "1.0.0" in result.output
+        assert "2.0.0" in result.output
 
 
 class TestConsultCommand:
@@ -233,7 +233,7 @@ class TestPersonaCommands:
         mock_persona.traits = []
         mock_get_persona.return_value = mock_persona
 
-        result = runner.invoke(main, ["persona", "show", "rams"])
+        result = runner.invoke(main, ["persona", "show", "DR"])
         assert result.exit_code == 0
         assert "Dieter Rams" in result.output
 

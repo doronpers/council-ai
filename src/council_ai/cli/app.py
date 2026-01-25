@@ -6,7 +6,7 @@ from ..core.config import ConfigManager
 
 
 @click.group()
-@click.version_option(version="1.0.0", prog_name="council-ai")
+@click.version_option(version="2.0.0", prog_name="council-ai")
 @click.option("--config", "-c", type=click.Path(), help="Path to config file")
 @click.pass_context
 def main(ctx, config):

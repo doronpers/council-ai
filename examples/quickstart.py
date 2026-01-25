@@ -119,9 +119,9 @@ council = Council.for_domain("business", api_key="your-key")
     print(
         """
 council = Council(api_key="your-key")
-council.add_member("rams")      # Design perspective
-council.add_member("holman")    # Security perspective
-council.add_member("grove")     # Strategy perspective
+council.add_member("DR")      # Design perspective
+council.add_member("PH")    # Security perspective
+council.add_member("AG")     # Strategy perspective
 """
     )
 

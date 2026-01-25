@@ -24,7 +24,7 @@ API Keys:
     4. CLI flags (--api-key)
 """
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "Doron Reizes"
 __license__ = "MIT"
 

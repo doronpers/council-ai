@@ -324,7 +324,7 @@ def consult(
         console.print(Markdown(output_text))
 
         # Offer to save if not already saved
-        if not output_json:
+        if not output_json and sys.stdout.isatty():
             try:
                 from rich.prompt import Confirm
 

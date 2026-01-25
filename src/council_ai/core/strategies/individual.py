@@ -8,7 +8,7 @@ from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import ConsultationResult, Persona
+    from ..session import ConsultationResult, MemberResponse, Persona
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from council_ai.core.council import Council
+from council_ai.core.council import ConsultationMode, Council
 from council_ai.core.persona import Persona
 
 
@@ -93,8 +93,9 @@ async def test_heterogeneous_council_consultation(
 ):
     """Test a consultation with a heterogeneous council."""
     council = Council(provider="openai", model="gpt-4", api_key="openai-key")
-    # Clear default members to test specific personas only
+    # Clear default members to test specific personas only and disable analysis
     council.clear_members()
+    council.config.enable_analysis = False
 
     holman = Persona(
         id="holman",
@@ -119,7 +120,7 @@ async def test_heterogeneous_council_consultation(
     council.add_member(treasure)
 
     # Set mode to individual to avoid synthesis which would require more mocks
-    result = await council.consult_async("Test query", mode="individual")
+    result = await council.consult_async("Test query", mode=ConsultationMode.INDIVIDUAL)
 
     assert len(result.responses) == 2
 

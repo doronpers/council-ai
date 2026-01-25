@@ -85,9 +85,9 @@ def test_domain_personas_exist():
         for persona_id in domain.default_personas:
             try:
                 persona = get_persona(persona_id)
-                assert (
-                    persona is not None
-                ), f"Persona '{persona_id}' in domain '{domain.id}' not found"
+                assert persona is not None, (
+                    f"Persona '{persona_id}' in domain '{domain.id}' not found"
+                )
             except ValueError:
                 pytest.fail(f"Persona '{persona_id}' in domain '{domain.id}' does not exist")
 
@@ -120,9 +120,9 @@ def test_domain_example_queries():
     domains = list_domains()
 
     for domain in domains:
-        assert (
-            len(domain.example_queries) >= 3
-        ), f"Domain '{domain.id}' should have at least 3 example queries"
+        assert len(domain.example_queries) >= 3, (
+            f"Domain '{domain.id}' should have at least 3 example queries"
+        )
 
         for query in domain.example_queries:
             assert len(query) > 10, f"Query in domain '{domain.id}' too short: {query}"
