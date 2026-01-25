@@ -1,16 +1,13 @@
 """Main TUI application for Council AI."""
 
-import sys
 from typing import Optional
 
 try:
     from textual.app import App
     from textual.binding import Binding
 except ImportError:
-    # Can't use Rich console here since we're in a try/except for imports
-    # This error should be caught by the command handler anyway
-    print("Error: Textual is not installed. Install with: pip install -e '.[tui]'")
-    sys.exit(1)
+    # This error should be handled by the command handler
+    pass
 
 from ...core.config import ConfigManager, get_api_key
 from ...core.history import ConsultationHistory

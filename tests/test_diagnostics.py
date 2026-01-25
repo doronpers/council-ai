@@ -54,7 +54,8 @@ class TestDiagnoseAPIKeys:
         assert result["best_provider"] is not None
 
     @patch.dict(
-        os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test123456789"}  # pragma: allowlist secret
+        os.environ,
+        {"ANTHROPIC_API_KEY": "sk-ant-test123456789"},  # pragma: allowlist secret
     )
     @patch("council_ai.core.diagnostics.load_config")
     @patch("council_ai.core.config.get_best_available_provider")
@@ -282,7 +283,7 @@ class TestCheckTTSConnectivity:
         assert result == {}
 
     @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})  # pragma: allowlist secret
-    @patch("requests.get")
+    @patch("httpx.get")
     def test_check_tts_connectivity_elevenlabs_success(self, mock_get):
         """Test successful ElevenLabs connectivity check."""
         mock_response = MagicMock()
@@ -295,7 +296,7 @@ class TestCheckTTSConnectivity:
         assert "Connected" in result["elevenlabs"]["msg"]
 
     @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})  # pragma: allowlist secret
-    @patch("requests.get")
+    @patch("httpx.get")
     def test_check_tts_connectivity_elevenlabs_failure(self, mock_get):
         """Test ElevenLabs connectivity check with HTTP error."""
         mock_response = MagicMock()
@@ -308,7 +309,7 @@ class TestCheckTTSConnectivity:
         assert "http 401" in result["elevenlabs"]["msg"]
 
     @patch.dict(os.environ, {"ELEVENLABS_API_KEY": "test-key"})  # pragma: allowlist secret
-    @patch("requests.get")
+    @patch("httpx.get")
     def test_check_tts_connectivity_elevenlabs_exception(self, mock_get):
         """Test ElevenLabs connectivity check handles exceptions."""
         mock_get.side_effect = Exception("Network error")

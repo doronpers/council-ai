@@ -200,7 +200,7 @@ class TTSResponse(BaseModel):
     filename: str
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, response_model=None)
 async def index() -> Union[HTMLResponse, FileResponse]:
     """Serve the main HTML page."""
     if IS_PRODUCTION:
@@ -251,7 +251,7 @@ async def index() -> Union[HTMLResponse, FileResponse]:
         )
 
 
-@app.get("/reviewer", response_class=HTMLResponse)
+@app.get("/reviewer", response_class=HTMLResponse, response_model=None)
 async def reviewer_ui() -> Union[HTMLResponse, FileResponse]:
     """Serve the LLM Response Reviewer UI."""
     reviewer_html = WEBAPP_DIR / "reviewer_ui.html"

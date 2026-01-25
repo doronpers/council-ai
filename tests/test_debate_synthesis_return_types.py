@@ -33,7 +33,7 @@ class MockCouncil:
 
 @pytest.mark.asyncio
 async def test_debate_strategy_returns_list():
-    """Test that DebateStrategy returns List[MemberResponse], not ConsultationResult."""
+    """Test that DebateStrategy returns ConsultationResult containing responses."""
     strategy = DebateStrategy()
     council = MockCouncil()
 
@@ -50,15 +50,18 @@ async def test_debate_strategy_returns_list():
 
         result = await strategy.execute(council=council, query="test", rounds=2)
 
-        # DebateStrategy MUST return a list, not ConsultationResult
-        assert isinstance(result, list), f"Expected list, got {type(result).__name__}"
-        assert len(result) == 2, f"Expected 2 responses, got {len(result)}"
-        assert all(
-            isinstance(r, MemberResponse) for r in result
-        ), "All items must be MemberResponse"
+        # DebateStrategy now returns ConsultationResult
+        assert isinstance(result, ConsultationResult), (
+            f"Expected ConsultationResult, got {type(result).__name__}"
+        )
+        responses = result.responses
+        assert len(responses) == 2, f"Expected 2 responses, got {len(responses)}"
+        assert all(isinstance(r, MemberResponse) for r in responses), (
+            "All items must be MemberResponse"
+        )
 
         # Verify we can iterate (this is what Council.consult_async does)
-        for r in result:
+        for r in responses:
             assert hasattr(r, "content")
             assert hasattr(r, "persona")
 
@@ -80,14 +83,14 @@ async def test_synthesis_strategy_returns_consultation_result():
         result = await strategy.execute(council=council, query="test")
 
         # SynthesisStrategy MUST return ConsultationResult (after fix)
-        assert isinstance(
-            result, ConsultationResult
-        ), f"Expected ConsultationResult, got {type(result).__name__}"
+        assert isinstance(result, ConsultationResult), (
+            f"Expected ConsultationResult, got {type(result).__name__}"
+        )
         assert hasattr(result, "responses"), "ConsultationResult must have responses"
         assert len(result.responses) == 1, f"Expected 1 response, got {len(result.responses)}"
-        assert isinstance(
-            result.responses[0], MemberResponse
-        ), "Response items must be MemberResponse"
+        assert isinstance(result.responses[0], MemberResponse), (
+            "Response items must be MemberResponse"
+        )
 
 
 @pytest.mark.asyncio
@@ -105,13 +108,12 @@ async def test_synthesis_strategy_backwards_compatibility():
 
         result = await strategy.execute(council=council, query="test")
 
-        # When IndividualStrategy returns a list, SynthesisStrategy should return it as-is
-        # for backwards compatibility
-        assert isinstance(
-            result, list
-        ), f"Expected list for legacy mode, got {type(result).__name__}"
-        assert len(result) == 1
-        assert result[0] == response
+        # When IndividualStrategy returns a list, SynthesisStrategy should wrap it
+        assert isinstance(result, ConsultationResult), (
+            f"Expected ConsultationResult, got {type(result).__name__}"
+        )
+        assert len(result.responses) == 1
+        assert result.responses[0] == response
 
 
 @pytest.mark.asyncio

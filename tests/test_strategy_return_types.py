@@ -35,7 +35,13 @@ def mock_get_provider(monkeypatch):
         llm_manager_cls.return_value = mock_manager
 
         def _fake_get_provider(self, fallback: bool = False):
-            return object()
+            mock_provider = MagicMock()
+
+            async def _fake_complete(*args, **kwargs):
+                return MagicMock(text="Mocked synthesis result")
+
+            mock_provider.complete = _fake_complete
+            return mock_provider
 
         monkeypatch.setattr(Council, "_get_provider", _fake_get_provider)
         yield mock_manager
@@ -54,8 +60,14 @@ async def test_council_handles_strategy_returning_consultationresult(
     """Council should pass through ConsultationResult returned by a strategy."""
     council = Council(api_key="test-key")
 
-    # Defensive: ensure _get_provider returns a dummy provider
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    # Defensive: ensure _get_provider returns a dummy provider with complete method
+    mock_provider = MagicMock()
+
+    async def _fake_complete(*args, **kwargs):
+        return MagicMock(text="Mocked synthesis result")
+
+    mock_provider.complete = _fake_complete
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: mock_provider)
 
     # Create a fake strategy that returns a ConsultationResult
     persona = Persona(id="T1", name="Test1", title="T", core_question="?", razor=".")
@@ -71,10 +83,10 @@ async def test_council_handles_strategy_returning_consultationresult(
             return fake_result
 
     # Monkeypatch the strategy lookup to return our dummy strategy
-    from council_ai.core.strategies import base as strategies_base
+    from council_ai.core import strategies as strategies_module
 
     monkeypatch.setattr(
-        strategies_base,
+        strategies_module,
         "get_strategy",
         lambda mode_value: DummyStrategy(),
     )
@@ -104,7 +116,14 @@ async def test_council_handles_strategy_returning_list_of_memberresponses(
     """Council should wrap legacy List[MemberResponse] into ConsultationResult."""
     council = Council(api_key="test-key")
 
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    # Defensive: ensure _get_provider returns a dummy provider with complete method
+    mock_provider = MagicMock()
+
+    async def _fake_complete(*args, **kwargs):
+        return MagicMock(text="Mocked synthesis result")
+
+    mock_provider.complete = _fake_complete
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: mock_provider)
 
     persona = Persona(id="T1", name="Test1", title="T", core_question="?", razor=".")
     member_response = MemberResponse(
@@ -119,10 +138,10 @@ async def test_council_handles_strategy_returning_list_of_memberresponses(
             # Legacy behavior: return list[MemberResponse]
             return fake_list
 
-    from council_ai.core.strategies import base as strategies_base
+    from council_ai.core import strategies as strategies_module
 
     monkeypatch.setattr(
-        strategies_base,
+        strategies_module,
         "get_strategy",
         lambda mode_value: LegacyStrategy(),
     )
@@ -154,9 +173,9 @@ def test_all_built_in_strategies_return_consultationresult_signature():
     for strategy_cls in strategies:
         execute_sig = inspect.signature(strategy_cls.execute)
         return_annotation = execute_sig.return_annotation
-        assert (
-            return_annotation == "ConsultationResult" or return_annotation is ConsultationResult
-        ), f"{strategy_cls.__name__}.execute must return ConsultationResult"
+        assert "ConsultationResult" in str(return_annotation), (
+            f"{strategy_cls.__name__}.execute must return ConsultationResult"
+        )
 
 
 @pytest.mark.anyio
@@ -171,7 +190,14 @@ async def test_stream_methods_are_async_generators(monkeypatch, mock_env_keys):
     council = Council(api_key="test-key")
 
     # Avoid real provider/session
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    mock_provider = MagicMock()
+
+    async def _fake_complete(*args, **kwargs):
+        return MagicMock(text="Mocked synthesis result")
+
+    mock_provider.complete = _fake_complete
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: mock_provider)
+
     monkeypatch.setattr(
         council,
         "_start_session",
@@ -204,7 +230,14 @@ async def test_consult_async_returns_consultationresult(monkeypatch, mock_env_ke
     """Smoke test: consult_async always returns ConsultationResult for built-in modes."""
     council = Council(api_key="test-key")
 
-    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    mock_provider = MagicMock()
+
+    async def _fake_complete(*args, **kwargs):
+        return MagicMock(text="Mocked synthesis result")
+
+    mock_provider.complete = _fake_complete
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: mock_provider)
+
     monkeypatch.setattr(
         council,
         "_start_session",

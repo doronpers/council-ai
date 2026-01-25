@@ -2,6 +2,9 @@
 
 import pytest
 
+# Skip all tests in this module if textual is not installed
+pytest.importorskip("textual")
+
 from council_ai.cli.tui.keyboard import HelpPanel, KeyboardShortcutManager, NavigationHints
 from council_ai.cli.tui.scrolling import (
     ContentPersistenceManager,

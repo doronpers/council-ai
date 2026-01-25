@@ -1,4 +1,7 @@
-"""Tests for TUI keyboard shortcuts and manager."""
+import pytest
+
+# Skip all tests in this module if textual is not installed
+pytest.importorskip("textual")
 
 from typing import List
 

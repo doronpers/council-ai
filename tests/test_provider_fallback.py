@@ -108,10 +108,14 @@ class TestProviderFallback:
         ):
             # Primary provider fails, secondary works
             anthropic_provider = MagicMock()
-            anthropic_provider.post.return_value = {"content": [{"text": "response"}]}
+
+            async def _fake_complete(*args, **kwargs):
+                return MagicMock(text="response")
+
+            anthropic_provider.complete = _fake_complete
 
             openai_provider = MagicMock()
-            openai_provider.post.return_value = {"content": [{"text": "response"}]}
+            openai_provider.complete = _fake_complete
 
             # Set up mock to return None for first call (primary fails), then succeed
             mock_get_provider.side_effect = [None, anthropic_provider]
@@ -122,9 +126,13 @@ class TestProviderFallback:
                 ("openai", TEST_KEY_OPENAI),
             ]
 
-            council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="openai")
-            # Council should successfully get a provider via fallback
-            assert council._get_provider() is not None
+            # Avoid starting a real session
+            with patch("council_ai.core.council.LLMManager"):
+                council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="openai")
+                # Council should successfully get a provider via fallback
+                provider = council._get_provider(fallback=True)
+                assert provider is not None
+                assert hasattr(provider, "complete")
 
     @pytest.mark.asyncio
     async def test_fallback_priority_order(self):
@@ -142,12 +150,18 @@ class TestProviderFallback:
             ]
 
             mock_provider = MagicMock()
+
+            async def _fake_complete(*args, **kwargs):
+                return MagicMock(text="response")
+
+            mock_provider.complete = _fake_complete
             mock_get.return_value = mock_provider
 
-            council = Council(api_key="key1", provider="anthropic")
-            provider = council._get_provider()
-            # Should get a provider
-            assert provider is not None
+            with patch("council_ai.core.council.LLMManager"):
+                council = Council(api_key="key1", provider="anthropic")
+                provider = council._get_provider(fallback=True)
+                # Should get a provider
+                assert provider is not None
 
     @pytest.mark.asyncio
     async def test_all_providers_exhausted(self):
@@ -164,23 +178,12 @@ class TestProviderFallback:
                 ("openai", "key2"),
             ]
 
-            calls = [0]
+            mock_get.return_value = None
 
-            def provider_selector(*args, **kwargs):
-                calls[0] += 1
-                if calls[0] <= 2:
-                    return None  # First attempts fail
-                return MagicMock()  # Third succeeds
-
-            mock_get.side_effect = provider_selector
-
-            council = Council(api_key="key1", provider="anthropic")
-            try:
-                provider = council._get_provider()
-                # Either gets a provider or raises
-                assert provider is not None or True
-            except ValueError:
-                pass  # Expected behavior
+            with patch("council_ai.core.council.LLMManager"):
+                council = Council(api_key="key1", provider="anthropic")
+                with pytest.raises(ValueError, match="unavailable"):
+                    council._get_provider(fallback=True)
 
     def test_no_providers_available_error(self):
         """Test error handling when no providers configured."""
@@ -193,13 +196,10 @@ class TestProviderFallback:
                 ("openai", None),
             ]
 
-            council = Council(api_key=None, provider="anthropic")
-
-            try:
-                council._get_provider()
-            except ValueError as e:
-                # Should get error about unavailable provider
-                assert "unavailable" in str(e).lower() or "provider" in str(e).lower()
+            with patch("council_ai.core.council.LLMManager"):
+                council = Council(api_key=None, provider="anthropic")
+                with pytest.raises(ValueError, match="unavailable"):
+                    council._get_provider(fallback=True)
 
 
 # ============================================================================
@@ -273,10 +273,10 @@ class TestProviderErrorHandling:
         with patch("council_ai.providers.get_provider") as mock_get:
             mock_get.return_value = None
 
-            council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="invalid")
-
-            with pytest.raises(ValueError, match="unavailable"):
-                council._get_provider()
+            with patch("council_ai.core.council.LLMManager"):
+                council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="invalid")
+                with pytest.raises(ValueError, match="unavailable"):
+                    council._get_provider(fallback=True)
 
     @pytest.mark.asyncio
     async def test_provider_timeout_error(self):
@@ -285,11 +285,12 @@ class TestProviderErrorHandling:
 
         with patch("council_ai.core.config.get_available_providers") as mock_avail:
             mock_avail.return_value = [("anthropic", TEST_KEY_PLACEHOLDER)]
-            council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="anthropic")
-
-            # Should not raise until actually used
-            provider = council._get_provider(fallback=False)
-            assert provider is not None or True  # May return None or a mock
+            with patch("council_ai.core.council.LLMManager"):
+                council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="anthropic")
+                # Mock get_provider to return None for this specific test
+                with patch("council_ai.providers.get_provider", return_value=None):
+                    with pytest.raises(ValueError, match="unavailable"):
+                        council._get_provider(fallback=False)
 
 
 # ============================================================================
@@ -336,16 +337,22 @@ class TestProviderSelection:
 
         with patch("council_ai.providers.get_provider") as mock_get:
             mock_provider = MagicMock()
+
+            async def _fake_complete(*args, **kwargs):
+                return MagicMock(text="response")
+
+            mock_provider.complete = _fake_complete
             mock_get.return_value = mock_provider
 
-            council = Council(
-                api_key=TEST_KEY_PLACEHOLDER,
-                provider="anthropic",
-                model="claude-3-sonnet-20240229",
-            )
+            with patch("council_ai.core.council.LLMManager"):
+                council = Council(
+                    api_key=TEST_KEY_PLACEHOLDER,
+                    provider="anthropic",
+                    model="claude-3-sonnet-20240229",
+                )
 
-            provider = council._get_provider()
-            assert provider is not None
+                provider = council._get_provider(fallback=False)
+                assert provider is not None
 
 
 # ============================================================================

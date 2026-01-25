@@ -3,10 +3,12 @@
 from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
 from .base import ConsultationStrategy
+from ..council import ConsultationMode
+from ..session import ConsultationResult
 
 if TYPE_CHECKING:
-    from ..council import ConsultationMode, Council
-    from ..session import ConsultationResult, MemberResponse
+    from ..council import Council
+    from ..session import MemberResponse
 
 
 class DebateStrategy(ConsultationStrategy):
@@ -53,9 +55,9 @@ class DebateStrategy(ConsultationStrategy):
                 members=[m.id for m in active_members],
             )
             # IndividualStrategy now always returns ConsultationResult
-            from ..session import ConsultationResult
+            from ..session import ConsultationResult as SessionConsultationResult
 
-            if isinstance(round_result, ConsultationResult):
+            if isinstance(round_result, SessionConsultationResult):
                 round_responses = round_result.responses
             else:
                 # Legacy fallback
