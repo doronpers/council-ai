@@ -141,7 +141,7 @@ Both repositories work together automatically. The framework loads archetypes fr
 
 ---
 
-See [WHICH_REPO.md](WHICH_REPO.md](WHICH_REPO.md) for more details.
+For guidance on choosing which repository to use, see [Repository Structure](#-repository-structure) above.
 
 ## Installation
 

@@ -38,7 +38,7 @@ These documents are for internal reference and planning purposes:
 
 - **[Integration Assessment](INTEGRATION_ASSESSMENT.md)** - Integration opportunities with other repositories
 - **[Integration Plan](../planning/integration-plan.md)** - Cross-repository integration strategy
-- **[Investigation Summary](../INVESTIGATION_SUMMARY.md)** - Historical investigation notes
+- **[Investigation Summary](decisions/INVESTIGATION_SUMMARY.md)** - Historical investigation and research notes
 - **[Archive](../Archive/)** - Deprecated and archived documentation
 
 ## Documentation Structure

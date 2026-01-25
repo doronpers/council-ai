@@ -43,11 +43,21 @@ const SubmitButton: React.FC = () => {
       }
     }
 
-    // API key validation (only if no base URL for local LLM)
-    if (!settings.base_url && apiKey) {
-      const apiKeyError = getValidationError('apiKey', apiKey);
-      if (apiKeyError) {
-        errors.push(apiKeyError);
+    // Provider-specific validation
+    const isLocalProvider = ['lmstudio', 'local', 'ollama'].includes(settings.provider || '');
+
+    // API key validation for cloud providers only
+    if (!isLocalProvider) {
+      // Cloud providers typically require an API key or base URL
+      if (!apiKey && !settings.base_url) {
+        errors.push(
+          `API key required for ${settings.provider?.toUpperCase() || 'cloud provider'}. Set via input or environment variable.`
+        );
+      } else if (apiKey) {
+        const apiKeyError = getValidationError('apiKey', apiKey);
+        if (apiKeyError) {
+          errors.push(apiKeyError);
+        }
       }
     }
 
@@ -60,7 +70,7 @@ const SubmitButton: React.FC = () => {
     }
 
     return errors;
-  }, [query, apiKey, settings.base_url]);
+  }, [query, apiKey, settings.provider, settings.base_url]);
 
   const isDisabled = isConsulting || validationErrors.length > 0;
   const tooltipContent = useMemo(() => {

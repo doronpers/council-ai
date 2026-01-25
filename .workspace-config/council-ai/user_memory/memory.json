@@ -1,105 +1,50 @@
 {
   "user_id": "fa8e631f-ab9c-4c86-9061-b856cc0cd6e0",
-  "total_consultations": 145,
-  "total_sessions": 88,
+  "total_consultations": 162,
+  "total_sessions": 99,
   "preferred_domains": [
     [
       "general",
-      80
+      90
     ],
     [
       "business",
-      8
+      9
     ]
   ],
   "preferred_personas": [
     [
       "MD",
-      32
+      36
     ],
     [
       "DK",
-      32
+      36
     ],
     [
       "JT",
-      32
+      36
     ],
     [
       "PH",
-      32
+      36
     ],
     [
       "t1",
-      9
+      11
     ]
   ],
   "common_topics": [
     [
       "query",
-      13
+      14
     ],
     [
       "legacy",
-      5
+      6
     ]
   ],
   "session_history": [
-    {
-      "session_id": "<MagicMock name='Council().consult().session_id' id='4466521632'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:22:18.673405+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4467070624'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:22:18.684187+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4467077680'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:22:18.697470+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4467610288'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:22:18.709502+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4467610288'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:22:18.716318+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4467610288'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:22:18.725562+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4467610288'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:22:18.731227+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4467610288'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:22:18.736243+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council().consult().session_id' id='4468852448'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:22:18.889760+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4460799248'>",
-      "domain": "general",
-      "timestamp": "2026-01-25T14:23:47.542551+00:00"
-    },
-    {
-      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4461638192'>",
-      "domain": "business",
-      "timestamp": "2026-01-25T14:23:47.557639+00:00"
-    },
     {
       "session_id": "<MagicMock name='Council().consult().session_id' id='4462236672'>",
       "domain": "general",
@@ -144,28 +89,83 @@
       "session_id": "<MagicMock name='Council().consult().session_id' id='4464115200'>",
       "domain": "general",
       "timestamp": "2026-01-25T14:23:47.808673+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4459402912'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.057990+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4459411648'>",
+      "domain": "business",
+      "timestamp": "2026-01-25T14:24:29.065598+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council().consult().session_id' id='4460321424'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.070902+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4460329488'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.077146+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4460877472'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.083684+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4460885536'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.095928+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4460885536'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.100076+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4460885536'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.103797+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4460885536'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.107248+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council.for_domain().consult().session_id' id='4460885536'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.110229+00:00"
+    },
+    {
+      "session_id": "<MagicMock name='Council().consult().session_id' id='4462748272'>",
+      "domain": "general",
+      "timestamp": "2026-01-25T14:24:29.237206+00:00"
     }
   ],
-  "last_session_date": "2026-01-25T14:23:47.808661+00:00",
+  "last_session_date": "2026-01-25T14:24:29.237194+00:00",
   "created_at": "2026-01-24T15:50:23.044569+00:00",
   "persona_counts": {
-    "t1": 9,
+    "t1": 11,
     "t2": 4,
     "t3": 5,
     "t4": 4,
-    "MD": 32,
-    "DK": 32,
-    "JT": 32,
-    "PH": 32,
-    "holman": 8,
-    "treasure": 8
+    "MD": 36,
+    "DK": 36,
+    "JT": 36,
+    "PH": 36,
+    "holman": 9,
+    "treasure": 9
   },
   "topic_counts": {
-    "query": 13,
-    "legacy": 5
+    "query": 14,
+    "legacy": 6
   },
   "domain_counts": {
-    "general": 80,
-    "business": 8
+    "general": 90,
+    "business": 9
   }
 }

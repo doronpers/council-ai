@@ -120,8 +120,7 @@ const OnboardingWizard: React.FC = () => {
             type="button"
             className="btn btn-secondary"
             onClick={() => {
-              updateSettings({ provider: 'openai' });
-              updateSettings({ base_url: 'http://localhost:1234/v1' });
+              updateSettings({ provider: 'lmstudio', base_url: 'http://localhost:1234/v1' });
               handleNext();
             }}
           >
@@ -141,19 +140,24 @@ const OnboardingWizard: React.FC = () => {
   const renderConfigStep = () => (
     <OnboardingStep
       title="Configure Your Setup"
-      description="Set up your API key or base URL. For LM Studio, just set the base URL."
+      description="Set up your API key or base URL. For LM Studio, the default URL is already configured."
       onNext={handleNext}
       onPrevious={handlePrevious}
       onSkip={handleSkip}
     >
       <div className="onboarding-config-fields">
-        {settings.provider === 'openai' && settings.base_url?.includes('localhost') ? (
-          <BaseUrlInput />
+        {settings.provider === 'lmstudio' ? (
+          <div className="onboarding-lmstudio-note">
+            <p>✓ LM Studio is configured to use http://localhost:1234/v1</p>
+            <p className="field-hint">Make sure LM Studio is running locally before consulting.</p>
+          </div>
         ) : (
-          <ApiKeyInput />
-        )}
-        {settings.provider === 'openai' && !settings.base_url?.includes('localhost') && (
-          <BaseUrlInput />
+          <>
+            <ApiKeyInput />
+            {settings.provider !== 'anthropic' && settings.provider !== 'gemini' && (
+              <BaseUrlInput />
+            )}
+          </>
         )}
       </div>
     </OnboardingStep>

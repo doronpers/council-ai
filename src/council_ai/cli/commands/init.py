@@ -193,15 +193,33 @@ def init(ctx):
     console.print("\n[bold]Step 3: Choose default domain[/bold]")
     domains = list_domains()
     console.print("\nAvailable domains:")
-    for d in domains[:5]:  # Show first 5
-        console.print(f"  • {d.id}: {d.name}")
-    console.print(f"  ... and {len(domains) - 5} more")
+    for d in domains:
+        console.print(f"  • {d.id:15} - {d.name:30} ({d.category.value})")
 
-    default_domain = Prompt.ask(
-        "Default domain",
-        default=config_manager.get("default_domain", "general"),
-    )
-    config_manager.set("default_domain", default_domain)
+    current_default = config_manager.get("default_domain", "general")
+    domain_ids = [d.id for d in domains]
+
+    # Use Rich.Prompt.Prompt with choices for validated input
+    while True:
+        default_domain = Prompt.ask(
+            "Default domain",
+            choices=domain_ids,
+            default=current_default if current_default in domain_ids else "general",
+            show_choices=True,
+        )
+        if default_domain in domain_ids:
+            domain_obj = next((d for d in domains if d.id == default_domain), None)
+            if domain_obj:
+                console.print(
+                    f"\n[cyan]✓ Selected:[/cyan] {domain_obj.name} ({domain_obj.category.value})"
+                )
+                console.print(f"[dim]{domain_obj.description}[/dim]")
+                if Confirm.ask("Is this correct?", default=True):
+                    config_manager.set("default_domain", default_domain)
+                    break
+        else:
+            console.print(f"[red]Error:[/red] '{default_domain}' is not a valid domain ID")
+            console.print(f"Please choose from: {', '.join(domain_ids)}")
 
     # Step 4: Personal Integration (optional)
     console.print("\n[bold]Step 4: Personal Integration (Optional)[/bold]")

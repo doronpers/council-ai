@@ -3,12 +3,15 @@
  */
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useConsultation } from '../../context/ConsultationContext';
 import QueryInput from './QueryInput';
 import SubmitButton from './SubmitButton';
 import DomainSelect from '../Configuration/DomainSelect';
 import ProviderSelect from '../Configuration/ProviderSelect';
 import ApiKeyInput from '../Configuration/ApiKeyInput';
 import ModeSelect from '../Configuration/ModeSelect';
+import PersonaDetailModal from '../Members/PersonaDetailModal';
+import { recommendPersonasForQuery, recommendPersonasForDomain } from '../../utils/recommendations';
 import type { Persona } from '../../types';
 import './ConsultationBar.css';
 
@@ -25,9 +28,11 @@ const categoryLabels: Record<Persona['category'], string> = {
 };
 
 const ConsultationBar: React.FC = () => {
-  const { personas, selectedMembers, setSelectedMembers } = useApp();
+  const { personas, selectedMembers, setSelectedMembers, domains, settings } = useApp();
+  const { query } = useConsultation();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [activePersona, setActivePersona] = useState<Persona | null>(null);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
 
   // Filter personas by search query
@@ -48,6 +53,19 @@ const ConsultationBar: React.FC = () => {
       return haystack.includes(query);
     });
   }, [personas, memberSearchQuery]);
+
+  // Get recommended personas based on query or domain
+  const recommendedPersonas = useMemo(() => {
+    if (query.trim()) {
+      return recommendPersonasForQuery(query, domains, personas);
+    } else if (settings.domain) {
+      const domain = domains.find((d) => d.id === settings.domain);
+      if (domain) {
+        return recommendPersonasForDomain(domain, personas);
+      }
+    }
+    return [];
+  }, [query, settings.domain, domains, personas]);
 
   // Group personas by category
   const groupedPersonas = useMemo(() => {
@@ -89,6 +107,12 @@ const ConsultationBar: React.FC = () => {
 
   const handleClearMembers = () => {
     setSelectedMembers([]);
+  };
+
+  const handleUseRecommended = () => {
+    if (recommendedPersonas.length > 0) {
+      setSelectedMembers(recommendedPersonas.map((p) => p.id));
+    }
   };
 
   const selectedPersonas = personas.filter((p) => selectedMembers.includes(p.id));
@@ -170,6 +194,21 @@ const ConsultationBar: React.FC = () => {
             />
             {showAdvanced && (
               <div className="member-select-dropdown">
+                {recommendedPersonas.length > 0 && (
+                  <div className="member-select-recommended-banner">
+                    <strong>Recommended:</strong>{' '}
+                    {recommendedPersonas.map((p) => `${p.emoji} ${p.name}`).join(', ')}
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleUseRecommended}
+                      style={{ marginLeft: '8px' }}
+                    >
+                      Use all
+                    </button>
+                  </div>
+                )}
+
                 <div className="member-select-search">
                   <input
                     type="text"
@@ -205,24 +244,46 @@ const ConsultationBar: React.FC = () => {
                         <div className="member-select-category-list">
                           {personasInCategory.map((persona) => {
                             const isSelected = selectedMembers.includes(persona.id);
+                            const isRecommended = recommendedPersonas.some(
+                              (p) => p.id === persona.id
+                            );
                             return (
-                              <label
+                              <div
                                 key={persona.id}
-                                className={`member-select-option ${isSelected ? 'selected' : ''}`}
+                                className={`member-select-option-wrapper ${isRecommended ? 'recommended' : ''}`}
                               >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => handleMemberToggle(persona.id)}
-                                />
-                                <span className="member-select-option-emoji">{persona.emoji}</span>
-                                <span className="member-select-option-name">{persona.name}</span>
-                                {persona.title && (
-                                  <span className="member-select-option-title">
-                                    {persona.title}
+                                <label
+                                  className={`member-select-option ${isSelected ? 'selected' : ''}`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => handleMemberToggle(persona.id)}
+                                  />
+                                  <span className="member-select-option-emoji">
+                                    {persona.emoji}
                                   </span>
-                                )}
-                              </label>
+                                  <div className="member-select-option-info">
+                                    <span className="member-select-option-name">
+                                      {persona.name}
+                                    </span>
+                                    {persona.title && (
+                                      <span className="member-select-option-title">
+                                        {persona.title}
+                                      </span>
+                                    )}
+                                  </div>
+                                </label>
+                                <button
+                                  type="button"
+                                  className="member-select-option-details-btn"
+                                  onClick={() => setActivePersona(persona)}
+                                  title={`View ${persona.name} details`}
+                                  aria-label={`View details for ${persona.name}`}
+                                >
+                                  ℹ️
+                                </button>
+                              </div>
                             );
                           })}
                         </div>
@@ -267,6 +328,9 @@ const ConsultationBar: React.FC = () => {
           <ApiKeyInput />
         </div>
       </div>
+
+      {/* Persona Detail Modal */}
+      <PersonaDetailModal persona={activePersona} onClose={() => setActivePersona(null)} />
     </section>
   );
 };

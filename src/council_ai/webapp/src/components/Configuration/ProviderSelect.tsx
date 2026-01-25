@@ -9,6 +9,7 @@ const PROVIDER_BASE_URLS: Record<string, string> = {
   openai: 'https://api.openai.com/v1',
   anthropic: 'https://api.anthropic.com',
   gemini: 'https://generativelanguage.googleapis.com',
+  lmstudio: 'http://localhost:1234/v1',
   local: 'http://localhost:8000/v1',
   ollama: 'http://localhost:11434/v1',
 };
@@ -37,6 +38,9 @@ const ProviderSelect: React.FC = () => {
   };
 
   const getProviderHint = (provider: string) => {
+    if (provider === 'lmstudio') {
+      return 'Local LM Studio - default: http://localhost:1234/v1';
+    }
     if (provider === 'local' || provider === 'ollama') {
       return 'Local endpoint - configure Base URL in Advanced Settings';
     }
