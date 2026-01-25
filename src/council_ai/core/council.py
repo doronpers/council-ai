@@ -73,9 +73,9 @@ class CouncilConfig(BaseModel):
     # Web search and reasoning capabilities
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
-    reasoning_mode: Optional[str] = (
-        "chain_of_thought"  # Default to chain_of_thought to show thinking process
-    )
+    reasoning_mode: Optional[
+        str
+    ] = "chain_of_thought"  # Default to chain_of_thought to show thinking process
     # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
     progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
@@ -746,6 +746,11 @@ class Council:
             session_id=session_id,
             auto_recall=auto_recall,
         )
+
+        # Backwards compatibility: some legacy strategies return List[MemberResponse]
+        # Convert legacy lists into a ConsultationResult to maintain a consistent API
+        if isinstance(strategy_result, list):
+            strategy_result = ConsultationResult(query=query or "", responses=strategy_result)
 
         # All strategies now return ConsultationResult
         responses = strategy_result.responses

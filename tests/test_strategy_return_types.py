@@ -83,10 +83,10 @@ async def test_council_handles_strategy_returning_consultationresult(
             return fake_result
 
     # Monkeypatch the strategy lookup to return our dummy strategy
-    from council_ai.core import strategies as strategies_module
+    import council_ai.core.council as council_module
 
     monkeypatch.setattr(
-        strategies_module,
+        council_module,
         "get_strategy",
         lambda mode_value: DummyStrategy(),
     )
@@ -138,10 +138,10 @@ async def test_council_handles_strategy_returning_list_of_memberresponses(
             # Legacy behavior: return list[MemberResponse]
             return fake_list
 
-    from council_ai.core import strategies as strategies_module
+    import council_ai.core.council as council_module
 
     monkeypatch.setattr(
-        strategies_module,
+        council_module,
         "get_strategy",
         lambda mode_value: LegacyStrategy(),
     )
@@ -173,9 +173,9 @@ def test_all_built_in_strategies_return_consultationresult_signature():
     for strategy_cls in strategies:
         execute_sig = inspect.signature(strategy_cls.execute)
         return_annotation = execute_sig.return_annotation
-        assert "ConsultationResult" in str(return_annotation), (
-            f"{strategy_cls.__name__}.execute must return ConsultationResult"
-        )
+        assert "ConsultationResult" in str(
+            return_annotation
+        ), f"{strategy_cls.__name__}.execute must return ConsultationResult"
 
 
 @pytest.mark.anyio

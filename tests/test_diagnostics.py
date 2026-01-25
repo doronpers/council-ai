@@ -19,7 +19,8 @@ class TestDiagnoseAPIKeys:
 
     @patch.dict(os.environ, {}, clear=True)
     @patch("council_ai.core.diagnostics.load_config")
-    def test_diagnose_api_keys_no_keys(self, mock_load_config):
+    @patch("council_ai.core.config.is_lmstudio_available", return_value=False)
+    def test_diagnose_api_keys_no_keys(self, mock_is_lmstudio, mock_load_config):
         """Test diagnostics when no API keys are present."""
         mock_load_config.side_effect = Exception("No config")
         result = diagnose_api_keys()

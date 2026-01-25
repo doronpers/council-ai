@@ -180,7 +180,10 @@ class TestProviderFallback:
 
             mock_get.return_value = None
 
-            with patch("council_ai.core.council.LLMManager"):
+            with patch("council_ai.core.council.get_llm_manager") as mock_get_llm:
+                # Ensure the LLM manager cannot provide a provider (simulate exhausted providers)
+                mock_get_llm.return_value.get_provider.return_value = None
+                mock_get_llm.return_value.preferred_provider = "openai"
                 council = Council(api_key="key1", provider="anthropic")
                 with pytest.raises(ValueError, match="unavailable"):
                     council._get_provider(fallback=True)
@@ -196,7 +199,9 @@ class TestProviderFallback:
                 ("openai", None),
             ]
 
-            with patch("council_ai.core.council.LLMManager"):
+            with patch("council_ai.core.council.get_llm_manager") as mock_get_llm:
+                mock_get_llm.return_value.get_provider.return_value = None
+                mock_get_llm.return_value.preferred_provider = "openai"
                 council = Council(api_key=None, provider="anthropic")
                 with pytest.raises(ValueError, match="unavailable"):
                     council._get_provider(fallback=True)
@@ -285,7 +290,9 @@ class TestProviderErrorHandling:
 
         with patch("council_ai.core.config.get_available_providers") as mock_avail:
             mock_avail.return_value = [("anthropic", TEST_KEY_PLACEHOLDER)]
-            with patch("council_ai.core.council.LLMManager"):
+            with patch("council_ai.core.council.get_llm_manager") as mock_get_llm:
+                mock_get_llm.return_value.get_provider.return_value = None
+                mock_get_llm.return_value.preferred_provider = "openai"
                 council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="anthropic")
                 # Mock get_provider to return None for this specific test
                 with patch("council_ai.providers.get_provider", return_value=None):
