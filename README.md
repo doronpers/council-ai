@@ -99,6 +99,48 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 
 **Always run Council AI from the `council-ai` directory.** It will automatically detect and use your personal configs from `council-ai-personal` if it exists as a sibling directory.
 
+## 🏗️ Persona Architecture: Archetypes & Specialization (v2.0+)
+
+Starting with version 2.0, Council AI uses a **hybrid archetype system** for scalable persona management.
+
+### How It Works
+
+**Archetypes** are generic trait-based personality templates:
+
+- `quality_advocate` - Design philosophy specialist
+- `security_specialist` - Adversarial security expert
+- `strategic_leader` - Long-term strategic thinker
+- `risk_analyst` - Probabilistic risk specialist
+- `cognitive_scientist` - Human behavior expert
+
+**Specialized Personas** inherit from archetypes and add domain-specific expertise.
+
+### Repository Organization
+
+**Public Repository** (`council-ai`):
+
+- Archetypes in `src/council_ai/personas/archetypes/`
+- Generic personas in `src/council_ai/personas/`
+- Framework code and shared utilities
+
+**Personal Repository** (`council-ai-personal`, sibling directory):
+
+- Specialized real-name personas in `personal/personas/`
+- Personal configurations and settings
+
+### Privacy & Customization
+
+| Aspect                 | Public Repo  | Private Repo |
+| ---------------------- | ------------ | ------------ |
+| **Archetypes**         | ✓ (generic)  | -            |
+| **Real-name Personas** | -            | ✓ (private)  |
+| **Configurations**     | ✓ (defaults) | ✓ (personal) |
+| **Safe to Share**      | ✓ Yes        | ✗ No         |
+
+Both repositories work together automatically. The framework loads archetypes from public and specialized personas from private.
+
+---
+
 See [WHICH_REPO.md](WHICH_REPO.md](WHICH_REPO.md) for more details.
 
 ## Installation
