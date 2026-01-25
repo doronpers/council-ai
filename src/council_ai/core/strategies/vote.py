@@ -6,7 +6,7 @@ from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import ConsultationResult, MemberResponse
+    from ..session import ConsultationResult
 
 
 class VoteStrategy(ConsultationStrategy):
@@ -42,15 +42,15 @@ REASONING: [your reasoning]
         result = await individual.execute(
             council=council, query=vote_query, context=context, members=members
         )
-        from ..session import ConsultationResult, MemberResponse
+        from .. import session
 
         mode_str = mode.value if mode is not None else "vote"
 
-        if isinstance(result, ConsultationResult):
+        if isinstance(result, session.ConsultationResult):
             return result
-        return ConsultationResult(
+        return session.ConsultationResult(
             query=vote_query,
-            responses=cast(List[MemberResponse], result),
+            responses=cast(List[session.MemberResponse], result),
             context=context,
             mode=mode_str,
         )

@@ -2,9 +2,9 @@
 
 from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
 
-from .base import ConsultationStrategy
 from ..council import ConsultationMode
 from ..session import ConsultationResult
+from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import Council

@@ -3,9 +3,9 @@ import pytest
 # Skip all tests in this module if textual is not installed
 pytest.importorskip("textual")
 
-from typing import List
+from typing import List  # noqa: E402
 
-from council_ai.cli.tui.keyboard import KeyBinding, KeyboardShortcutManager
+from council_ai.cli.tui.keyboard import KeyBinding, KeyboardShortcutManager  # noqa: E402
 
 
 def test_register_and_trigger_action_calls_handler():

@@ -3,7 +3,7 @@
 Provides a minimal `resolve_executable` function used by tests.
 """
 import shutil
-from typing import Optional, List
+from typing import List, Optional
 
 
 def resolve_executable(candidates: List[str]) -> Optional[str]:

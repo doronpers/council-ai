@@ -1,6 +1,6 @@
 {
   "user_id": "fa8e631f-ab9c-4c86-9061-b856cc0cd6e0",
-  "total_consultations": 91,
+  "total_consultations": 92,
   "total_sessions": 55,
   "preferred_domains": [
     [
@@ -37,7 +37,7 @@
   "common_topics": [
     [
       "query",
-      9
+      10
     ],
     [
       "legacy",
@@ -157,11 +157,11 @@
     "DK": 17,
     "JT": 17,
     "PH": 17,
-    "holman": 4,
-    "treasure": 4
+    "holman": 5,
+    "treasure": 5
   },
   "topic_counts": {
-    "query": 9,
+    "query": 10,
     "legacy": 2
   },
   "domain_counts": {

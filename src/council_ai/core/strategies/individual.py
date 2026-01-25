@@ -8,7 +8,7 @@ from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import ConsultationResult, MemberResponse, Persona
+    from ..session import ConsultationResult, Persona
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +37,12 @@ class IndividualStrategy(ConsultationStrategy):
         responses = await asyncio.gather(*tasks)
 
         # Build a ConsultationResult for consistency across strategies
-        from ..session import ConsultationResult, MemberResponse
+        from .. import session
 
         mode_str = mode.value if mode is not None else "individual"
-        return ConsultationResult(
+        return session.ConsultationResult(
             query=query,
-            responses=cast(List[MemberResponse], responses),
+            responses=cast(List[session.MemberResponse], responses),
             context=context,
             mode=mode_str,
         )
@@ -82,9 +82,9 @@ class IndividualStrategy(ConsultationStrategy):
                 # We need MemberResponse here. Import it inside if needed or through TYPE_CHECKING
                 from datetime import datetime
 
-                from ..session import MemberResponse
+                from .. import session
 
-                response = MemberResponse(
+                response = session.MemberResponse(
                     persona=member,
                     content=f"[Error getting response: {e}]",
                     timestamp=datetime.now(),

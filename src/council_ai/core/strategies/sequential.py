@@ -39,12 +39,12 @@ class SequentialStrategy(ConsultationStrategy):
             accumulated_context += f"\n\n{member.emoji} {member.name} said:\n{response.content}"
 
         # Build ConsultationResult for consistency
-        from ..session import ConsultationResult, MemberResponse
+        from .. import session
 
         mode_str = mode.value if mode is not None else "sequential"
-        return ConsultationResult(
+        return session.ConsultationResult(
             query=query,
-            responses=cast(List[MemberResponse], responses),
+            responses=cast(List[session.MemberResponse], responses),
             context=context,
             mode=mode_str,
         )

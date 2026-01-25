@@ -1,6 +1,6 @@
 """Consultation strategies package."""
 
-from typing import Dict, Type
+from typing import Dict
 
 from .base import ConsultationStrategy
 
