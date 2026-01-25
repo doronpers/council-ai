@@ -3,6 +3,7 @@ Web application commands.
 """
 
 import click
+
 from ..utils import run_web
 
 

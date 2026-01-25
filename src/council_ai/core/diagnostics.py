@@ -241,10 +241,10 @@ def check_tts_connectivity() -> Dict[str, Any]:
     if os.environ.get("ELEVENLABS_API_KEY"):
         # We won't generate audio to save credits, just check if we can list voices
         try:
-            import requests  # type: ignore
+            import httpx  # type: ignore
 
             key = os.environ.get("ELEVENLABS_API_KEY")
-            resp = requests.get(
+            resp = httpx.get(
                 "https://api.elevenlabs.io/v1/voices", headers={"xi-api-key": key}, timeout=5
             )
             if resp.status_code == 200:

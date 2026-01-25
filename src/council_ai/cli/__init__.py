@@ -2,4 +2,4 @@
 CLI package.
 """
 
-from .app import main
+from .app import main as main

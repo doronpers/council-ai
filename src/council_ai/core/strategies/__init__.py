@@ -3,6 +3,7 @@ Consultation strategies package.
 """
 
 from typing import Dict, Type
+
 from .base import ConsultationStrategy
 
 # Map of mode to strategy class (to be populated as we migrate)

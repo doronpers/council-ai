@@ -567,9 +567,9 @@ def get_provider(name: str, **kwargs) -> LLMProvider:
         kwargs["base_url"] = "http://localhost:1234/v1"
         # LM Studio doesn't require an API key
         if "api_key" not in kwargs:
-            kwargs[
-                "api_key"
-            ] = "lm-studio"  # pragma: allowlist secret  # Dummy key for OpenAI client
+            kwargs["api_key"] = (
+                "lm-studio"  # pragma: allowlist secret  # Dummy key for OpenAI client
+            )
 
     provider_kwargs = _filter_provider_kwargs(kwargs)
     return _PROVIDERS[name](**provider_kwargs)

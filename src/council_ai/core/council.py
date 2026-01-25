@@ -72,9 +72,9 @@ class CouncilConfig(BaseModel):
     # Web search and reasoning capabilities
     enable_web_search: bool = False  # Enable web search for consultations
     web_search_provider: Optional[str] = None  # "tavily", "serper", "google"
-    reasoning_mode: Optional[
-        str
-    ] = "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    reasoning_mode: Optional[str] = (
+        "chain_of_thought"  # Default to chain_of_thought to show thinking process
+    )
     # Progressive synthesis: start synthesis as responses arrive (streaming mode only, optional)
     progressive_synthesis: bool = False  # If True, start synthesis with partial responses
 
@@ -164,9 +164,9 @@ class Council:
 
         # Callbacks for extensibility
         # Pre-consult hooks receive (query, context) and must return (query, context)
-        self._pre_consult_hooks: List[
-            Callable[[str, Optional[str]], Tuple[str, Optional[str]]]
-        ] = []
+        self._pre_consult_hooks: List[Callable[[str, Optional[str]], Tuple[str, Optional[str]]]] = (
+            []
+        )
         # Post-consult hooks receive and return ConsultationResult
         self._post_consult_hooks: List[Callable[[ConsultationResult], ConsultationResult]] = []
         # Response hooks process each member's raw content string
@@ -386,14 +386,14 @@ class Council:
                     model=model_name,
                     base_url=self._base_url,
                 )
-            except ImportError as e:
+            except ImportError:
                 # If persona's provider requires missing module, fall back to default
                 logger.warning(
                     f"Persona '{member.id}' requested provider '{provider_name}' unavailable (missing module); "
                     f"using default provider '{self._provider_name}' instead."
                 )
                 return default_provider
-            except Exception as e:
+            except Exception:
                 # If persona's provider is unavailable, fall back to default
                 logger.warning(
                     f"Persona '{member.id}' requested provider '{provider_name}' unavailable; "

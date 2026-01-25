@@ -142,7 +142,7 @@ def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
 
     api_key = sanitize_api_key(payload.api_key) if payload.api_key else get_api_key(provider)
 
-    if not api_key:
+    if not api_key and provider != "lmstudio":
         raise HTTPException(status_code=400, detail="API key is required for consultation.")
 
     try:

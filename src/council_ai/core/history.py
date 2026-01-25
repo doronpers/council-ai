@@ -100,8 +100,7 @@ class ConsultationHistory:
     def _init_db(self) -> None:
         """Initialize SQLite database."""
         conn = sqlite3.connect(self.db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS consultations (
                 id TEXT PRIMARY KEY,
                 session_id TEXT,
@@ -115,10 +114,8 @@ class ConsultationHistory:
                 notes TEXT,
                 metadata TEXT
             )
-        """
-        )
-        conn.execute(
-            """
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
                 id TEXT PRIMARY KEY,
                 name TEXT,
@@ -126,72 +123,56 @@ class ConsultationHistory:
                 started_at TEXT NOT NULL,
                 metadata TEXT
             )
-        """
-        )
-        conn.execute(
-            """
+        """)
+        conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_consultation_session ON consultations(session_id)
-        """
-        )
+        """)
         # Create FTS5 virtual table for searching
         try:
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE VIRTUAL TABLE IF NOT EXISTS consultations_fts USING fts5(
                     query,
                     synthesis,
                     content="consultations",
                     content_rowid="rowid"
                 )
-            """
-            )
+            """)
             # Create triggers to keep FTS index in sync
             conn.execute("DROP TRIGGER IF EXISTS consultations_ai")
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TRIGGER consultations_ai AFTER INSERT ON consultations BEGIN
                   INSERT INTO consultations_fts(rowid, query, synthesis)
                   VALUES (new.rowid, new.query, new.synthesis);
                 END
-            """
-            )
+            """)
             conn.execute("DROP TRIGGER IF EXISTS consultations_ad")
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TRIGGER consultations_ad AFTER DELETE ON consultations BEGIN
                   INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis)
                   VALUES('delete', old.rowid, old.query, old.synthesis);
                 END
-            """
-            )
+            """)
             conn.execute("DROP TRIGGER IF EXISTS consultations_au")
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TRIGGER consultations_au AFTER UPDATE ON consultations BEGIN
                   INSERT INTO consultations_fts(consultations_fts, rowid, query, synthesis)
                   VALUES('delete', old.rowid, old.query, old.synthesis);
                   INSERT INTO consultations_fts(rowid, query, synthesis)
                   VALUES (new.rowid, new.query, new.synthesis);
                 END
-            """
-            )
+            """)
         except sqlite3.OperationalError as e:
             logger.warning(f"FTS5 not available, falling back to LIKE: {e}")
 
         conn.commit()
-        conn.execute(
-            """
+        conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_timestamp ON consultations(timestamp)
-        """
-        )
-        conn.execute(
-            """
+        """)
+        conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_query ON consultations(query)
-        """
-        )
+        """)
         # Create cost_tracking table
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS cost_tracking (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 consultation_id TEXT,
@@ -204,23 +185,16 @@ class ConsultationHistory:
                 timestamp TEXT NOT NULL,
                 FOREIGN KEY (consultation_id) REFERENCES consultations(id)
             )
-        """
-        )
-        conn.execute(
-            """
+        """)
+        conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_cost_consultation ON cost_tracking(consultation_id)
-        """
-        )
-        conn.execute(
-            """
+        """)
+        conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_cost_session ON cost_tracking(session_id)
-        """
-        )
-        conn.execute(
-            """
+        """)
+        conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_cost_timestamp ON cost_tracking(timestamp)
-        """
-        )
+        """)
         conn.commit()
         conn.close()
 

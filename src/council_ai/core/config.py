@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import requests
+import httpx
 import yaml
 from pydantic import BaseModel, Field
 
@@ -321,7 +321,7 @@ def is_lmstudio_available() -> bool:
             # Default to localhost
             check_url = "http://localhost:1234/v1/models"
 
-        response = requests.get(check_url, timeout=2)
+        response = httpx.get(check_url, timeout=2)
         return response.status_code == 200
     except Exception:
         return False

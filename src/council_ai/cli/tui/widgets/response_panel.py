@@ -25,7 +25,9 @@ class ResponsePanel(Static):
         if self._synthesis:
             lines.append("")
             lines.append("[bold cyan]Synthesis:[/bold cyan]")
-            display_synthesis = self._synthesis[:500] + "..." if len(self._synthesis) > 500 else self._synthesis
+            display_synthesis = (
+                self._synthesis[:500] + "..." if len(self._synthesis) > 500 else self._synthesis
+            )
             lines.append(display_synthesis)
 
         content = "\n".join(lines) if lines else "[dim]Waiting for responses...[/dim]"

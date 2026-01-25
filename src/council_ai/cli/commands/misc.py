@@ -2,10 +2,12 @@
 Quickstart command.
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
+
 import click
+
 from ..utils import console
 
 

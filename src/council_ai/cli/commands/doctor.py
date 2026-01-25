@@ -2,15 +2,16 @@
 Diagnostic and maintenance commands.
 """
 
-import sys
-import os
 import asyncio
-import click
-from rich.table import Table
-from rich.panel import Panel
+import os
+import sys
 
-from ..utils import console
+import click
+from rich.panel import Panel
+from rich.table import Table
+
 from ...providers import list_providers
+from ..utils import console
 
 
 @click.group("cost")
