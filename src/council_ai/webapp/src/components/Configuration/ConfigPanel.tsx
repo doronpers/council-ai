@@ -13,12 +13,15 @@ import ApiKeyInput from './ApiKeyInput';
 import BaseUrlInput from './BaseUrlInput';
 import TTSSettings from '../TTS/TTSSettings';
 import PersonalIntegrationSection from './PersonalIntegrationSection';
+import HelpIcon from '../Help/HelpIcon';
+import { getHelpContent, formatHelpContent } from '../../data/helpContent';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../Layout/NotificationContainer';
 import type { ConfigSourceInfo, ConfigIssue, ConfigDiagnosticsResponse } from '../../types';
 
 const ConfigPanel: React.FC = () => {
   const { saveSettings, resetSettings, settings } = useApp();
+  const [showIntermediate, setShowIntermediate] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [configSources, setConfigSources] = useState<Record<string, ConfigSourceInfo>>({});
   const [configIssues, setConfigIssues] = useState<ConfigIssue[]>([]);
@@ -136,18 +139,28 @@ const ConfigPanel: React.FC = () => {
         </div>
       )}
 
-      <div className="config-section">
-        <h3>Essentials</h3>
+      {/* Basic Tier - Essential settings */}
+      <div className="config-section config-section--basic">
+        <div className="config-section-header">
+          <h3>Basic Settings</h3>
+          <HelpIcon content={formatHelpContent(getHelpContent('provider')!)} position="bottom" />
+        </div>
         <p className="config-help">
           Choose a domain and provider. API keys can be set here or via environment variables.
         </p>
         <div className="config-field-group grid">
           <div className="config-field-wrapper">
-            <DomainSelect />
+            <div className="config-field-label-wrapper">
+              <DomainSelect />
+              <HelpIcon content={formatHelpContent(getHelpContent('domain')!)} position="right" />
+            </div>
             {getSourceBadge('default_domain')}
           </div>
           <div className="config-field-wrapper">
-            <ProviderSelect />
+            <div className="config-field-label-wrapper">
+              <ProviderSelect />
+              <HelpIcon content={formatHelpContent(getHelpContent('provider')!)} position="right" />
+            </div>
             {getSourceBadge('api.provider')}
           </div>
           <div className="config-field-wrapper">
@@ -157,13 +170,20 @@ const ConfigPanel: React.FC = () => {
         </div>
       </div>
 
+      {/* Intermediate Tier - Personas, Mode, Model */}
       <details
-        open={showAdvanced}
-        onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}
+        open={showIntermediate}
+        onToggle={(e) => setShowIntermediate((e.target as HTMLDetailsElement).open)}
       >
-        <summary className="advanced-toggle">⚙️ Advanced Settings</summary>
-
-        <div className="advanced-settings">
+        <summary className="config-tier-toggle">
+          <span className="config-tier-label">Intermediate Options</span>
+          <span className="config-tier-count">(3 options)</span>
+        </summary>
+        <div className="config-section config-section--intermediate">
+          <p className="config-help">
+            Customize consultation behavior: select personas, choose consultation mode, and adjust
+            model settings.
+          </p>
           <div className="grid">
             <div className="config-field-wrapper">
               <ModeSelect />
@@ -177,6 +197,25 @@ const ConfigPanel: React.FC = () => {
               <TemperatureSlider />
               {getSourceBadge('temperature')}
             </div>
+          </div>
+        </div>
+      </details>
+
+      {/* Advanced Tier - Base URL, TTS, Max Tokens, Personal Integration */}
+      <details
+        open={showAdvanced}
+        onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}
+      >
+        <summary className="config-tier-toggle">
+          <span className="config-tier-label">Advanced Options</span>
+          <span className="config-tier-count">(4+ options)</span>
+        </summary>
+        <div className="config-section config-section--advanced">
+          <p className="config-help">
+            Advanced configuration for power users: custom endpoints, TTS, token limits, and
+            personal integration.
+          </p>
+          <div className="grid">
             <div className="config-field-wrapper">
               <MaxTokensSelect />
               {getSourceBadge('max_tokens_per_response')}
@@ -184,7 +223,10 @@ const ConfigPanel: React.FC = () => {
           </div>
 
           <div className="config-field-wrapper">
-            <BaseUrlInput />
+            <div className="config-field-label-wrapper">
+              <BaseUrlInput />
+              <HelpIcon content={formatHelpContent(getHelpContent('baseUrl')!)} position="right" />
+            </div>
             {getSourceBadge('api.base_url')}
           </div>
           {baseUrlError && (
@@ -196,17 +238,18 @@ const ConfigPanel: React.FC = () => {
           <TTSSettings />
 
           <PersonalIntegrationSection />
-
-          <div className="config-actions">
-            <button type="button" className="btn btn-secondary" onClick={handleReset}>
-              Reset to Defaults
-            </button>
-            <button type="button" className="btn btn-primary" onClick={handleSave}>
-              Save Settings
-            </button>
-          </div>
         </div>
       </details>
+
+      {/* Settings Actions */}
+      <div className="config-actions">
+        <button type="button" className="btn btn-secondary" onClick={handleReset}>
+          Reset to Defaults
+        </button>
+        <button type="button" className="btn btn-primary" onClick={handleSave}>
+          Save Settings
+        </button>
+      </div>
     </div>
   );
 };

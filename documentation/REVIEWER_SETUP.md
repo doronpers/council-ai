@@ -6,6 +6,21 @@ A Supreme Court-style review system for evaluating multiple LLM responses with s
 
 ## Quick Start
 
+**Quick Start (one-liner):**
+
+```bash
+# Install and launch the dedicated reviewer (default port: 8765)
+pip install -e ".[all]" && python bin/launch-reviewer.py
+```
+
+**Quick API example (curl):**
+
+```bash
+curl -X POST http://localhost:8765/api/reviewer/review \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is the capital of France?", "responses": [{"id": 1, "content": "Paris is the capital of France."}]}'
+```
+
 ### Prerequisites
 
 1. **Install Council AI**
@@ -40,15 +55,17 @@ A Supreme Court-style review system for evaluating multiple LLM responses with s
 
 ### Launch the Reviewer
 
-**Option 1: Using the dedicated launcher script (Recommended)**
+#### Option 1: Using the dedicated launcher script (Recommended)
 
 ```bash
-python launch-reviewer.py
+python bin/launch-reviewer.py
 ```
 
 Opens automatically at `http://localhost:8765/reviewer`
 
-**Option 2: Using Council CLI**
+For platform-specific 1-click launchers and alternative web-app launchers, see `documentation/WEB_APP.md` (section: 1-click launchers).
+
+#### Option 2: Using Council CLI
 
 ```bash
 council web
@@ -60,16 +77,16 @@ Then navigate to `http://localhost:8000/reviewer` in your browser.
 
 ```bash
 # Custom port
-python launch-reviewer.py --port 9000
+python bin/launch-reviewer.py --port 9000
 
 # Don't auto-open browser
-python launch-reviewer.py --no-browser
+python bin/launch-reviewer.py --no-browser
 
 # Development mode with auto-reload
-python launch-reviewer.py --reload
+python bin/launch-reviewer.py --reload
 
 # Custom host
-python launch-reviewer.py --host 0.0.0.0 --port 8765
+python bin/launch-reviewer.py --host 0.0.0.0 --port 8765
 ```
 
 ## Features
@@ -128,33 +145,33 @@ The reviewer provides:
 
 ### Common Issues
 
-**"API key required" Error**
+#### "API key required" Error
 
 - Ensure `.env` file exists in the project root with valid API keys
 - Alternatively, enter an API key directly in the web UI's Advanced Settings panel
 - Verify your API key is active and has sufficient credits/quota
 
-**Connection Refused**
+#### Connection Refused
 
 - Check if another service is using the default port (8765)
-- Try a different port: `python launch-reviewer.py --port 9000`
+- Try a different port: `python bin/launch-reviewer.py --port 9000`
 - Verify firewall settings aren't blocking the connection
 
-**Slow Responses**
+#### Slow Responses
 
 - The reviewer consults multiple AI "justices" sequentially, which takes time
 - Each review makes 7-9 separate LLM API calls
 - Response time depends on your LLM provider's API speed
 - Consider using faster models or fewer justices for quicker reviews
 
-**Module Not Found Errors**
+#### Module Not Found Errors
 
 ```bash
 # Reinstall council-ai with dependencies
 pip install -e ".[all]"
 ```
 
-**Missing Dependencies**
+#### Missing Dependencies
 
 ```bash
 # Install with web dependencies
@@ -169,7 +186,7 @@ The reviewer exposes REST API endpoints for programmatic access:
 
 ### Available Endpoints
 
-```
+```text
 GET  /api/reviewer/info           # Get available justices and configuration
 POST /api/reviewer/review         # Submit review request (blocking)
 POST /api/reviewer/review/stream  # Stream review progress (Server-Sent Events)

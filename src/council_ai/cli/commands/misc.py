@@ -1,6 +1,4 @@
-"""
-Quickstart command.
-"""
+"""Quickstart command."""
 
 import subprocess
 import sys

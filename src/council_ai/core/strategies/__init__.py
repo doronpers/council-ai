@@ -1,18 +1,19 @@
-"""
-Consultation strategies package.
-"""
+"""Consultation strategies package."""
 
 from typing import Dict, Type
 
 from .base import ConsultationStrategy
 
-# Map of mode to strategy class (to be populated as we migrate)
-_STRATEGIES: Dict[str, Type[ConsultationStrategy]] = {}
+# Map of mode to strategy instance (to be populated as we migrate)
+_STRATEGIES: Dict[str, ConsultationStrategy] = {}
 
 
 def get_strategy(mode_name: str) -> ConsultationStrategy:
     """
     Factory to get a strategy instance by mode name.
+
+    Uses singleton pattern - each strategy is instantiated once and reused.
+    Strategies are stateless, so reusing instances is safe and efficient.
     """
     if mode_name not in _STRATEGIES:
         # Lazy import to avoid circular dependencies
@@ -38,6 +39,10 @@ def get_strategy(mode_name: str) -> ConsultationStrategy:
             from .vote import VoteStrategy
 
             _STRATEGIES[ConsultationMode.VOTE.value] = VoteStrategy()
+        elif mode_name == ConsultationMode.PATTERN_COACH.value:
+            from .pattern_coach import PatternCoachStrategy
+
+            _STRATEGIES[ConsultationMode.PATTERN_COACH.value] = PatternCoachStrategy()
         else:
             raise ValueError(f"Unknown consultation mode: {mode_name}")
 

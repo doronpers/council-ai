@@ -29,31 +29,6 @@ def interactive(ctx, domain, provider, api_key, session_id):
 
     from ...core.council import Council
 
-    # #region agent log
-    with open("/Volumes/Treehorn/Gits/sono-platform/.cursor/debug.log", "a") as f:
-        import json
-
-        f.write(
-            json.dumps(
-                {
-                    "sessionId": "debug-session",
-                    "runId": "run1",
-                    "hypothesisId": "E",
-                    "location": "interactive.py:32",
-                    "message": "Creating Council.for_domain",
-                    "data": {
-                        "domain": domain,
-                        "provider": provider,
-                        "model": model,
-                        "base_url": base_url,
-                        "api_key_set": api_key is not None,
-                    },
-                    "timestamp": int(__import__("time").time() * 1000),
-                }
-            )
-            + "\n"
-        )
-    # #endregion
     council = Council.for_domain(
         domain,
         api_key=api_key,
@@ -156,7 +131,9 @@ def interactive(ctx, domain, provider, api_key, session_id):
                             except Exception as e:
                                 console.print(f"[yellow]Could not generate report: {e}[/yellow]")
                     except ImportError:
-                        pass  # rich.prompt not available
+                        console.print(
+                            "[yellow]Warning: rich.prompt module not available for report generation[/yellow]"
+                        )
 
                     console.print("[green]✓[/green] Session ended. Goodbye!")
                     break
@@ -214,8 +191,10 @@ def interactive(ctx, domain, provider, api_key, session_id):
                 try:
                     user_memory.record_consultation(result)
                     user_memory.record_session(result.session_id, domain)
-                except Exception:
-                    pass  # User memory is optional
+                except Exception as e:
+                    console.print(
+                        f"[dim yellow]Warning: Could not save to user memory: {e}[/dim yellow]"
+                    )
 
             console.print()
             console.print(Markdown(result.to_markdown()))

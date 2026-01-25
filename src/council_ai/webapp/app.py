@@ -6,7 +6,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
@@ -32,6 +32,8 @@ from council_ai.providers.tts import TTSProviderFactory, generate_speech_with_fa
 
 # Import reviewer routes
 from council_ai.webapp.reviewer import router as reviewer_router
+
+from ..utils.paths import get_workspace_config_dir
 
 logger = logging.getLogger(__name__)
 
@@ -70,8 +72,8 @@ _tts_primary = None
 _tts_fallback = None
 _tts_initialized = False
 
-# Audio storage directory
-AUDIO_DIR = Path.home() / ".cache" / "council-ai" / "audio"
+# Audio storage directory - use workspace-relative cache
+AUDIO_DIR = get_workspace_config_dir("council-ai") / "cache" / "audio"
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 # Determine if we're in production (built assets exist) or development
@@ -199,7 +201,7 @@ class TTSResponse(BaseModel):
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index() -> HTMLResponse:
+async def index() -> Union[HTMLResponse, FileResponse]:
     """Serve the main HTML page."""
     if IS_PRODUCTION:
         # Serve built HTML from static directory
@@ -250,7 +252,7 @@ async def index() -> HTMLResponse:
 
 
 @app.get("/reviewer", response_class=HTMLResponse)
-async def reviewer_ui() -> HTMLResponse:
+async def reviewer_ui() -> Union[HTMLResponse, FileResponse]:
     """Serve the LLM Response Reviewer UI."""
     reviewer_html = WEBAPP_DIR / "reviewer_ui.html"
     if reviewer_html.exists():

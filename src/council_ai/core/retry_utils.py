@@ -9,11 +9,21 @@ import asyncio
 import logging
 import time
 from functools import wraps
-from typing import Any, Callable, Optional, Set, Type, TypeVar
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Optional,
+    ParamSpec,
+    Set,
+    Type,
+    TypeVar,
+)
 
 logger = logging.getLogger(__name__)
 
-# Type variable for generic function signatures
+# Type variables for generic function signatures
+P = ParamSpec("P")
 T = TypeVar("T")
 
 
@@ -73,9 +83,12 @@ def retry_with_backoff(
     max_delay: float = 60.0,
     exponential_factor: float = 2.0,
     retryable_exceptions: Optional[Set[Type[Exception]]] = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]]:
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator to retry a function with exponential backoff.
+
+    Supports both synchronous and asynchronous functions, preserving their
+    original signatures and return types.
 
     Args:
         max_retries: Maximum number of retry attempts (default: 3)
@@ -95,15 +108,19 @@ def retry_with_backoff(
         ```
     """
 
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> T:
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             last_exception: Optional[Exception] = None
             delay = base_delay
 
             for attempt in range(max_retries + 1):
                 try:
-                    return await func(*args, **kwargs)
+                    result = func(*args, **kwargs)
+                    # func should be async here, so await it
+                    if asyncio.iscoroutine(result):
+                        return await result  # type: ignore
+                    return result  # type: ignore
                 except Exception as e:
                     last_exception = e
 
@@ -140,13 +157,13 @@ def retry_with_backoff(
             raise RuntimeError(f"Unexpected retry loop exit in {func.__name__}")
 
         @wraps(func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> T:
+        def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             last_exception: Optional[Exception] = None
             delay = base_delay
 
             for attempt in range(max_retries + 1):
                 try:
-                    return func(*args, **kwargs)
+                    return func(*args, **kwargs)  # type: ignore
                 except Exception as e:
                     last_exception = e
 
@@ -184,15 +201,15 @@ def retry_with_backoff(
 
         # Return the appropriate wrapper based on whether the function is async
         if asyncio.iscoroutinefunction(func):
-            return async_wrapper  # type: ignore
+            return async_wrapper  # type: ignore[return-value]
         else:
-            return sync_wrapper  # type: ignore
+            return sync_wrapper  # type: ignore[return-value]
 
-    return decorator
+    return decorator  # type: ignore[return-value]
 
 
 async def retry_async(
-    func: Callable[..., T],
+    func: Callable[..., Awaitable[T]],
     *args: Any,
     max_retries: int = 3,
     base_delay: float = 1.0,

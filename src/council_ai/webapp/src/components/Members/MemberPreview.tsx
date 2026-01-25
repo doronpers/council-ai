@@ -20,14 +20,7 @@ const MemberPreview: React.FC = () => {
 
   return (
     <div className="member-preview">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '12px',
-        }}
-      >
+      <div className="flex-between mb-12">
         <span className="muted">
           {selectedMembers.length > 0 ? 'Custom Selection' : 'Domain Defaults'}
         </span>

@@ -5,6 +5,7 @@ import React, { Component, ReactNode } from 'react';
 import './ErrorBoundary.css';
 import ErrorDisplay from './ErrorDisplay';
 import { createError, ErrorCategory } from '../../utils/errors';
+import { logError } from '../../utils/errorLogger';
 
 interface Props {
   children: ReactNode;
@@ -60,21 +61,19 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   private logError = (error: Error, errorInfo: React.ErrorInfo) => {
-    // In a real app, you might send this to an error logging service
-    // For now, we'll just log to console with structured data
-    const errorData = {
-      message: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-    };
+    // Extract component name from component stack if available
+    const componentMatch = errorInfo.componentStack.match(/^\s*at\s+(\w+)/);
+    const component = componentMatch ? componentMatch[1] : 'Unknown';
 
-    console.error('ErrorBoundary Error Report:', errorData);
-
-    // TODO: Send to error logging service
-    // Example: errorLoggingService.captureException(error, { extra: errorData });
+    // Log error with full context
+    logError(error, {
+      action: 'React component error',
+      component,
+      additionalData: {
+        componentStack: errorInfo.componentStack,
+        errorBoundary: true,
+      },
+    });
   };
 
   private handleReload = () => {

@@ -1,0 +1,44 @@
+[run]
+# Test runner configuration
+source = src/council_ai
+branch = True
+parallel = True
+omit =
+    */site-packages/*
+    */distutils/*
+    */tests/*
+    */__pycache__/*
+
+[report]
+# Coverage reporting configuration
+precision = 2
+show_missing = True
+skip_covered = False
+skip_empty = True
+
+# Define what counts as covered lines
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+    if 0:
+    if False:
+    assert False
+
+# Exclude specific directories from coverage
+ignore_errors = False
+
+[html]
+# HTML report configuration
+directory = htmlcov
+
+[paths]
+# Path mapping for combining coverage data
+source =
+    src/council_ai
+    */src/council_ai

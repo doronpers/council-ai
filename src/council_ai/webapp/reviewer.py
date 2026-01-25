@@ -3,6 +3,8 @@ LLM Response Reviewer - Supreme Court Style Review System
 
 Provides endpoints for reviewing multiple LLM responses with a council of
 "justices" who evaluate accuracy, consistency, insights, and errors.
+
+See `documentation/REVIEWER_SETUP.md` for setup, launch options, and examples.
 """
 
 from __future__ import annotations
@@ -13,6 +15,7 @@ import logging
 import os
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, TypeVar
 from uuid import uuid4
 
@@ -1084,8 +1087,13 @@ async def _fetch_google_docs_content(url: str) -> Optional[str]:
     try:
         from googleapiclient.discovery import build
 
-        # Check for credentials
-        creds_path = os.path.expanduser("~/.config/council-ai/google_credentials.json")
+        # Check for credentials - use workspace-relative path
+        from ..utils.paths import get_workspace_config_dir
+
+        creds_path = get_workspace_config_dir("council-ai") / "google_credentials.json"
+        # Fallback to home directory for backward compatibility
+        if not creds_path.exists():
+            creds_path = Path(os.path.expanduser("~/.config/council-ai/google_credentials.json"))
         if not os.path.exists(creds_path):
             # Try environment variable for API key (read-only access)
             api_key = os.environ.get("GOOGLE_API_KEY")

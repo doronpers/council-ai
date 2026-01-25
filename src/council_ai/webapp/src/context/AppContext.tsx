@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { AppConfig, Persona, Domain, UserSettings, ModelCapability } from '../types';
 import { loadAppInfo } from '../utils/api';
+import { logger, createLogContext } from '../utils/logger';
 
 interface AppContextType {
   // Configuration data
@@ -125,7 +126,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch (err) {
-      console.error('Failed to save settings:', err);
+      logger.storageError('save settings', err, createLogContext('AppContext'));
     }
   };
 
@@ -144,7 +145,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         localStorage.removeItem(SESSION_KEY);
       }
     } catch (error) {
-      console.warn('Failed to persist sessionId:', error);
+      logger.storageError('persist sessionId', error, createLogContext('AppContext'));
     }
   }, [sessionId]);
 
@@ -152,7 +153,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       localStorage.setItem(AUTORECALL_KEY, autoRecall.toString());
     } catch (error) {
-      console.warn('Failed to persist autoRecall:', error);
+      logger.storageError('persist autoRecall', error, createLogContext('AppContext'));
     }
   }, [autoRecall]);
 

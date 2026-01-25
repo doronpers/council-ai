@@ -1,20 +1,16 @@
-"""
-Vote consultation strategy.
-"""
+"""Vote consultation strategy."""
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional, cast
 
 from .base import ConsultationStrategy
 
 if TYPE_CHECKING:
     from ..council import ConsultationMode, Council
-    from ..session import MemberResponse
+    from ..session import ConsultationResult
 
 
 class VoteStrategy(ConsultationStrategy):
-    """
-    Members vote on a decision.
-    """
+    """Members vote on a decision."""
 
     async def execute(
         self,
@@ -26,7 +22,7 @@ class VoteStrategy(ConsultationStrategy):
         session_id: Optional[str] = None,
         auto_recall: bool = True,
         **kwargs: Any,
-    ) -> List["MemberResponse"]:
+    ) -> "ConsultationResult":
         vote_query = f"""
 {query}
 
@@ -43,8 +39,20 @@ REASONING: [your reasoning]
         from .individual import IndividualStrategy
 
         individual = IndividualStrategy()
-        return await individual.execute(
+        result = await individual.execute(
             council=council, query=vote_query, context=context, members=members
+        )
+        from ..session import ConsultationResult, MemberResponse
+
+        mode_str = mode.value if mode is not None else "vote"
+
+        if isinstance(result, ConsultationResult):
+            return result
+        return ConsultationResult(
+            query=vote_query,
+            responses=cast(List[MemberResponse], result),
+            context=context,
+            mode=mode_str,
         )
 
     async def stream(
@@ -72,6 +80,17 @@ VOTE: [your vote]
 CONFIDENCE: [your confidence]
 REASONING: [your reasoning]
 """
-        provider = council._get_provider()
-        active_members = council._get_active_members(members)
-        return council._consult_individual_stream(provider, active_members, vote_query, context)
+        from .individual import IndividualStrategy
+
+        individual = IndividualStrategy()
+        async for update in individual.stream(
+            council=council,
+            query=vote_query,
+            context=context,
+            mode=mode,
+            members=members,
+            session_id=session_id,
+            auto_recall=auto_recall,
+            **kwargs,
+        ):
+            yield update

@@ -50,9 +50,6 @@ def register_commands():
     # or moved to the new structure. For now, we import them from original locations
     # if they haven't been moved, OR we will refactor them too.
     # The plan said "Extract config.py commands", so we should treat them as external subcommands.
-    from ..cli_config import config as config_cmd
-    from ..cli_domain import domain as domain_cmd
-    from ..cli_persona import persona as persona_cmd
     from .commands import (
         consult_command,
         cost_group,
@@ -61,6 +58,7 @@ def register_commands():
         init_command,
         interactive_command,
         q_command,
+        qa_command,
         quickstart_command,
         review_command,
         show_providers_command,
@@ -70,11 +68,15 @@ def register_commands():
         web_command,
     )
     from .commands.session_report import session as session_group
+    from .config import config as config_cmd
+    from .domain import domain as domain_cmd
+    from .persona import persona as persona_cmd
 
     # Core commands
     main.add_command(init_command)
     main.add_command(quickstart_command)
     main.add_command(consult_command)
+    main.add_command(qa_command)
     main.add_command(q_command)
     main.add_command(interactive_command)
     main.add_command(tui_command)
@@ -97,7 +99,7 @@ def register_commands():
 
     # Personal integration
     try:
-        from ..cli_personal import personal
+        from .personal import personal
 
         main.add_command(personal)
     except ImportError:

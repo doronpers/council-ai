@@ -7,13 +7,19 @@ name = "council-ai"
 version = "2.0.0"
 description = "AI-powered advisory council system with customizable personas for decision-making, reviews, and strategic thinking"
 readme = "README.md"
-license = {text = "MIT"}
-authors = [
-    {name = "Doron Reizes", email = "doron@sonotheia.com"}
-]
+license = { text = "MIT" }
+authors = [{ name = "Doron Reizes", email = "doron@sonotheia.com" }]
 keywords = [
-    "ai", "llm", "advisory", "council", "decision-making",
-    "strategy", "review", "personas", "anthropic", "openai"
+    "ai",
+    "llm",
+    "advisory",
+    "council",
+    "decision-making",
+    "strategy",
+    "review",
+    "personas",
+    "anthropic",
+    "openai",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -44,11 +50,7 @@ anthropic = ["anthropic>=0.18.0"]
 openai = ["openai>=1.0.0"]
 lmstudio = ["openai>=1.0.0"]
 gemini = ["google-genai>=1.0.0"]
-web = [
-    "fastapi>=0.109.0",
-    "uvicorn>=0.27.0",
-    "aiohttp>=3.9.0",
-]
+web = ["fastapi>=0.109.0", "uvicorn>=0.27.0", "aiohttp>=3.9.0"]
 googledocs = [
     "google-api-python-client>=2.0.0",
     "google-auth>=2.0.0",
@@ -69,6 +71,8 @@ all = [
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=4.0.0",
     "black>=23.0",
     "ruff>=0.1.0",
     "fastapi>=0.109.0",
@@ -110,6 +114,50 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = """
+    --strict-markers
+    --strict-config
+    -v
+    --tb=short
+    --disable-warnings
+    --ignore=src
+"""
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+norecursedirs = ["src", "build", "dist", ".git", ".venv", "venv"]
+markers = [
+    "asyncio: mark test as async",
+    "integration: mark test as integration test",
+    "performance: mark test as performance test",
+    "slow: mark test as slow running",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/council_ai"]
+omit = ["*/site-packages/*", "*/tests/*", "*/__pycache__/*", "*/venv/*"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+    "@abc.abstractmethod",
+    "if 0:",
+    "if False:",
+    "assert False",
+]
+fail_under = 50
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [tool.bandit]
 exclude_dirs = ["tests"]

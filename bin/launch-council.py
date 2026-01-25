@@ -270,8 +270,8 @@ def detect_personal_integration() -> Tuple[bool, Optional[str]]:
         pass
 
     # Fallback: check common locations
-    script_dir = Path(__file__).parent.parent.resolve()
-    sibling_path = script_dir.parent / "council-ai-personal"
+    script_dir = Path(__file__).parent.resolve()
+    sibling_path = script_dir.parent.parent / "council-ai-personal"
     if sibling_path.exists() and (sibling_path / "personal").exists():
         return (True, str(sibling_path))
 
@@ -370,8 +370,8 @@ def install_council(editable: bool = True) -> bool:
         print_warning("Could not upgrade pip (continuing anyway)")
 
     # Check for shared-ai-utils sibling directory (development mode)
-    script_dir = Path(__file__).parent.parent.resolve()
-    shared_utils_dir = script_dir.parent / "shared-ai-utils"
+    script_dir = Path(__file__).parent.resolve()
+    shared_utils_dir = script_dir.parent.parent / "shared-ai-utils"
 
     if shared_utils_dir.exists():
         print_info(f"Found local dependency: {shared_utils_dir.name}")
@@ -824,7 +824,7 @@ def build_frontend() -> bool:
     print_info("Building frontend assets (this may take a minute)...")
 
     try:
-        project_root = Path(__file__).parent.resolve()
+        project_root = Path(__file__).parent.parent.resolve()
         npm_candidates = ["npm"]
         if IS_WINDOWS:
             npm_candidates = ["npm.cmd", "npm.exe", "npm.bat", "npm"]
@@ -905,7 +905,8 @@ def check_frontend_ready() -> bool:
         bool: True if ready to launch, False otherwise.
     """
     # Check for built index.html
-    # Path logic: launch-council.py is in bin/ or root
+    # Path logic: launch-council.py is in root
+    # Build output is in src/council_ai/webapp/static/index.html
     # Build output is in src/council_ai/webapp/static/index.html
     script_dir = Path(__file__).parent.parent.resolve()
     static_index = script_dir / "src" / "council_ai" / "webapp" / "static" / "index.html"

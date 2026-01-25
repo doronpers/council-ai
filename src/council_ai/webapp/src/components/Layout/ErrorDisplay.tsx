@@ -173,32 +173,61 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       {/* Expandable details */}
       {isExpanded && (
         <div className="error-display-details">
-          <h5>Technical Details:</h5>
-          <div className="error-display-details-content">
-            <div className="error-detail-row">
-              <strong>Category:</strong> {error.category}
+          {/* What went wrong section */}
+          <div className="error-display-section">
+            <h5>What went wrong?</h5>
+            <p className="error-display-explanation">{error.message}</p>
+          </div>
+
+          {/* How to fix section */}
+          {error.suggestions.length > 0 && (
+            <div className="error-display-section">
+              <h5>How to fix:</h5>
+              <ol className="error-display-fix-steps">
+                {error.suggestions.map((suggestion, index) => (
+                  <li key={index}>{suggestion}</li>
+                ))}
+              </ol>
             </div>
-            <div className="error-detail-row">
-              <strong>Severity:</strong> {error.severity}
-            </div>
-            <div className="error-detail-row">
-              <strong>Recoverable:</strong> {recoverable ? 'Yes' : 'No'}
-            </div>
-            {error.code && (
+          )}
+
+          {/* Technical details (collapsed by default) */}
+          <details className="error-display-technical">
+            <summary>Technical Details</summary>
+            <div className="error-display-details-content">
               <div className="error-detail-row">
-                <strong>Code:</strong> {error.code}
+                <strong>Category:</strong> {error.category}
               </div>
-            )}
-            <div className="error-detail-row">
-              <strong>Message:</strong>
-              <pre className="error-message">{error.message}</pre>
-            </div>
-            {error.details && (
               <div className="error-detail-row">
-                <strong>Additional Info:</strong>
-                <pre className="error-details">{JSON.stringify(error.details, null, 2)}</pre>
+                <strong>Severity:</strong> {error.severity}
               </div>
-            )}
+              <div className="error-detail-row">
+                <strong>Recoverable:</strong> {recoverable ? 'Yes' : 'No'}
+              </div>
+              {error.code && (
+                <div className="error-detail-row">
+                  <strong>Code:</strong> {error.code}
+                </div>
+              )}
+              {error.details && (
+                <div className="error-detail-row">
+                  <strong>Additional Info:</strong>
+                  <pre className="error-details">{JSON.stringify(error.details, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+          </details>
+
+          {/* Report issue link */}
+          <div className="error-display-report">
+            <a
+              href="https://github.com/doronpers/council-ai/issues/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="error-display-report-link"
+            >
+              Report this issue
+            </a>
           </div>
         </div>
       )}

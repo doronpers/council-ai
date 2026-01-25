@@ -60,3 +60,7 @@ class ResponsePanel(Static):
         self._responses = {}
         self._synthesis = ""
         self.update_display()
+
+    def add_error(self, error_message: str) -> None:
+        """Display an error message."""
+        self.update(f"[red]Error: {error_message}[/red]")

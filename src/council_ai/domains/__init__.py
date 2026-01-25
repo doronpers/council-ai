@@ -193,7 +193,8 @@ DOMAINS: Dict[str, Domain] = {
         id="llm_review",
         name="LLM Response Review",
         description=(
-            "Supreme Court-style review of multiple LLM responses with scoring and synthesis"
+            "Supreme Court-style review of multiple LLM responses with scoring and synthesis. "
+            "See documentation/REVIEWER_SETUP.md for setup and usage."
         ),
         category=DomainCategory.TECHNICAL,
         default_personas=["MD", "DK", "DR", "JT", "PH", "NT", "AG"],

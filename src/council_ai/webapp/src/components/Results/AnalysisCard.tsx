@@ -12,7 +12,7 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({ analysis }) => {
   const consensusPercent = Math.round(analysis.consensus_score * 100);
 
   return (
-    <div className="analysis-card" style={{ marginTop: '24px' }}>
+    <div className="analysis-card mt-24">
       <h3>📊 Analysis</h3>
 
       {/* Consensus Meter */}
@@ -28,13 +28,13 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({ analysis }) => {
 
       {/* Key Agreements */}
       {analysis.key_agreements.length > 0 && (
-        <div style={{ marginTop: '16px' }}>
-          <h4 style={{ fontSize: '14px', marginBottom: '8px' }}>
+        <div className="mt-16">
+          <h4 className="text-sm mb-8">
             <span className="highlight-agreement">Key Agreements</span>
           </h4>
-          <ul style={{ margin: 0, paddingLeft: '20px' }}>
+          <ul className="analysis-list">
             {analysis.key_agreements.map((point, index) => (
-              <li key={index} style={{ marginBottom: '4px' }}>
+              <li key={index} className="mb-4">
                 {point}
               </li>
             ))}
@@ -44,13 +44,13 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({ analysis }) => {
 
       {/* Key Tensions */}
       {analysis.key_tensions.length > 0 && (
-        <div style={{ marginTop: '16px' }}>
-          <h4 style={{ fontSize: '14px', marginBottom: '8px' }}>
+        <div className="mt-16">
+          <h4 className="text-sm mb-8">
             <span className="highlight-tension">Key Tensions</span>
           </h4>
-          <ul style={{ margin: 0, paddingLeft: '20px' }}>
+          <ul className="analysis-list">
             {analysis.key_tensions.map((point, index) => (
-              <li key={index} style={{ marginBottom: '4px' }}>
+              <li key={index} className="mb-4">
                 {point}
               </li>
             ))}
@@ -60,11 +60,11 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({ analysis }) => {
 
       {/* Recommendations */}
       {analysis.recommendations.length > 0 && (
-        <div style={{ marginTop: '16px' }}>
-          <h4 style={{ fontSize: '14px', marginBottom: '8px' }}>💡 Recommendations</h4>
-          <ul style={{ margin: 0, paddingLeft: '20px' }}>
+        <div className="mt-16">
+          <h4 className="text-sm mb-8">💡 Recommendations</h4>
+          <ul className="analysis-list">
             {analysis.recommendations.map((rec, index) => (
-              <li key={index} style={{ marginBottom: '4px' }}>
+              <li key={index} className="mb-4">
                 {rec}
               </li>
             ))}

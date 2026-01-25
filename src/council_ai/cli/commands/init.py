@@ -1,6 +1,4 @@
-"""
-Init command for Council AI.
-"""
+"""Init command for Council AI."""
 
 import click
 from rich.panel import Panel

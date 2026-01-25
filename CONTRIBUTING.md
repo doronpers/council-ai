@@ -13,19 +13,19 @@ git clone https://github.com/doronpers/council-ai.git
 cd council-ai
 ```
 
-2. **Upgrade pip (recommended)**
+1. **Upgrade pip (recommended)**
 
 ```bash
 pip install --upgrade pip
 ```
 
-3. **Install in development mode**
+1. **Install in development mode**
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-4. **Run tests**
+1. **Run tests**
 
 ```bash
 pytest
@@ -45,6 +45,7 @@ pytest
 ```text
 council-ai/
 ├── src/council_ai/          # Main package
+│   ├── cli/                 # CLI implementation
 │   ├── core/                # Core functionality
 │   ├── domains/             # Domain configurations
 │   ├── personas/            # Persona YAML files

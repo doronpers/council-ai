@@ -7,14 +7,14 @@ import Notification from './Notification';
 interface NotificationItem {
   id: string;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   duration?: number;
 }
 
 interface NotificationContextType {
   showNotification: (
     message: string,
-    type?: 'success' | 'error' | 'info',
+    type?: 'success' | 'error' | 'info' | 'warning',
     duration?: number
   ) => void;
 }
@@ -38,7 +38,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   const showNotification = (
     message: string,
-    type: 'success' | 'error' | 'info' = 'info',
+    type: 'success' | 'error' | 'info' | 'warning' = 'info',
     duration: number = 3000
   ) => {
     const id = Date.now().toString();

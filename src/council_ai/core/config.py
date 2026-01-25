@@ -11,6 +11,8 @@ import httpx
 import yaml
 from pydantic import BaseModel, Field
 
+from ..utils.paths import get_config_path
+
 logger = logging.getLogger(__name__)
 
 
@@ -118,6 +120,7 @@ class Config(BaseModel):
 
     api: APIConfig = Field(default_factory=APIConfig)
     tts: TTSConfig = Field(default_factory=TTSConfig)
+    patterns_path: Optional[str] = None
     default_mode: str = "synthesis"
     default_domain: str = "general"
     temperature: float = 0.7
@@ -139,15 +142,17 @@ class ConfigManager:
             self.path = Path(config_path)
         else:
             # Try to find a writable path for config
+            # Priority: environment variable > workspace config > home config > current dir
             options = [
                 os.environ.get("COUNCIL_CONFIG_PATH"),
-                Path.home() / ".config" / "council-ai" / "config.yaml",
+                get_config_path("config.yaml", fallback_home=False),
+                Path.home() / ".config" / "council-ai" / "config.yaml",  # Legacy fallback
                 Path.cwd() / "config.yaml",
             ]
             for option in options:
                 if not option:
                     continue
-                path = Path(option)
+                path = Path(str(option))
                 try:
                     path.parent.mkdir(parents=True, exist_ok=True)
                     self.path = path

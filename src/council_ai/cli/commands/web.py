@@ -1,6 +1,4 @@
-"""
-Web application commands.
-"""
+"""Web application commands."""
 
 import click
 

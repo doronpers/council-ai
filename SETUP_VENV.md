@@ -5,6 +5,7 @@ This guide explains how to set up a virtual environment for Council AI with your
 ## Quick Start
 
 ### Windows (PowerShell)
+
 ```powershell
 .\setup-venv.ps1
 .\venv\Scripts\activate-env.ps1
@@ -12,18 +13,20 @@ This guide explains how to set up a virtual environment for Council AI with your
 ```
 
 ### Windows (Command Prompt)
+
 ```cmd
-setup-venv.bat
+scripts\setup-venv.bat
 venv\Scripts\activate-env.bat
-launch-council.bat
+bin\launch-council.bat
 ```
 
 ### macOS/Linux
+
 ```bash
-chmod +x setup-venv.sh
-./setup-venv.sh
+chmod +x scripts/setup-venv.sh
+./scripts/setup-venv.sh
 source venv/bin/activate-env
-./launch-council.py --open
+./bin/launch-council.py --open
 ```
 
 ## What the Setup Script Does
@@ -59,6 +62,7 @@ The setup creates enhanced activation scripts that automatically load your `.env
 - **Unix/macOS**: `venv/bin/activate-env`
 
 These scripts:
+
 1. Activate the virtual environment
 2. Load environment variables from `.env`
 3. Skip placeholder values (containing "your-...-here")
@@ -70,16 +74,20 @@ The `launch-council.py` script automatically loads `.env` if it exists in the pr
 ## Troubleshooting
 
 ### PowerShell Execution Policy
+
 If you get an execution policy error on Windows:
+
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 ### .env Not Loading
+
 - Ensure `.env` is in the project root (same directory as `launch-council.py`)
 - Check that your API keys don't contain placeholder text like "your-key-here"
 - Verify the `.env` file uses `KEY=value` format (no spaces around `=`)
 
 ### Virtual Environment Issues
+
 - Delete `venv/` and run the setup script again
 - Ensure Python 3.11+ is installed and in your PATH

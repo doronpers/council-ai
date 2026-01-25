@@ -4,7 +4,7 @@ import sys
 
 import click
 
-from ..utils import DEFAULT_PROVIDER, require_api_key
+from ..utils import DEFAULT_PROVIDER, console, require_api_key
 
 
 @click.command("tui")
@@ -29,9 +29,9 @@ def tui(ctx, domain, members, provider, api_key, session_id):
       council tui --session abc123
     """
     try:
-        from ...tui.app import CouncilTUI
+        from ..tui.app import CouncilTUI
     except ImportError:
-        click.echo(
+        console.print(
             "[red]Error:[/red] Textual is not installed. Install with: [cyan]pip install -e '.[tui]'[/cyan]"
         )
         sys.exit(1)
@@ -47,13 +47,22 @@ def tui(ctx, domain, members, provider, api_key, session_id):
     base_url = config_manager.get("api.base_url")
 
     # Create and run TUI
-    app = CouncilTUI(
-        domain=domain,
-        members=list(members) if members else None,
-        provider=provider,
-        api_key=api_key,
-        model=model,
-        base_url=base_url,
-        session_id=session_id,
-    )
-    app.run()
+    try:
+        app = CouncilTUI(
+            domain=domain,
+            members=list(members) if members else None,
+            provider=provider,
+            api_key=api_key,
+            model=model,
+            base_url=base_url,
+            session_id=session_id,
+        )
+    except Exception as e:
+        console.print(f"[red]TUI initialization error: {e}[/red]")
+        sys.exit(1)
+
+    try:
+        app.run()
+    except Exception as e:
+        console.print(f"[red]TUI runtime error: {e}[/red]")
+        sys.exit(1)

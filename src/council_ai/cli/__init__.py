@@ -1,5 +1,5 @@
-"""
-CLI package.
-"""
+"""CLI package."""
 
-from .app import main as main
+from .app import main
+
+__all__ = ["main"]

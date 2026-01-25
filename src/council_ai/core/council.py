@@ -46,6 +46,7 @@ class ConsultationMode(str, Enum):
     SYNTHESIS = "synthesis"  # Individual responses + synthesized summary
     DEBATE = "debate"  # Members can respond to each other
     VOTE = "vote"  # Members vote on a decision
+    PATTERN_COACH = "pattern_coach"  # Suggests relevant design patterns
 
 
 class CouncilConfig(BaseModel):
@@ -737,7 +738,7 @@ class Council:
 
         # Get responses based on mode using Strategy pattern
         strategy = get_strategy(mode.value)
-        responses = await strategy.execute(
+        strategy_result = await strategy.execute(
             council=self,
             query=query,
             context=context,
@@ -746,10 +747,23 @@ class Council:
             auto_recall=auto_recall,
         )
 
+        # All strategies now return ConsultationResult
+        responses = strategy_result.responses
+
         # Generate synthesis if needed
         synthesis = None
         structured_synthesis = None
-        if mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE):
+
+        # Check if strategy already provided synthesis to avoid redundant generation
+        strategy_has_synthesis = strategy_result is not None and (
+            strategy_result.synthesis is not None
+            or strategy_result.structured_synthesis is not None
+        )
+
+        if (
+            mode in (ConsultationMode.SYNTHESIS, ConsultationMode.DEBATE)
+            and not strategy_has_synthesis
+        ):
             synthesis_provider = self._get_synthesis_provider(provider)
             # Try structured synthesis if enabled in config
             if getattr(self.config, "use_structured_output", False):
@@ -808,16 +822,33 @@ class Council:
             except Exception as e:
                 logger.debug(f"Analysis task error: {e}")
 
-        # Create result
-        result = ConsultationResult(
-            query=query,
-            context=context,
-            responses=responses,
-            synthesis=synthesis,
-            mode=mode,
-            timestamp=datetime.now(),
-            structured_synthesis=structured_synthesis,
-        )
+        # Create result. If the strategy returned a ConsultationResult, update it
+        # with any synthesis/structured synthesis we computed; otherwise build a new one.
+        if strategy_result is None:
+            result = ConsultationResult(
+                query=query,
+                context=context,
+                responses=responses,
+                synthesis=synthesis,
+                mode=mode.value,  # Convert enum to string
+                timestamp=datetime.now(),
+                structured_synthesis=structured_synthesis,
+            )
+        else:
+            # Merge computed synthesis back into strategy-provided result when missing
+            if strategy_result.synthesis is None and synthesis is not None:
+                strategy_result.synthesis = synthesis
+            if strategy_result.structured_synthesis is None and structured_synthesis is not None:
+                strategy_result.structured_synthesis = structured_synthesis
+            # Ensure context/mode/timestamp are set
+            if strategy_result.context is None:
+                strategy_result.context = context
+            if strategy_result.mode is None:
+                strategy_result.mode = mode.value  # Convert enum to string
+            if strategy_result.timestamp is None:
+                strategy_result.timestamp = datetime.now()
+
+            result = strategy_result
 
         # Update session
         session.add_consultation(result)
@@ -828,10 +859,11 @@ class Council:
 
         # Auto-save to history if enabled
         if self._history:
+            history = self._history
             try:
                 metadata = {"domain": self._domain_id} if self._domain_id else None
-                consultation_id = self._history.save(result, metadata=metadata)
-                self._history.save_session(session)
+                consultation_id = history.save(result, metadata=metadata)
+                history.save_session(session)
 
                 # Save cost records
                 if consultation_id:
@@ -839,7 +871,7 @@ class Council:
 
                     cost_tracker = get_cost_tracker()
                     for cost_record in cost_tracker.get_records():
-                        self._history.save_cost(
+                        history.save_cost(
                             consultation_id=consultation_id,
                             provider=cost_record.provider,
                             model=cost_record.model,
@@ -870,11 +902,14 @@ class Council:
 
     async def _save_history_async(self, result: ConsultationResult, session: Session) -> None:
         """Save consultation history asynchronously (non-blocking)."""
+        if not self._history:
+            return
+        history = self._history
         try:
             metadata = {"domain": self._domain_id} if self._domain_id else None
             # Run blocking save in thread pool to avoid blocking event loop
-            consultation_id = await asyncio.to_thread(self._history.save, result, metadata=metadata)
-            await asyncio.to_thread(self._history.save_session, session)
+            consultation_id = await asyncio.to_thread(history.save, result, metadata=metadata)
+            await asyncio.to_thread(history.save_session, session)
 
             # Save cost records
             if consultation_id:
@@ -883,7 +918,7 @@ class Council:
                 cost_tracker = get_cost_tracker()
                 for cost_record in cost_tracker.get_records():
                     await asyncio.to_thread(
-                        self._history.save_cost,
+                        history.save_cost,
                         consultation_id=consultation_id,
                         provider=cost_record.provider,
                         model=cost_record.model,
@@ -1042,7 +1077,7 @@ class Council:
             context=context,
             responses=responses,
             synthesis=synthesis,
-            mode=mode,
+            mode=mode.value,
             timestamp=datetime.now(),
             structured_synthesis=structured_synthesis,
         )
@@ -1104,7 +1139,7 @@ class Council:
             return (member.id, enhanced)
 
         # Run all web searches concurrently
-        results = await asyncio.gather(
+        results: List[Union[tuple[str, Optional[str]], BaseException]] = await asyncio.gather(
             *[enhance_for_member(member) for member in members_needing_search],
             return_exceptions=True,
         )
@@ -1112,11 +1147,16 @@ class Council:
         # Build result dict, handling any exceptions
         enhanced_contexts: Dict[str, Optional[str]] = {}
         for result in results:
+            if isinstance(result, (asyncio.CancelledError, KeyboardInterrupt)):
+                # Propagate cancellation/interruption so higher-level tasks can terminate correctly
+                raise result
             if isinstance(result, Exception):
                 logger.warning(f"Web search enhancement failed: {result}")
                 continue
-            member_id, enhanced = result
-            enhanced_contexts[member_id] = enhanced
+            # Type guard: at this point, result must be a tuple
+            if isinstance(result, tuple):
+                member_id, enhanced = result
+                enhanced_contexts[member_id] = enhanced
 
         return enhanced_contexts
 

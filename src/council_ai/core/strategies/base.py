@@ -1,6 +1,4 @@
-"""
-Base class for consultation strategies.
-"""
+"""Base class for consultation strategies."""
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, List, Optional
@@ -29,8 +27,11 @@ class ConsultationStrategy(ABC):
         auto_recall: bool = True,
         **kwargs: Any,
     ) -> "ConsultationResult":
-        """
-        Execute the consultation strategy.
+        """Execute a consultation strategy.
+
+        All built-in strategies now return ConsultationResult. The union type
+        with list[MemberResponse] is maintained for backward compatibility with
+        any external strategy implementations.
 
         Args:
             council: The council instance

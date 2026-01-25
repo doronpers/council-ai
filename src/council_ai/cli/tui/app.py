@@ -7,9 +7,9 @@ try:
     from textual.app import App
     from textual.binding import Binding
 except ImportError:
-    print(
-        "[red]Error:[/red] Textual is not installed. Install with: [cyan]pip install -e '.[tui]'[/cyan]"
-    )
+    # Can't use Rich console here since we're in a try/except for imports
+    # This error should be caught by the command handler anyway
+    print("Error: Textual is not installed. Install with: pip install -e '.[tui]'")
     sys.exit(1)
 
 from ...core.config import ConfigManager, get_api_key
@@ -54,23 +54,28 @@ class CouncilTUI(App):
         self.session_id = session_id
 
         # Assemble council
-        self.council = assemble_council(
-            self.domain, self.members, self.api_key, self.provider, self.model, self.base_url
-        )
+        try:
+            self.council = assemble_council(
+                self.domain, self.members, self.api_key, self.provider, self.model, self.base_url
+            )
+        except Exception:
+            raise
 
         # Enable history
         self.council._history = ConsultationHistory()
 
     def on_mount(self) -> None:
         """Called when app is mounted."""
-        self.push_screen(
-            MainScreen(
+        try:
+            screen = MainScreen(
                 self.council,
                 domain=self.domain,
                 members=self.members,
                 session_id=self.session_id,
             )
-        )
+            self.push_screen(screen)
+        except Exception:
+            raise
 
     def action_exit(self) -> None:
         """Handle exit action."""
@@ -78,15 +83,15 @@ class CouncilTUI(App):
 
     def action_help(self) -> None:
         """Show help."""
-        # TODO: Implement help screen
+        # Planned feature: Help screen with keyboard shortcuts and usage guide
         pass
 
     def action_members(self) -> None:
         """Show members."""
-        # TODO: Implement member selection
+        # Planned feature: Interactive member selection screen
         pass
 
     def action_config(self) -> None:
         """Show config."""
-        # TODO: Implement config screen
+        # Planned feature: Configuration screen for provider, model, and settings
         pass

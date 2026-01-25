@@ -26,7 +26,7 @@ The best way to experience Council AI is by using **LM Studio** for local, priva
    ```bash
    # Run the interactive setup (detects LM Studio automatically)
    council init
-   
+
    # Consult the council (uses your local model by default)
    council consult "Should we redesign our API?"
    ```
@@ -76,11 +76,14 @@ Council AI provides a framework for consulting multiple AI "personas" - each wit
 - 🌐 **15 Domain Presets** - Coding, business, startup, creative, career, and more
 - 🔧 **Fully Customizable** - Create your own personas, adjust weights, modify traits
 - 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Google Gemini, or custom endpoints. Personas can use various LLM providers simultaneously.
-- 💬 **Multiple Modes** - Individual, synthesis, debate, vote, or sequential
+- 💬 **Multiple Modes** - Individual, synthesis, debate, vote, sequential, or pattern-coach
 - 🔍 **Web Search Integration** - Connect to live web data via Tavily, Serper, or Google Custom Search
 - 🧠 **Reasoning Modes** - Extended thinking for complex analysis
 - 📝 **Session & History Management** - Track, resume, search, and export consultations
 - 🧭 **Standalone Web App** - Modern React/TypeScript UI with Dieter Rams-inspired design
+- 🎯 **Onboarding Wizard** - Guided 6-step setup for first-time users
+- 🛡️ **Comprehensive Error Handling** - User-friendly error messages with recovery actions
+- 🔍 **Feature Discovery** - Interactive tours and progressive disclosure
 - 🔊 **Text-to-Speech** - Voice responses via ElevenLabs and OpenAI TTS
 - 📦 **Portable Package** - pip-installable, use in any project
 - 📖 **[Full API Documentation](documentation/API_REFERENCE.md)** - Complete Python API reference
@@ -128,20 +131,20 @@ The easiest way to get started is using the setup script that creates a virtual 
 **Windows (PowerShell):**
 
 ```powershell
-.\setup-venv.ps1
+.\scripts\setup-venv.ps1
 ```
 
 **Windows (Command Prompt):**
 
 ```cmd
-setup-venv.bat
+scripts\setup-venv.bat
 ```
 
 **macOS/Linux:**
 
 ```bash
-chmod +x setup-venv.sh
-./setup-venv.sh
+chmod +x scripts/setup-venv.sh
+./scripts/setup-venv.sh
 ```
 
 This will:
@@ -231,6 +234,8 @@ export GEMINI_API_KEY="your-key"       # For Gemini
 
 ### Option 3: Config File
 
+**Location**: Configuration is stored in workspace-relative `.workspace-config/council-ai/config.yaml` (or legacy `~/.config/council-ai/config.yaml`).
+
 ```bash
 council config set api.api_key your-key
 ```
@@ -246,7 +251,7 @@ council init
 1. CLI flags (`--api-key`)
 2. Environment variables
 3. `.env` file (auto-loaded)
-4. Config file (`~/.config/council-ai/config.yaml`)
+4. Config file (workspace: `.workspace-config/council-ai/config.yaml` or legacy: `~/.config/council-ai/config.yaml`)
 
 ### CLI Usage
 
@@ -326,10 +331,10 @@ for response in result.responses:
 
 ### Advisory Council (Build It Right)
 
-| Persona (ID)                        | Focus                     | Core Question                                 |
-| ----------------------------------- | ------------------------- | --------------------------------------------- |
-| 🎨 **Dieter Rams** (`DR`)         | Simplification, Design    | "Is this as simple as possible?"              |
-| 🎖️ **Martin Dempsey** (`MD`)   | Mission Clarity, Autonomy | "Can this operate without asking permission?" |
+| Persona (ID)                  | Focus                     | Core Question                                 |
+| ----------------------------- | ------------------------- | --------------------------------------------- |
+| 🎨 **Dieter Rams** (`DR`)     | Simplification, Design    | "Is this as simple as possible?"              |
+| 🎖️ **Martin Dempsey** (`MD`)  | Mission Clarity, Autonomy | "Can this operate without asking permission?" |
 | 🧠 **Daniel Kahneman** (`DK`) | Cognitive Load, UX        | "Does this work with human cognition?"        |
 | 🔊 **Julian Treasure** (`JT`) | Communication, Listening  | "Are we listening with integrity?"            |
 
@@ -337,9 +342,9 @@ for response in result.responses:
 
 | Persona (ID)                                       | Focus                   | Core Question                                       |
 | -------------------------------------------------- | ----------------------- | --------------------------------------------------- |
-| 🔓 **Pablos Holman** (`PH`)                    | Security, Exploits      | "How would I break this?"                           |
-| 🦢 **Nassim Taleb** (`NT`)                      | Risk, Antifragility     | "What's the hidden risk?"                           |
-| 🎯 **Andy Grove** (`AG`)                        | Strategy, Competition   | "What 10X force could make us irrelevant?"          |
+| 🔓 **Pablos Holman** (`PH`)                        | Security, Exploits      | "How would I break this?"                           |
+| 🦢 **Nassim Taleb** (`NT`)                         | Risk, Antifragility     | "What's the hidden risk?"                           |
+| 🎯 **Andy Grove** (`AG`)                           | Strategy, Competition   | "What 10X force could make us irrelevant?"          |
 | 🔍 **Detective Ray Castellano** (`fraud_examiner`) | Fraud tactics, evidence | "How would a sophisticated fraudster exploit this?" |
 
 ### Specialist Council (Deep Domain Expertise)
@@ -371,21 +376,21 @@ council domain list
 
 | Domain       | Description             | Default Personas                                                   |
 | ------------ | ----------------------- | ------------------------------------------------------------------ |
-| `coding`     | Software development    | DR, DK, PH, NT                                      |
-| `business`   | Business strategy       | AG, NT, MD, DK                                    |
-| `startup`    | Early-stage decisions   | AG, NT, DK, DR                                       |
-| `product`    | Product management      | DK, DR, JT, AG                                    |
-| `leadership` | Team & org leadership   | MD, DK, AG                                           |
-| `creative`   | Creative projects       | JT, DR, DK                                           |
-| `writing`    | Written content         | JT, DK, DR                                           |
+| `coding`     | Software development    | DR, DK, PH, NT                                                     |
+| `business`   | Business strategy       | AG, NT, MD, DK                                                     |
+| `startup`    | Early-stage decisions   | AG, NT, DK, DR                                                     |
+| `product`    | Product management      | DK, DR, JT, AG                                                     |
+| `leadership` | Team & org leadership   | MD, DK, AG                                                         |
+| `creative`   | Creative projects       | JT, DR, DK                                                         |
+| `writing`    | Written content         | JT, DK, DR                                                         |
 | `audio_post` | Audio post-production   | dialogue_editor, rerecording_mixer, sound_designer, adr_supervisor |
-| `career`     | Career decisions        | AG, DK, MD, NT                                    |
-| `decisions`  | Major life decisions    | DK, NT, MD                                           |
-| `devops`     | Infrastructure & ops    | MD, PH, NT, AG                                      |
-| `data`       | Data science            | DK, NT, DR                                              |
-| `general`    | General purpose         | DK, NT, AG, DR                                       |
-| `llm_review` | High-quality LLM review | MD, DK, DR, JT                                  |
-| `sonotheia`  | Audio defense & fintech | signal_analyst, compliance_auditor, PH, NT                  |
+| `career`     | Career decisions        | AG, DK, MD, NT                                                     |
+| `decisions`  | Major life decisions    | DK, NT, MD                                                         |
+| `devops`     | Infrastructure & ops    | MD, PH, NT, AG                                                     |
+| `data`       | Data science            | DK, NT, DR                                                         |
+| `general`    | General purpose         | DK, NT, AG, DR                                                     |
+| `llm_review` | High-quality LLM review | MD, DK, DR, JT                                                     |
+| `sonotheia`  | Audio defense & fintech | signal_analyst, compliance_auditor, PH, NT                         |
 
 ---
 
@@ -395,10 +400,10 @@ council domain list
 
 **Via YAML:**
 
-Create a YAML file in `~/.config/council-ai/personas/` or a custom directory specified in your config file.
+Create a YAML file in `.workspace-config/council-ai/personas/` (or legacy `~/.config/council-ai/personas/`) or a custom directory specified in your config file.
 
 ```yaml
-# ~/.config/council-ai/personas/my_advisor.yaml
+# .workspace-config/council-ai/personas/my_advisor.yaml
 id: my_advisor
 name: My Custom Advisor
 title: Domain Expert
@@ -751,13 +756,25 @@ per council instance when needed.
 
 ## Web App (Standalone)
 
-The web app is the primary user-testing surface. It features a modern, Dieter Rams-inspired UI built with **React 18** and **TypeScript**. The frontend architecture was migrated from vanilla JavaScript to a fully modular component-based system with 25+ React components, Context API for state management, and optimized build output.
+The web app is the primary user interface. It features a modern, Dieter Rams-inspired UI built with **React 18** and **TypeScript**. The frontend architecture includes 25+ React components, Context API for state management, and optimized build output.
+
+**📖 [Complete Web App Guide](documentation/WEB_APP.md)** - Detailed documentation for all web app features
+
+**Key Web App Features:**
+
+- 🎯 **Onboarding Wizard** - Automatic 6-step guided setup for first-time users
+- 🛡️ **Error Handling** - Comprehensive error messages with recovery actions ([Error Handling Guide](documentation/ERROR_HANDLING.md))
+- 🔍 **Feature Tours** - Interactive step-by-step tours for discovering features
+- 📊 **History Management** - Search, filter, tag, compare, and export consultations
+- 🔊 **Text-to-Speech** - Voice responses with ElevenLabs and OpenAI TTS
+- ⚙️ **Tiered Configuration** - Progressive disclosure (basic/intermediate/advanced)
+- 💡 **Contextual Help** - Help icons throughout the interface
 
 ### 1-Click Launchers
 
 For the easiest experience, we provide specialized 1-click launchers in the project root. **Double-click** any of these to start:
 
-- 🚀 **`launch-council-web.command` (Mac)** / **`launch-council.bat` (Windows)**: Standard 1-click launch. Handles setup and opens in your browser. **Requires Node.js for web interface.**
+- 🚀 **`bin/launch-council-web.command` (Mac)** / **`bin/launch-council.bat` (Windows)**: Standard 1-click launch. Handles setup and opens in your browser. **Requires Node.js for web interface.**
 - 💻 **`launch-council-cli.bat` (Windows)**: **CLI Mode** - No Node.js required! Perfect if you just want to use the command-line interface (`council consult`, `council interactive`, etc.)
 - 🌐 **`launch-council-lan.command` (Mac)** / **`launch-council-lan.bat` (Windows)**: **Network Access Mode**. Use this if you want to access the UI from another PC, phone, or tablet on your network. It displays a local IP (e.g., `http://192.168.1.15:8000`) for remote access.
 - 🔄 **`launch-council-persistent.command` (Mac)** / **`launch-council-persistent.bat` (Windows)**: **"Always Up" Mode**. Optimizes for personal use by automatically restarting the server if it crashes or encounters a network error.
@@ -779,7 +796,7 @@ If you are hosting Council AI on one machine (e.g., your Mac) and want to access
 
 ```bash
 # Standard
-./launch-council.py --open
+./bin/launch-council.py --open
 
 # Network Access (LAN)
 ./launch-council.py --network
@@ -843,7 +860,7 @@ OPENAI_API_KEY=your-openai-key-here  # Fallback
 
 **Configuration:**
 
-Create or edit `~/.config/council-ai/config.yaml`:
+Create or edit `.workspace-config/council-ai/config.yaml` (or legacy `~/.config/council-ai/config.yaml`):
 
 ```yaml
 tts:
@@ -878,11 +895,16 @@ See `config.yaml.example` for full configuration options.
 - **Manual Save/Reset**: Use the "💾 Save Settings" and "🔄 Reset to Defaults" buttons in Advanced Settings
 - **Security**: API keys are never stored - only used for the current session
 - **History**: Recent consultations are automatically saved and displayed
+- **Onboarding**: First-time users get a guided 6-step setup wizard
+- **Error Handling**: Comprehensive error messages with recovery actions
+- **Feature Discovery**: Interactive tours and contextual help throughout
 
 **Settings Persistence:**
 
 - ✅ Saved to browser: Provider, Model, Base URL, Domain, Mode
 - ❌ Session only: Custom Members, API Key
+
+For complete web app documentation, see [Web App Guide](documentation/WEB_APP.md).
 
 ---
 

@@ -1,6 +1,4 @@
-"""
-Diagnostic and maintenance commands.
-"""
+"""Diagnostic and maintenance commands."""
 
 import asyncio
 import os
@@ -224,7 +222,11 @@ def doctor():
             return await asyncio.gather(*tasks)
 
         with console.status("[bold green]Pinging providers..."):
-            results = asyncio.run(run_checks())
+            try:
+                results = asyncio.run(run_checks())
+            except Exception as e:
+                console.print(f"[red]Error running provider checks: {e}[/red]")
+                return
 
         for provider, result in zip(configured_providers, results):
             success, msg, latency = result

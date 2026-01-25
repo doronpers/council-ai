@@ -1,16 +1,16 @@
-"""
-Tests for retry utilities.
-"""
+"""Tests for retry utilities."""
 
 import asyncio
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import AsyncMock, Mock, patch
+
 from council_ai.core.retry_utils import (
-    retry_with_backoff,
-    retry_async,
-    is_retryable_error,
     RateLimitError,
     TransientAPIError,
+    is_retryable_error,
+    retry_async,
+    retry_with_backoff,
 )
 
 
@@ -117,18 +117,12 @@ class TestRetryWithBackoff:
             delays.append(asyncio.get_event_loop().time())
             raise TransientAPIError("fail")
 
-        start_time = asyncio.get_event_loop().time()
         with pytest.raises(TransientAPIError):
             await track_delays()
 
         # Should have 4 attempts (1 initial + 3 retries)
         assert len(delays) == 4
-
-        # Check approximate backoff (0.1s, 0.2s, 0.4s)
-        # Allow some tolerance for test timing
-        if len(delays) >= 2:
-            first_delay = delays[1] - delays[0]
-            assert 0.08 < first_delay < 0.15  # ~0.1s
+        assert 0.08 < (delays[1] - delays[0]) < 0.15  # ~0.1s
 
     @pytest.mark.asyncio
     async def test_max_delay_cap(self):
