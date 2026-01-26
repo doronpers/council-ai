@@ -24,7 +24,7 @@ Re-enable strict mypy checks once ALL strategies return `ConsultationResult`:
 - [x] SynthesisStrategy ✅ (done in PR #56)
 - [x] DebateStrategy ✅ (verified - returns ConsultationResult)
 - [x] VoteStrategy ✅ (verified - returns ConsultationResult)
-- [ ] All backward compatibility code removed from `council.py` (lines 750-753)
+- [ ] All backward compatibility code removed from `council.py` (Council.consult_async method, currently lines 750-753)
 
 ## Actions Required
 
@@ -33,7 +33,7 @@ Re-enable strict mypy checks once ALL strategies return `ConsultationResult`:
    - Remove `--disable-error-code=no-any-return`
 2. Fix any new type errors that appear
 3. Update strategy type hints to remove legacy `Union` types if present
-4. Remove backward compatibility code from `council.py` (lines 750-753)
+4. Remove backward compatibility code from `council.py` (Council.consult_async method, currently lines 750-753)
 
 ## References
 

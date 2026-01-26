@@ -7,13 +7,13 @@
 - ✅ SequentialStrategy (PR #56)
 - ✅ IndividualStrategy (PR #56)
 - ✅ SynthesisStrategy (PR #56)
-- ✅ DebateStrategy - verified to return `ConsultationResult` (return type at line 27)
-- ✅ VoteStrategy - verified to return `ConsultationResult` (return type at line 25)
-- ✅ Backward compatibility handling in `Council.consult_async()` (PR #56, lines 750-753)
+- ✅ DebateStrategy - verified to return `ConsultationResult` (src/council_ai/core/strategies/debate.py line 27)
+- ✅ VoteStrategy - verified to return `ConsultationResult` (src/council_ai/core/strategies/vote.py line 25)
+- ✅ Backward compatibility handling in `Council.consult_async()` (src/council_ai/core/council.py lines 750-753)
 
 ## Remaining Work
 
-- [ ] Remove backward compatibility code from `council.py` (lines 750-753)
+- [ ] Remove backward compatibility code from `council.py` (Council.consult_async method, currently lines 750-753)
   - Currently handles legacy `list[MemberResponse]` returns
   - Can be removed once all strategies confirmed to return `ConsultationResult`
 - [ ] Re-enable strict mypy checks (tracked in separate issue)
