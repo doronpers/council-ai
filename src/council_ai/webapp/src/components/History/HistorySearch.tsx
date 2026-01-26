@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { HistoryEntry } from '../../types';
 import { loadHistorySearch } from '../../utils/api';
+import { logger, createLogContext } from '../../utils/logger';
 
 interface HistorySearchProps {
   onResultsChange: (results: HistoryEntry[]) => void;
@@ -76,7 +77,7 @@ const HistorySearch: React.FC<HistorySearchProps> = ({
           const results = await loadHistorySearch(query);
           handleResultsChange(results);
         } catch (error) {
-          console.error('Search failed:', error);
+          logger.error('Search failed', error instanceof Error ? error : undefined, createLogContext('HistorySearch'));
           const errorMessage = error instanceof Error ? error.message : 'Search failed';
           handleError(errorMessage);
           handleResultsChange([]);

@@ -3,6 +3,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useConsultation } from '../../context/ConsultationContext';
+import { logger, createLogContext } from '../../utils/logger';
 
 interface FilterState {
   personas: string[];
@@ -112,7 +113,7 @@ const ResultsFilters: React.FC<ResultsFiltersProps> = ({
       try {
         setSavedPresets(JSON.parse(saved));
       } catch (e) {
-        console.warn('Failed to load filter presets:', e);
+        logger.warn('Failed to load filter presets', e instanceof Error ? e : undefined, createLogContext('ResultsFilters'));
       }
     }
   }, []);

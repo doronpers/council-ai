@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import './TTSSettings.css';
 import { useApp } from '../../context/AppContext';
 import { loadTTSVoices } from '../../utils/api';
+import { logger, createLogContext } from '../../utils/logger';
 import type { TTSVoice } from '../../types';
 
 const TTSSettings: React.FC = () => {
@@ -21,7 +22,7 @@ const TTSSettings: React.FC = () => {
       setIsLoadingVoices(true);
       loadTTSVoices()
         .then(setVoices)
-        .catch((err) => console.error('Failed to load voices:', err))
+        .catch((err) => logger.error('Failed to load voices', err instanceof Error ? err : undefined, createLogContext('TTSSettings')))
         .finally(() => setIsLoadingVoices(false));
     }
   }, [settings.enable_tts, hasKeys, voices.length]);
