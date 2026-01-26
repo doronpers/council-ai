@@ -8,7 +8,7 @@ This document provides instructions for completing the code review follow-up tra
 
 **Duplicate console declaration** in `src/council_ai/cli/help_system.py`:
 - Line 22 now correctly has `COMMAND_DOCS: Dict[str, CommandDoc] = {` instead of duplicate console
-- Added verification comment at line 10 confirming this was fixed
+- Added verification comment at line 10 documenting the fix
 
 **Redundant test assertions** in `tests/test_config_validation.py`:
 - Fixed in PR #78 (lines 32-33) - no action needed
@@ -44,7 +44,7 @@ All strategies have been verified to return `ConsultationResult`:
 - Provides clear next steps for re-enabling strict checks
 
 **`src/council_ai/cli/help_system.py`** (line 10):
-- Added comment confirming duplicate console declaration was removed
+- Added comment documenting that duplicate console declaration was removed
 
 ## Required Manual Action: Create GitHub Issue
 
