@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import SessionItem from './SessionItem';
 import SessionDetails from './SessionDetails';
+import ConfirmDialog from '../Layout/ConfirmDialog';
 import { useNotifications } from '../Layout/NotificationContainer';
 
 export interface Session {
@@ -24,6 +25,8 @@ const SessionManager: React.FC = () => {
     const [sessionDetails, setSessionDetails] = useState<any>(null);
     const [displayLimit, setDisplayLimit] = useState(10);
     const [hasMore, setHasMore] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
     const { showNotification } = useNotifications();
 
     const fetchSessions = useCallback(async () => {
@@ -66,20 +69,23 @@ const SessionManager: React.FC = () => {
         }
     };
 
-    const handleDeleteSession = async (sessionId: string) => {
-        if (!window.confirm('Delete this session and all its consultations?')) {
-            return;
-        }
+    const handleDeleteClick = (sessionId: string) => {
+        setSessionToDelete(sessionId);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!sessionToDelete) return;
 
         try {
-            const response = await fetch(`/api/sessions/${sessionId}`, {
+            const response = await fetch(`/api/sessions/${sessionToDelete}`, {
                 method: 'DELETE',
             });
             if (!response.ok) {
                 throw new Error('Failed to delete session');
             }
-            setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-            if (viewingSession === sessionId) {
+            setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete));
+            if (viewingSession === sessionToDelete) {
                 setViewingSession(null);
                 setSessionDetails(null);
             }
@@ -89,6 +95,8 @@ const SessionManager: React.FC = () => {
                 err instanceof Error ? err.message : 'Failed to delete session',
                 'error'
             );
+        } finally {
+            setSessionToDelete(null);
         }
     };
 
@@ -127,7 +135,7 @@ const SessionManager: React.FC = () => {
                             session={session}
                             isActive={viewingSession === session.id}
                             onView={() => handleViewDetails(session.id)}
-                            onDelete={() => handleDeleteSession(session.id)}
+                            onDelete={() => handleDeleteClick(session.id)}
                         />
                     ))
                 )}
@@ -146,9 +154,23 @@ const SessionManager: React.FC = () => {
                         setViewingSession(null);
                         setSessionDetails(null);
                     }}
-                    onDelete={() => handleDeleteSession(viewingSession)}
+                    onDelete={() => handleDeleteClick(viewingSession)}
                 />
             )}
+
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => {
+                    setShowDeleteConfirm(false);
+                    setSessionToDelete(null);
+                }}
+                title="Delete Session"
+                message="Are you sure you want to delete this session and all its consultations? This action cannot be undone."
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                danger
+            />
         </div>
     );
 };

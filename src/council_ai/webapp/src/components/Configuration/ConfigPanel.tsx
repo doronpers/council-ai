@@ -17,6 +17,7 @@ import HelpIcon from '../Help/HelpIcon';
 import { getHelpContent, formatHelpContent } from '../../data/helpContent';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../Layout/NotificationContainer';
+import { logger, createLogContext } from '../../utils/logger';
 import type { ConfigSourceInfo, ConfigIssue, ConfigDiagnosticsResponse } from '../../types';
 
 const ConfigPanel: React.FC = () => {
@@ -42,7 +43,7 @@ const ConfigPanel: React.FC = () => {
           setConfigIssues(issues);
         }
       } catch (error) {
-        console.warn('Failed to fetch configuration diagnostics:', error);
+        logger.warn('Failed to fetch configuration diagnostics', error instanceof Error ? error : undefined, createLogContext('ConfigPanel'));
       }
     };
     fetchDiagnostics();

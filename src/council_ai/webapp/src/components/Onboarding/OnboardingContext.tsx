@@ -2,6 +2,7 @@
  * Onboarding Context - Manages onboarding state and progress
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { logger, createLogContext } from '../../utils/logger';
 
 interface OnboardingContextType {
   isOnboarding: boolean;
@@ -57,7 +58,7 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
         setCompletedSteps(new Set(parsed.completedSteps || []));
       }
     } catch (e) {
-      console.warn('Failed to load onboarding state:', e);
+      logger.warn('Failed to load onboarding state', e instanceof Error ? e : undefined, createLogContext('OnboardingContext'));
     }
   }, []);
 
@@ -72,7 +73,7 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
         JSON.stringify({ currentStep: 0, completedSteps: [] })
       );
     } catch (e) {
-      console.warn('Failed to save onboarding state:', e);
+      logger.warn('Failed to save onboarding state', e instanceof Error ? e : undefined, createLogContext('OnboardingContext'));
     }
   };
 
@@ -82,7 +83,7 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
       localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
       localStorage.removeItem(ONBOARDING_PROGRESS_KEY);
     } catch (e) {
-      console.warn('Failed to save onboarding completion:', e);
+      logger.warn('Failed to save onboarding completion', e instanceof Error ? e : undefined, createLogContext('OnboardingContext'));
     }
   };
 
@@ -100,7 +101,7 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
         };
         localStorage.setItem(ONBOARDING_PROGRESS_KEY, JSON.stringify(progress));
       } catch (e) {
-        console.warn('Failed to save onboarding progress:', e);
+        logger.warn('Failed to save onboarding progress', e instanceof Error ? e : undefined, createLogContext('OnboardingContext'));
       }
     }
   };
@@ -130,7 +131,7 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
         };
         localStorage.setItem(ONBOARDING_PROGRESS_KEY, JSON.stringify(progress));
       } catch (e) {
-        console.warn('Failed to save step completion:', e);
+        logger.warn('Failed to save step completion', e instanceof Error ? e : undefined, createLogContext('OnboardingContext'));
       }
       return next;
     });

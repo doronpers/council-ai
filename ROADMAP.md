@@ -1,11 +1,20 @@
 # Council AI - Roadmap & TODOs
 
-**Last Updated**: 2026-01-24
+**Last Updated**: 2026-01-26
 **Single Source of Truth**: This file contains all TODOs, planned features, and roadmap items.
 
 ---
 
 ## ✅ Recently Completed
+
+### Testing & Code Quality (2026-01-26)
+
+1. ✅ **Frontend Testing Framework** - Added Vitest with React Testing Library for TypeScript/React component testing
+2. ✅ **Component Tests** - Added tests for validation utilities, ErrorBoundary, Modal, Tooltip, QueryInput
+3. ✅ **TUI Widget Tests** - Added unit tests for StatusPanel, ResponsePanel, ThinkingPanel, HistoryPanel, InputPanel
+4. ✅ **CLI Command Unit Tests** - Added dedicated unit tests for CLI command logic and history commands
+5. ✅ **Replace window.confirm()** - Replaced native browser dialogs with ConfirmDialog component in SessionManager
+6. ✅ **Production Logging** - Replaced console.error/warn with structured logger utility across components
 
 ### Web UI Improvements (2026-01-16)
 
@@ -178,7 +187,7 @@ These are lower priority and depend on Phase 1 & 2 completion:
 
 ## 📊 Progress Summary
 
-- **Completed**: 21 items (2026-01-16 to 2026-01-24)
+- **Completed**: 27 items (2026-01-16 to 2026-01-26)
 - **High Priority**: 0 items
 - **Medium Priority**: 0 items (2 completed integrations moved to Recently Completed)
 - **Low Priority**: 6 items
