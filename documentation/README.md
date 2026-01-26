@@ -4,47 +4,45 @@ This directory contains comprehensive documentation for Council AI. Use this ind
 
 ## Start Here
 
-- **[Main README](../README.md)**: overview, installation, and “first consultation”
-- **[Quick Reference](QUICK_REFERENCE.md)**: copy/paste snippets (CLI + Python)
-- **[Documentation Maintenance](DOCS_MAINTENANCE.md)**: guidance for maintaining and consolidating docs (style, checklist, consolidation plan)
+- **[README](../README.md)**: Quick overview, getting started, and features
+- **[Getting Started](../GETTING_STARTED.md)**: Complete 5-10 minute setup guide for all platforms
+- **[Repository Structure](../REPOSITORY_STRUCTURE.md)**: Understanding council-ai vs council-ai-personal
+- **[Quick Reference](QUICK_REFERENCE.md)**: Copy/paste snippets (CLI + Python)
+- **[Common Tasks](COMMON_TASKS.md)**: How-to guide for frequent operations
+- **[Troubleshooting](TROUBLESHOOTING.md)**: Common issues and solutions
 
 ## Core Concepts
 
-- **[Personas and Domains](PERSONAS_AND_DOMAINS.md)**: what ships out of the box
-- **[Configuration](CONFIGURATION.md)**: config precedence, `.env`, config file, presets
+- **[Personas and Domains](PERSONAS_AND_DOMAINS.md)**: Built-in personas and domain presets
+- **[Configuration](CONFIGURATION.md)**: Config precedence, `.env`, config file, presets
 
 ## Feature Guides
 
-- **[Web App](WEB_APP.md)**: run the UI, launchers, local endpoints, onboarding, feature discovery
-- **[Error Handling](ERROR_HANDLING.md)**: comprehensive error handling and user feedback system
-- **[Web Search & Reasoning](WEB_SEARCH_AND_REASONING.md)**: enable web search and reasoning modes
-- **[Context Injection](CONTEXT_INJECTION_GUIDE.md)**: inject files/code into consultations
+- **[Web App](WEB_APP.md)**: Run the UI, launchers, onboarding, feature discovery
+- **[Error Handling](ERROR_HANDLING.md)**: Error handling and user feedback system
+- **[Web Search & Reasoning](WEB_SEARCH_AND_REASONING.md)**: Enable web search and reasoning modes
+- **[Context Injection](CONTEXT_INJECTION_GUIDE.md)**: Inject files/code into consultations
 - **[LLM Response Reviewer](REVIEWER_SETUP.md)**: Supreme Court-style review system
 
 ## Reference
 
-- **[API Reference](API_REFERENCE.md)**: complete Python API documentation
-- **[Persona Model Settings](PERSONA_MODEL_SETTINGS.md)**: built-in persona provider/model overrides
+- **[API Reference](API_REFERENCE.md)**: Complete Python API documentation
+- **[Persona Model Settings](PERSONA_MODEL_SETTINGS.md)**: Built-in persona provider/model overrides
 
 ## Development & Contributing
 
-- **[Contributing Guide](../CONTRIBUTING.md)** - Development setup and contribution guidelines
-- **[Agent Knowledge Base](../AGENT_KNOWLEDGE_BASE.md)** - AI agent reference and coding standards
-- **[Security Policy](../SECURITY.md)** - Security best practices and vulnerability reporting
+- **[Contributing Guide](../CONTRIBUTING.md)**: Development setup and contribution guidelines
+- **[Agent Knowledge Base](../AGENT_KNOWLEDGE_BASE.md)**: AI agent reference and coding standards
+- **[Security Policy](../SECURITY.md)**: Security best practices
 
 ## Internal/Planning Documents
 
-These documents are for internal reference and planning purposes:
+Planning and internal reference documents (not user-facing):
 
-- **[Integration Assessment](INTEGRATION_ASSESSMENT.md)** - Integration opportunities with other repositories
-- **[Integration Plan](../planning/integration-plan.md)** - Cross-repository integration strategy
-- **[Investigation Summary](decisions/INVESTIGATION_SUMMARY.md)** - Historical investigation and research notes
-- **[Archive](../Archive/)** - Deprecated and archived documentation
+- **[Internal](internal/)**: Internal planning docs (Codex automation, merge instructions, etc.)
+- **[Decisions](decisions/)**: Design decisions and investigations
+- **[Archive](../Archive/)**: Deprecated setup guides and historical reports
 
-## Documentation Structure
-
-All user-facing documentation lives in the repository root or this `documentation/` folder. Internal planning documents are clearly marked to avoid confusion.
-
-For consolidation proposals and maintenance guidance, see [Documentation Maintenance](DOCS_MAINTENANCE.md).
+---
 
 For questions or improvements, see the [Contributing Guide](../CONTRIBUTING.md).

@@ -72,7 +72,7 @@ If you have a `council-ai-personal` repository:
 
 ## Summary
 
-- **Work in**: `council-ai` 
+- **Work in**: `council-ai`
 - **Store customizations in**: `council-ai-personal`
 - **Run from**: `council-ai`
 - **Personal configs**: Automatically detected if `council-ai-personal` exists
