@@ -46,8 +46,8 @@ Comprehensive guide including:
 ## Verification Performed
 
 ✅ **Strategy Return Types**: Confirmed all strategies return `ConsultationResult`:
-- DebateStrategy: Line 27 shows `-> "ConsultationResult"`
-- VoteStrategy: Line 25 shows `-> "ConsultationResult"`
+- DebateStrategy: Return type annotation at line 27 shows `-> "ConsultationResult"`
+- VoteStrategy: Return type annotation at line 25 shows `-> "ConsultationResult"`
 - Sequential, Individual, Synthesis: Already completed in PR #56
 
 ✅ **Code Quality**:

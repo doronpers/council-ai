@@ -7,8 +7,8 @@
 - ✅ SequentialStrategy (PR #56)
 - ✅ IndividualStrategy (PR #56)
 - ✅ SynthesisStrategy (PR #56)
-- ✅ DebateStrategy - verified to return `ConsultationResult` (lines 27, 71)
-- ✅ VoteStrategy - verified to return `ConsultationResult` (lines 25, 51)
+- ✅ DebateStrategy - verified to return `ConsultationResult` (return type at line 27)
+- ✅ VoteStrategy - verified to return `ConsultationResult` (return type at line 25)
 - ✅ Backward compatibility handling in `Council.consult_async()` (PR #56, lines 750-753)
 
 ## Remaining Work

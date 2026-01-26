@@ -22,8 +22,8 @@ All strategies have been verified to return `ConsultationResult`:
 - ✅ SequentialStrategy (PR #56)
 - ✅ IndividualStrategy (PR #56)
 - ✅ SynthesisStrategy (PR #56)
-- ✅ DebateStrategy - confirmed (lines 27, 71 in debate.py)
-- ✅ VoteStrategy - confirmed (lines 25, 51 in vote.py)
+- ✅ DebateStrategy - confirmed (return type annotation at line 27 in debate.py)
+- ✅ VoteStrategy - confirmed (return type annotation at line 25 in vote.py)
 
 ### ✅ 3. Documentation Created
 

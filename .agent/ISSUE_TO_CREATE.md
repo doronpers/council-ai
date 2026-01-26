@@ -12,7 +12,7 @@ Re-enable strict mypy checks after ConsultationResult migration completes
 
 ## Background
 
-During the strategy return type migration (PR #56, #78), we temporarily relaxed mypy checks in `.pre-commit-config.yaml`:
+During the strategy return type migration (PR #56 and related work), we temporarily relaxed mypy checks in `.pre-commit-config.yaml`:
 - `--no-strict-optional`: Allows None-related flexibility
 - `--disable-error-code=no-any-return`: Permits implicit Any returns
 
@@ -38,7 +38,7 @@ Re-enable strict mypy checks once ALL strategies return `ConsultationResult`:
 ## References
 
 - Original review: PR #56 review comment by @gemini-code-assist[bot]
-- Related PRs: #56, #78
+- Related PR: #56
 - Tracking issue: #77
 - Migration status: See `.agent/migration-status.md`
 
