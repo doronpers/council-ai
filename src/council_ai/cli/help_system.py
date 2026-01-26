@@ -7,6 +7,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 console = Console()
+# Note: Previous duplicate declaration at line ~22 was removed (PR #56 review feedback)
 
 
 class CommandDoc(TypedDict):
