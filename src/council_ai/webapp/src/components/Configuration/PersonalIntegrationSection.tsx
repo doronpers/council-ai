@@ -3,6 +3,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useNotifications } from '../Layout/NotificationContainer';
+import { logger, createLogContext } from '../../utils/logger';
 
 interface PersonalStatus {
   detected: boolean;
@@ -36,7 +37,7 @@ const PersonalIntegrationSection: React.FC = () => {
         setStatus(data);
       }
     } catch (error) {
-      console.error('Failed to fetch personal status:', error);
+      logger.error('Failed to fetch personal status', error instanceof Error ? error : undefined, createLogContext('PersonalIntegrationSection'));
     } finally {
       setIsLoading(false);
     }

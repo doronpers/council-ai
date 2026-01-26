@@ -8,6 +8,7 @@ import { deleteHistoryEntry, getConsultation, updateConsultationMetadata } from 
 import TagInput from './TagInput';
 import { useNotifications } from '../Layout/NotificationContainer';
 import ConfirmDialog from '../Layout/ConfirmDialog';
+import { logger, createLogContext } from '../../utils/logger';
 
 interface HistoryItemProps {
   entry: HistoryEntry;
@@ -46,7 +47,7 @@ const HistoryItem: React.FC<HistoryItemProps> = ({
       onDeleted();
       showNotification('Consultation deleted successfully', 'success');
     } catch (err) {
-      console.error('Failed to delete history entry:', err);
+      logger.error('Failed to delete history entry', err instanceof Error ? err : undefined, createLogContext('HistoryItem'));
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete entry';
       showNotification(`Error: ${errorMessage}`, 'error');
     }
@@ -64,7 +65,7 @@ const HistoryItem: React.FC<HistoryItemProps> = ({
         showNotification('Consultation details loaded', 'info');
       }
     } catch (err) {
-      console.error('Failed to load consultation:', err);
+      logger.error('Failed to load consultation', err instanceof Error ? err : undefined, createLogContext('HistoryItem'));
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to load consultation details';
       showNotification(`Error: ${errorMessage}`, 'error');
@@ -83,7 +84,7 @@ const HistoryItem: React.FC<HistoryItemProps> = ({
       const result = await getConsultation(entry.id);
       onCompare(entry, result);
     } catch (err) {
-      console.error('Failed to load consultation for comparison:', err);
+      logger.error('Failed to load consultation for comparison', err instanceof Error ? err : undefined, createLogContext('HistoryItem'));
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to load consultation details';
       showNotification(`Error: ${errorMessage}`, 'error');
@@ -99,7 +100,7 @@ const HistoryItem: React.FC<HistoryItemProps> = ({
       setIsEditing(false);
       showNotification('Tags and notes saved successfully', 'success');
     } catch (err) {
-      console.error('Failed to save metadata:', err);
+      logger.error('Failed to save metadata', err instanceof Error ? err : undefined, createLogContext('HistoryItem'));
       const errorMessage = err instanceof Error ? err.message : 'Failed to save tags/notes';
       showNotification(`Error: ${errorMessage}`, 'error');
     } finally {

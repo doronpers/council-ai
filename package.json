@@ -11,6 +11,9 @@
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix && prettier --write .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "launch": "python3 launch-council.py --open",
     "launch:lan": "python3 launch-council.py --network",
     "launch:persistent": "python3 launch-council.py --retry",
@@ -22,6 +25,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^25.0.9",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
@@ -34,9 +40,11 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-security": "^3.0.1",
     "globals": "^17.0.0",
+    "jsdom": "^25.0.1",
     "prettier": "^3.8.0",
     "typescript": "^5.7.3",
-    "vite": "^5.4.20"
+    "vite": "^5.4.20",
+    "vitest": "^2.1.8"
   },
   "browserslist": [
     ">0.3%",
