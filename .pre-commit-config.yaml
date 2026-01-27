@@ -70,7 +70,8 @@ repos:
         # Temporarily relaxed mypy flags during strategy return type migration:
         # - --no-strict-optional: Allows None-related flexibility during ConsultationResult migration
         # - --disable-error-code=no-any-return: Permits implicit Any returns during type normalization
-        # TODO: Re-enable stricter checks after completing the strategy return type migration (all strategies return ConsultationResult)
+        # TODO: Re-enable stricter checks after completing migration
+        # Action required: Create GitHub issue using template in .agent/ISSUE_TO_CREATE.md and reference it here
         args: [--ignore-missing-imports, --no-strict-optional, --disable-error-code=no-any-return]
         additional_dependencies:
           - types-PyYAML
