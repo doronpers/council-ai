@@ -17,7 +17,7 @@ interface ErrorContext {
 /**
  * Sanitize data to remove sensitive information
  */
-function sanitizeData(data: any): any {
+function sanitizeData(data: unknown): unknown {
   if (typeof data !== 'object' || data === null) {
     return data;
   }
@@ -26,7 +26,7 @@ function sanitizeData(data: any): any {
     return data.map(sanitizeData);
   }
 
-  const sanitized: Record<string, any> = {};
+  const sanitized: Record<string, unknown> = {};
   const sensitiveKeys = [
     'api_key',
     'apiKey',

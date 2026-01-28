@@ -24,7 +24,7 @@ export interface ErrorInfo {
   recoverable: boolean;
   severity: 'low' | 'medium' | 'high' | 'critical';
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 // HTTP status code to error category mapping
@@ -188,14 +188,15 @@ const ERROR_CODE_MAPPINGS: Record<string, Partial<ErrorInfo>> = {
 /**
  * Classify an error based on HTTP status, error code, or error message
  */
-export function classifyError(error: any, httpStatus?: number): ErrorInfo {
+export function classifyError(error: unknown, httpStatus?: number): ErrorInfo {
+  const err = error as Record<string, unknown>;
   // Check for known error codes first
-  if (error?.code && ERROR_CODE_MAPPINGS[error.code]) {
+  if (err?.code && typeof err.code === 'string' && ERROR_CODE_MAPPINGS[err.code]) {
     return {
-      ...ERROR_CODE_MAPPINGS[error.code],
-      message: error.detail || error.message || error.code,
-      code: error.code,
-      details: error,
+      ...ERROR_CODE_MAPPINGS[err.code],
+      message: String(err.detail ?? err.message ?? err.code),
+      code: err.code,
+      details: err,
     } as ErrorInfo;
   }
 
@@ -206,13 +207,13 @@ export function classifyError(error: any, httpStatus?: number): ErrorInfo {
     return {
       ...baseInfo,
       category,
-      message: error?.detail || error?.message || `HTTP ${httpStatus}`,
-      details: error,
+      message: String(err?.detail ?? err?.message ?? `HTTP ${httpStatus}`),
+      details: err,
     } as ErrorInfo;
   }
 
   // Check error message patterns
-  const message = error?.message || error?.detail || String(error);
+  const message = String(err?.message ?? err?.detail ?? error);
   const lowerMessage = message.toLowerCase();
 
   // Network-related errors
@@ -232,7 +233,7 @@ export function classifyError(error: any, httpStatus?: number): ErrorInfo {
       ],
       recoverable: true,
       severity: 'medium',
-      details: error,
+      details: err,
     };
   }
 
@@ -249,7 +250,7 @@ export function classifyError(error: any, httpStatus?: number): ErrorInfo {
       ],
       recoverable: true,
       severity: 'medium',
-      details: error,
+      details: err,
     };
   }
 
@@ -273,7 +274,7 @@ export function classifyError(error: any, httpStatus?: number): ErrorInfo {
       ],
       recoverable: true,
       severity: 'high',
-      details: error,
+      details: err,
     };
   }
 
@@ -290,7 +291,7 @@ export function classifyError(error: any, httpStatus?: number): ErrorInfo {
       ],
       recoverable: true,
       severity: 'medium',
-      details: error,
+      details: err,
     };
   }
 
@@ -306,7 +307,7 @@ export function classifyError(error: any, httpStatus?: number): ErrorInfo {
     ],
     recoverable: true,
     severity: 'medium',
-    details: error,
+    details: err,
   };
 }
 

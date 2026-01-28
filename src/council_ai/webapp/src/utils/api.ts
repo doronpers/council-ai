@@ -33,7 +33,7 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     });
 
     if (!response.ok) {
-      let errorData: any = {};
+      let errorData: Record<string, unknown> = {};
 
       try {
         const responseText = await response.text();

@@ -9,7 +9,7 @@ interface ConfigDiagnosticsData {
   config_sources: Record<
     string,
     {
-      value: any;
+      value: unknown;
       source: string;
       overridden: boolean;
     }

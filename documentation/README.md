@@ -35,6 +35,10 @@ This directory contains comprehensive documentation for Council AI. Use this ind
 - **[Agent Knowledge Base](../AGENT_KNOWLEDGE_BASE.md)**: AI agent reference and coding standards
 - **[Security Policy](../SECURITY.md)**: Security best practices
 
+## Reports
+
+- **[Dieter Rams Design Audit (2026-01-27)](Reports/DIETER_RAMS_DESIGN_AUDIT_2026-01-27.md)**: Design and content audit by Rams' 10 principles; improvements and recommendations
+
 ## Internal/Planning Documents
 
 Planning and internal reference documents (not user-facing):

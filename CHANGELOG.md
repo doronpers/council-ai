@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Added**
 
+- Dieter Rams design audit improvements (January 2026):
+  - Favicon (SVG) for web app
+  - Type safety: replaced `any` with `unknown` / `Record<string, unknown>` in ConfigDiagnostics, errors.ts, errorLogger.ts, api.ts
+
 - Comprehensive UX Enhancement (January 2026):
   - **Onboarding Wizard**: 6-step guided setup for first-time users (welcome, provider, config, domain, personas, first consultation)
   - **Error Handling System**: Categorized error messages with recovery actions, inline validation, and error logging
