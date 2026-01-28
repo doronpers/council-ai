@@ -212,8 +212,16 @@ export function classifyError(error: unknown, httpStatus?: number): ErrorInfo {
     } as ErrorInfo;
   }
 
-  // Check error message patterns
-  const message = String(err?.message ?? err?.detail ?? error);
+  // Check error message patterns (avoid "[object Object]" when error is plain object)
+  const raw =
+    typeof err?.message === 'string'
+      ? err.message
+      : typeof err?.detail === 'string'
+        ? err.detail
+        : typeof error === 'string'
+          ? error
+          : 'Unknown error';
+  const message = String(raw);
   const lowerMessage = message.toLowerCase();
 
   // Network-related errors

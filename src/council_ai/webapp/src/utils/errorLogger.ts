@@ -11,7 +11,7 @@ interface ErrorContext {
   errorType: string;
   errorMessage: string;
   stack?: string;
-  additionalData?: Record<string, any>;
+  additionalData?: Record<string, unknown>;
 }
 
 /**
@@ -40,7 +40,8 @@ function sanitizeData(data: unknown): unknown {
     'private',
   ];
 
-  for (const [key, value] of Object.entries(data)) {
+  const obj = data as Record<string, unknown>;
+  for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
     const isSensitive = sensitiveKeys.some((sensitive) => lowerKey.includes(sensitive));
 
@@ -64,7 +65,7 @@ export function logError(
   context?: {
     action?: string;
     component?: string;
-    additionalData?: Record<string, any>;
+    additionalData?: Record<string, unknown>;
   }
 ): void {
   const errorContext: ErrorContext = {
@@ -76,14 +77,19 @@ export function logError(
     errorType: error instanceof Error ? error.constructor.name : typeof error,
     errorMessage: error instanceof Error ? error.message : String(error),
     stack: error instanceof Error ? error.stack : undefined,
-    additionalData: context?.additionalData ? sanitizeData(context.additionalData) : undefined,
+    additionalData: context?.additionalData
+      ? (sanitizeData(context.additionalData) as Record<string, unknown>)
+      : undefined,
   };
 
-  // Log to console with full context
-  console.error('Error logged:', {
-    ...errorContext,
-    originalError: error,
-  });
+  // Log to console; avoid leaking raw error (stack/serialized state) in production-style logging
+  const safeError =
+    error instanceof Error
+      ? { name: error.name, message: error.message }
+      : typeof error === 'object' && error !== null
+        ? '[Object]'
+        : String(error);
+  console.error('Error logged:', { ...errorContext, originalError: safeError });
 
   // In production, you could send this to an error tracking service
   // Example: sendToErrorTrackingService(sanitizeData(errorContext));
@@ -103,7 +109,7 @@ export function logError(
 /**
  * Log user action for error context
  */
-export function logUserAction(action: string, details?: Record<string, any>): void {
+export function logUserAction(action: string, details?: Record<string, unknown>): void {
   try {
     const actionLogKey = 'council-ai-action-log';
     const existingActions = JSON.parse(localStorage.getItem(actionLogKey) || '[]');

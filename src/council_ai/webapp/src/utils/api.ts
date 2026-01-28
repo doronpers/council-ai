@@ -40,29 +40,26 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 
         // Try to parse as JSON first
         try {
-          errorData = JSON.parse(responseText);
+          errorData = JSON.parse(responseText) as Record<string, unknown>;
 
-          // Check if it's a structured error response
-          if (errorData.error && typeof errorData.error === 'object') {
-            const structuredError = errorData.error;
-
-            // Create ErrorInfo from structured response
+          const raw = errorData.error;
+          if (raw && typeof raw === 'object' && raw !== null) {
+            const s = raw as Record<string, unknown>;
             const errorInfo: ErrorInfo = {
-              category: structuredError.category || 'unknown',
-              message:
-                structuredError.message || structuredError.detail || `HTTP ${response.status}`,
-              userMessage: structuredError.message || 'An error occurred.',
-              suggestions: structuredError.suggestions || [],
-              actions: structuredError.actions || undefined,
-              recoverable: structuredError.recoverable !== false, // Default to true
-              severity: structuredError.severity || 'medium',
-              code: structuredError.code,
-              details: structuredError.details,
+              category: (s.category as string) || 'unknown',
+              message: String(s.message ?? s.detail ?? `HTTP ${response.status}`),
+              userMessage: String(s.message ?? 'An error occurred.'),
+              suggestions: (Array.isArray(s.suggestions) ? s.suggestions : []) as string[],
+              actions: s.actions as ErrorInfo['actions'],
+              recoverable: s.recoverable !== false,
+              severity: (s.severity as ErrorInfo['severity']) || 'medium',
+              code: s.code as string | undefined,
+              details: s.details,
             };
-
             throw new ApiError(errorInfo);
           }
         } catch (parseError) {
+          if (parseError instanceof ApiError) throw parseError;
           // Not valid JSON or not a structured error, use as plain text
           errorData = { detail: responseText || 'Request failed' };
         }

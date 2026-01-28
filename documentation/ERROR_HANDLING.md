@@ -4,7 +4,7 @@ Council AI's web application includes a comprehensive error handling system desi
 
 ## Overview
 
-The error handling system categorizes errors, provides user-friendly messages, suggests recovery actions, and logs errors for debugging while protecting user privacy.
+The error handling system categorizes errors, provides user-friendly messages, suggests recovery actions, and logs errors for debugging while protecting user privacy. The web app uses typed API error handling (`ApiError`, `classifyError(error: unknown)`), parses API responses as `Record<string, unknown>` with explicit property access, rethrows structured `ApiError` so it is not replaced by generic messages, and logs only safe error shapes (name/message or a placeholder) rather than raw error objects.
 
 ## Error Categories
 

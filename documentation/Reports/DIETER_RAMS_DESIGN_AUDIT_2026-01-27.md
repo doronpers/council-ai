@@ -118,36 +118,28 @@ This audit evaluated both Council AI repositories through the lens of Dieter Ram
 
 ---
 
-## Detailed Issue List
+## Changes and Status
 
-| Category       | Issue                                        | Repo                | Status  |
-| -------------- | -------------------------------------------- | ------------------- | ------- |
-| Code structure | Backup files (.bak, .bak2, .bak3) in Members | council-ai-personal | Fixed   |
-| Type safety    | `any` in ConfigDiagnostics config_sources    | council-ai          | Fixed   |
-| Type safety    | `any` in errors.ts (details, classifyError)  | council-ai          | Fixed   |
-| Type safety    | `any` in errorLogger sanitizeData            | council-ai          | Fixed   |
-| Type safety    | `any` in api.ts errorData                    | council-ai          | Fixed   |
-| UI/UX          | window.confirm in HistoryItem, SessionPanel  | council-ai-personal | Fixed   |
-| UI/UX          | Missing ConfirmDialog in council-ai-personal | council-ai-personal | Fixed   |
-| UI/UX          | Missing favicon                              | council-ai          | Fixed   |
-| Documentation  | CHANGELOG out of date for design work        | council-ai          | Updated |
+Summary of fixes applied during this audit. See "Audit by Rams' Principles" above for rationale.
 
 ---
 
-## Improvements Made
-
 ### council-ai
 
-1. **Favicon:** Added `src/council_ai/webapp/favicon.svg` and wired in `index.html`.
-2. **Type safety:** Replaced `any` with `unknown` / `Record<string, unknown>` in ConfigDiagnostics, errors.ts, errorLogger.ts, api.ts.
-3. **CHANGELOG:** Documented Dieter Rams design-audit improvements.
+| Area             | Change                                                                                                                                                                                                                       |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Favicon          | Added `favicon.svg`, wired in `index.html`                                                                                                                                                                                   |
+| Type safety      | ConfigDiagnostics, errors.ts, errorLogger.ts, api.ts: `any` → `unknown` / `Record<string, unknown>`; typed API error parsing; `ApiError` rethrown in catch so structured errors are not turned into generic "Request failed" |
+| Error logging    | errorLogger logs a safe error shape (name/message or `[Object]`), not raw error objects                                                                                                                                      |
+| Message fallback | errors.ts: avoid `"[object Object]"` when classifying plain objects; use `typeof` checks and `'Unknown error'` fallback                                                                                                      |
+| CHANGELOG        | Documented design-audit and type-safety improvements                                                                                                                                                                         |
 
 ### council-ai-personal
 
-1. **Backup files:** Removed `MemberSelectionGrid.tsx.bak`, `.bak2`, `.bak3`.
-2. **ConfirmDialog:** New `ConfirmDialog.tsx` and confirm-dialog/btn-danger CSS.
-3. **HistoryItem:** Delete and “discard changes” flows use ConfirmDialog instead of `window.confirm`.
-4. **SessionPanel:** Delete-session flow uses ConfirmDialog instead of `window.confirm`.
+| Area          | Change                                                                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Backup files  | Removed `MemberSelectionGrid.tsx.bak`, `.bak2`, `.bak3`                                                                               |
+| ConfirmDialog | New component and confirm-dialog/btn-danger CSS; HistoryItem and SessionPanel delete/discard flows use it instead of `window.confirm` |
 
 ---
 
@@ -157,6 +149,7 @@ This audit evaluated both Council AI repositories through the lens of Dieter Ram
 2. **Council-ai-personal tests:** The `tests/` directory has no `.py` files (only `__pycache__`). Restore or add test modules and ensure pytest discovers them.
 3. **Inline styles:** Any remaining inline styles (e.g. in TTSSettings or similar) can be moved into CSS modules or token-based classes for consistency with the design system.
 4. **Console usage:** errorLogger, ErrorBoundary, and logger intentionally use console for errors/warnings. errorMessages.ts line 250 uses `console.log` for action logging; consider routing through the app logger or making it dev-only.
+5. **Error log persistence:** errorLogger stores `errorContext` (including stack) in localStorage for the last 10 errors. For production builds, consider omitting stack from persisted logs to avoid path/internal-structure leakage.
 
 ---
 
