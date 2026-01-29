@@ -102,37 +102,32 @@ class TestProviderFallback:
         """Test falling back to secondary provider when primary fails."""
         from council_ai.core.council import Council
 
+        anthropic_provider = MagicMock()
+
+        async def _fake_complete(*args, **kwargs):
+            return MagicMock(text="response")
+
+        anthropic_provider.complete = _fake_complete
+
+        # Mock get_llm_manager so the manager returns None for primary, triggering fallback
+        mock_manager = MagicMock()
+        mock_manager.get_provider.return_value = None
+        mock_manager.preferred_provider = "anthropic"
+
         with (
-            patch("council_ai.providers.get_provider") as mock_get_provider,
+            patch("council_ai.core.council.get_llm_manager", return_value=mock_manager),
             patch("council_ai.core.config.get_available_providers") as mock_available,
+            patch("council_ai.core.council.get_provider", return_value=anthropic_provider),
         ):
-            # Primary provider fails, secondary works
-            anthropic_provider = MagicMock()
-
-            async def _fake_complete(*args, **kwargs):
-                return MagicMock(text="response")
-
-            anthropic_provider.complete = _fake_complete
-
-            openai_provider = MagicMock()
-            openai_provider.complete = _fake_complete
-
-            # Set up mock to return None for first call (primary fails), then succeed
-            mock_get_provider.side_effect = [None, anthropic_provider]
-
-            # Mock available providers
             mock_available.return_value = [
                 ("anthropic", TEST_KEY_ANTHROPIC),
                 ("openai", TEST_KEY_OPENAI),
             ]
 
-            # Avoid starting a real session
-            with patch("council_ai.core.council.LLMManager"):
-                council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="openai")
-                # Council should successfully get a provider via fallback
-                provider = council._get_provider(fallback=True)
-                assert provider is not None
-                assert hasattr(provider, "complete")
+            council = Council(api_key=TEST_KEY_PLACEHOLDER, provider="openai")
+            provider = council._get_provider(fallback=True)
+            assert provider is not None
+            assert hasattr(provider, "complete")
 
     @pytest.mark.asyncio
     async def test_fallback_priority_order(self):
@@ -342,24 +337,25 @@ class TestProviderSelection:
         """Test provider selection respects model compatibility."""
         from council_ai.core.council import Council
 
-        with patch("council_ai.providers.get_provider") as mock_get:
-            mock_provider = MagicMock()
+        mock_provider = MagicMock()
 
-            async def _fake_complete(*args, **kwargs):
-                return MagicMock(text="response")
+        async def _fake_complete(*args, **kwargs):
+            return MagicMock(text="response")
 
-            mock_provider.complete = _fake_complete
-            mock_get.return_value = mock_provider
+        mock_provider.complete = _fake_complete
 
-            with patch("council_ai.core.council.LLMManager"):
-                council = Council(
-                    api_key=TEST_KEY_PLACEHOLDER,
-                    provider="anthropic",
-                    model="claude-3-sonnet-20240229",
-                )
+        mock_manager = MagicMock()
+        mock_manager.get_provider.return_value = mock_provider
 
-                provider = council._get_provider(fallback=False)
-                assert provider is not None
+        with patch("council_ai.core.council.get_llm_manager", return_value=mock_manager):
+            council = Council(
+                api_key=TEST_KEY_PLACEHOLDER,
+                provider="anthropic",
+                model="claude-3-sonnet-20240229",
+            )
+
+            provider = council._get_provider(fallback=False)
+            assert provider is not None
 
 
 # ============================================================================

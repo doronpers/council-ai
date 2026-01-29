@@ -1,11 +1,36 @@
 /**
  * Tests for Tooltip component
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Tooltip from '../../components/Layout/Tooltip';
 
+// Mock getBoundingClientRect to return centered viewport values
+// so the auto-adjust logic doesn't override the requested position
+const mockGetBoundingClientRect = () =>
+  ({
+    top: 200,
+    left: 200,
+    bottom: 250,
+    right: 300,
+    width: 100,
+    height: 50,
+    x: 200,
+    y: 200,
+    toJSON: () => {},
+  }) as DOMRect;
+
 describe('Tooltip', () => {
+  const originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
+
+  beforeEach(() => {
+    Element.prototype.getBoundingClientRect = mockGetBoundingClientRect;
+  });
+
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+  });
+
   it('renders children without tooltip initially', () => {
     render(
       <Tooltip content="Tooltip text">
