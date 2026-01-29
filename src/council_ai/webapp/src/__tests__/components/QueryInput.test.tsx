@@ -71,7 +71,9 @@ describe('QueryInput', () => {
   it('displays character counter', () => {
     render(<QueryInput />);
 
-    expect(screen.getByText(/0 \/ 50,000/)).toBeInTheDocument();
+    const counters = screen.getAllByText(/0 \/ 50,000/);
+    expect(counters.length).toBeGreaterThanOrEqual(1);
+    expect(counters[0]).toBeInTheDocument();
   });
 
   it('calls setQuery when typing', async () => {

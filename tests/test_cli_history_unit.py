@@ -332,4 +332,4 @@ class TestShowProvidersCommand:
         api_key = "sk-abc123xyz"
         length = len(api_key)
 
-        assert length == 11
+        assert length == 12

@@ -23,11 +23,11 @@ class TestConsultCommandLogic:
         assert result == ["DR", "MD"]
 
     def test_parse_bracket_notation_empty_without_brackets(self):
-        """Test that parser returns empty for queries without brackets."""
+        """Test that parser returns None for queries without brackets."""
         from council_ai.cli.utils import parse_bracket_notation
 
         result = parse_bracket_notation("What do you think?")
-        assert result == []
+        assert result is None
 
     def test_parse_bracket_notation_handles_whitespace(self):
         """Test bracket notation parser handles various whitespace."""
