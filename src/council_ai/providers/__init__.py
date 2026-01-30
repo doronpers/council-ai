@@ -18,7 +18,13 @@ from typing import Any, AsyncIterator, Dict, Optional, Type
 from shared_ai_utils.llm import AnthropicProvider as _BaseAnthropicProvider
 from shared_ai_utils.llm import GeminiProvider as _BaseGeminiProvider
 from shared_ai_utils.llm import HTTPProvider as _BaseHTTPProvider
-from shared_ai_utils.llm import LLMManager, LLMProvider, LLMResponse, ModelInfo, ModelParameterSpec
+from shared_ai_utils.llm import (
+    LLMManager,
+    LLMProvider,
+    LLMResponse,
+    ModelInfo,
+    ModelParameterSpec,
+)
 from shared_ai_utils.llm import OpenAIProvider as _BaseOpenAIProvider
 
 from .resilience import RateLimiter, ResilienceConfig, ResilientProvider
@@ -190,7 +196,11 @@ class OpenAIProvider(_BaseOpenAIProvider):
             return text, input_tokens, output_tokens
 
         text, input_tokens, output_tokens = await asyncio.to_thread(_call)
-        total_tokens = (input_tokens + output_tokens) if (input_tokens and output_tokens) else None
+        total_tokens = (
+            input_tokens + output_tokens
+            if (input_tokens is not None and output_tokens is not None)
+            else None
+        )
 
         return LLMResponse(
             text=text,
@@ -268,10 +278,14 @@ class OpenAIProvider(_BaseOpenAIProvider):
                 ],
                 response_format={"type": "json_object"},
             )
-            result_text = response.choices[0].message.content
-            return json.loads(result_text)
+            content = response.choices[0].message.content
+            if content is None:
+                raise ValueError("OpenAI returned empty response for structured output")
+            return json.loads(content)
         except Exception as exc:
-            logger.debug(f"OpenAI structured output failed, falling back to base: {exc}")
+            logger.debug(
+                f"OpenAI structured output failed, falling back to base: {exc}"
+            )
             return await super().complete_structured(
                 system_prompt, user_prompt, json_schema, max_tokens, temperature
             )
@@ -317,7 +331,14 @@ class GeminiProvider(_BaseGeminiProvider):
                     "max_output_tokens": max_tokens,
                 },
             )
-            return response.text
+            try:
+                # Accessing response.text can raise a ValueError if the response was blocked.
+                content = response.text
+                if content is None:
+                    raise ValueError("Gemini returned a null response.")
+                return content
+            except (ValueError, AttributeError) as e:
+                raise ValueError(f"Gemini returned an empty or invalid response: {e}") from e
 
         text = await asyncio.to_thread(_call)
 
@@ -363,7 +384,9 @@ class GeminiProvider(_BaseGeminiProvider):
             elif hasattr(chunk, "candidates") and chunk.candidates:
                 # Some chunk formats have candidates
                 for candidate in chunk.candidates:
-                    if hasattr(candidate, "content") and hasattr(candidate.content, "parts"):
+                    if hasattr(candidate, "content") and hasattr(
+                        candidate.content, "parts"
+                    ):
                         for part in candidate.content.parts:
                             if hasattr(part, "text"):
                                 chunk_text = part.text
