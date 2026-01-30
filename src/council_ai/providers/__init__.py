@@ -131,7 +131,10 @@ class OpenAIProvider(LLMProvider):
                     {"role": "user", "content": user_prompt},
                 ],
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if content is None:
+                raise ValueError("OpenAI returned empty response")
+            return content
 
         return await asyncio.to_thread(_call)
 
@@ -181,6 +184,8 @@ class GeminiProvider(LLMProvider):
                     "max_output_tokens": max_tokens,
                 },
             )
+            if not hasattr(response, "text") or response.text is None:
+                raise ValueError("Gemini returned empty response")
             return response.text
 
         return await asyncio.to_thread(_call)
