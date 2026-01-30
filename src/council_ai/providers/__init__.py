@@ -331,9 +331,14 @@ class GeminiProvider(_BaseGeminiProvider):
                     "max_output_tokens": max_tokens,
                 },
             )
-            if not hasattr(response, "text") or response.text is None:
-                raise ValueError("Gemini returned empty response")
-            return response.text
+            try:
+                # Accessing response.text can raise a ValueError if the response was blocked.
+                content = response.text
+                if content is None:
+                    raise ValueError("Gemini returned a null response.")
+                return content
+            except (ValueError, AttributeError) as e:
+                raise ValueError(f"Gemini returned an empty or invalid response: {e}") from e
 
         text = await asyncio.to_thread(_call)
 
