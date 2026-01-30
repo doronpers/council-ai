@@ -1,6 +1,4 @@
-"""
-Tests for session and result handling.
-"""
+"""Tests for session and result handling."""
 
 from datetime import datetime
 

@@ -2,25 +2,102 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+import json
+import logging
+import os
+from pathlib import Path
+from typing import Any, List, Optional, Union
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from council_ai import Council
-from council_ai.core.config import ConfigManager, get_api_key
+from council_ai.core.config import (
+    ConfigManager,
+    get_api_key,
+    get_available_providers,
+    get_tts_api_key,
+    is_placeholder_key,
+    sanitize_api_key,
+)
 from council_ai.core.council import ConsultationMode
+from council_ai.core.history import ConsultationHistory
 from council_ai.core.persona import PersonaCategory, list_personas
 from council_ai.domains import list_domains
-from council_ai.providers import list_providers
+from council_ai.providers import list_model_capabilities, list_providers
+from council_ai.providers.tts import TTSProviderFactory, generate_speech_with_fallback
+
+# Import reviewer routes
+from council_ai.webapp.reviewer import router as reviewer_router
+
+from ..utils.paths import get_workspace_config_dir
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Council AI", version="1.0.0")
 
 
+# Handle favicon requests to prevent 404 errors
+@app.get("/favicon.ico")
+async def favicon():
+    """Return 204 No Content for favicon requests to prevent 404 errors."""
+    return Response(status_code=204)
+
+
+@app.get("/favicon.svg")
+async def favicon_svg():
+    """Serve SVG favicon or return 204 if not found."""
+    favicon_path = STATIC_DIR / "favicon.svg"
+    if favicon_path.exists():
+        return FileResponse(str(favicon_path), media_type="image/svg+xml")
+    # Return a simple SVG favicon if file doesn't exist
+    svg_content = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#EA5B0C"/>
+  <text x="50" y="70" font-size="60" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-weight="bold">CA</text>
+</svg>"""
+    return Response(content=svg_content, media_type="image/svg+xml")
+
+
+# Include reviewer API routes
+app.include_router(reviewer_router)
+
+# Initialize history (shared instance)
+_history = ConsultationHistory()
+
+# Initialize TTS providers (lazy - will be created when needed)
+_tts_primary = None
+_tts_fallback = None
+_tts_initialized = False
+
+# Audio storage directory - use workspace-relative cache
+AUDIO_DIR = get_workspace_config_dir("council-ai") / "cache" / "audio"
+AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+
+# Determine if we're in production (built assets exist) or development
+WEBAPP_DIR = Path(__file__).parent
+STATIC_DIR = WEBAPP_DIR / "static"
+BUILT_HTML = STATIC_DIR / "index.html"
+DEV_HTML = WEBAPP_DIR / "index.html"
+IS_PRODUCTION = BUILT_HTML.exists()
+
+# Mount static files - production from static/, development from assets/
+if IS_PRODUCTION:
+    assets_dir = STATIC_DIR / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+else:
+    # Development mode: serve assets directly from source
+    assets_dir = WEBAPP_DIR / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+
 class ConsultRequest(BaseModel):
-    query: str = Field(..., min_length=1)
-    context: Optional[str] = None
+    query: str = Field(..., min_length=1, max_length=50000)
+    context: Optional[str] = Field(default=None, max_length=50000)
     domain: Optional[str] = None
     members: List[str] = Field(default_factory=list)
     mode: str = "synthesis"
@@ -28,17 +105,193 @@ class ConsultRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    enable_tts: bool = False  # Enable TTS for this consultation
+    temperature: Optional[float] = 0.7  # Sampling temperature
+    max_tokens: Optional[int] = 1000  # Max tokens per response
+    session_id: Optional[str] = None
+    auto_recall: Optional[bool] = None
 
 
 class ConsultResponse(BaseModel):
     synthesis: Optional[str]
     responses: list[dict]
     mode: str
+    session_id: Optional[str] = None
 
 
-@app.get("/", response_class=HTMLResponse)
-async def index() -> HTMLResponse:
-    return HTMLResponse(_INDEX_HTML)
+def _build_council(payload: ConsultRequest) -> tuple[Council, ConsultationMode]:
+    """
+    Build a Council instance from a ConsultRequest.
+
+    Returns:
+        Tuple of (council, mode) ready for consultation.
+
+    Raises:
+        HTTPException: If API key is missing or configuration is invalid.
+    """
+    from council_ai.core.council import CouncilConfig
+
+    config = ConfigManager().config
+    provider = payload.provider or config.api.provider
+    model = payload.model or config.api.model
+    base_url = payload.base_url or config.api.base_url
+
+    if payload.api_key and is_placeholder_key(payload.api_key):
+        raise HTTPException(
+            status_code=400,
+            detail="API key appears to be a placeholder. Please provide a valid API key.",
+        )
+
+    api_key = sanitize_api_key(payload.api_key) if payload.api_key else get_api_key(provider)
+
+    if not api_key and provider != "lmstudio":
+        raise HTTPException(status_code=400, detail="API key is required for consultation.")
+
+    try:
+        mode = ConsultationMode(payload.mode)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    council_config = CouncilConfig(
+        temperature=payload.temperature if payload.temperature is not None else 0.7,
+        max_tokens_per_response=payload.max_tokens if payload.max_tokens is not None else 1000,
+    )
+
+    if payload.members:
+        council = Council(
+            api_key=api_key,
+            provider=provider,
+            model=model,
+            base_url=base_url,
+            config=council_config,
+        )
+        for member_id in payload.members:
+            try:
+                council.add_member(member_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+    else:
+        domain = payload.domain or config.default_domain
+        try:
+            council = Council.for_domain(
+                domain,
+                api_key=api_key,
+                provider=provider,
+                model=model,
+                base_url=base_url,
+                config=council_config,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # Enable history for auto-save
+    council._history = _history
+    return council, mode
+
+
+class TTSRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=5000)
+    voice: Optional[str] = None
+    provider: Optional[str] = None
+
+
+class TTSResponse(BaseModel):
+    audio_url: str
+    filename: str
+
+
+@app.get("/", response_class=HTMLResponse, response_model=None)
+async def index() -> Union[HTMLResponse, FileResponse]:
+    """Serve the main HTML page."""
+    if IS_PRODUCTION:
+        # Serve built HTML from static directory
+        return FileResponse(str(BUILT_HTML))
+    elif DEV_HTML.exists():
+        # In development mode with React, we can't just serve the source HTML
+        # because it uses .tsx files and needs Vite.
+        # We should redirect to the Vite dev server if running, or show a helpful message.
+        return HTMLResponse(
+            """
+            <html>
+                <body style="font-family: system-ui, sans-serif; max-width: 600px;
+                    margin: 40px auto; padding: 20px; line-height: 1.6;
+                    background: #f9fafb; color: #111827;">
+                    <div style="background: white; padding: 32px; border-radius: 8px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
+                        <h1 style="margin-top: 0; color: #DC2626;">Frontend Build Required</h1>
+                        <p>The Council AI web interface has been migrated to React and
+                            requires a build step.</p>
+                        <h3 style="margin-top: 24px;">Option 1: Production (Recommended)</h3>
+                        <p>Run the build command to generate static assets:</p>
+                        <pre style="background: #1F2937; color: #E5E7EB;
+                            padding: 12px; border-radius: 6px; overflow-x: auto;">
+                            npm install && npm run build</pre>
+                        <p>Then restart this server.</p>
+
+                        <h3 style="margin-top: 24px;">Option 2: Development</h3>
+                        <p>Run the Vite development server in a separate terminal:</p>
+                        <pre style="background: #1F2937; color: #E5E7EB; padding: 12px;
+                            border-radius: 6px; overflow-x: auto;">npm run dev</pre>
+                        <p>Then access the app at
+                            <a href="http://localhost:5173" style="color: #2563EB;">
+                                http://localhost:5173</a>.</p>
+                    </div>
+                </body>
+            </html>
+            """,
+            status_code=500,
+        )
+    else:
+        # Fallback: minimal error page if no HTML found
+        return HTMLResponse(
+            "<html><body><h1>Council AI</h1>"
+            "<p>index.html not found. Run from the webapp directory.</p>"
+            "</body></html>",
+            status_code=500,
+        )
+
+
+@app.get("/reviewer", response_class=HTMLResponse, response_model=None)
+async def reviewer_ui() -> Union[HTMLResponse, FileResponse]:
+    """Serve the LLM Response Reviewer UI."""
+    reviewer_html = WEBAPP_DIR / "reviewer_ui.html"
+    if reviewer_html.exists():
+        return FileResponse(str(reviewer_html))
+    else:
+        return HTMLResponse(
+            "<html><body><h1>LLM Response Reviewer</h1>"
+            "<p>reviewer_ui.html not found.</p>"
+            "</body></html>",
+            status_code=500,
+        )
+
+
+@app.get("/manifest.json")
+async def manifest() -> JSONResponse:
+    """PWA manifest for mobile app installation."""
+    return JSONResponse(
+        {
+            "name": "Council AI",
+            "short_name": "Council AI",
+            "description": ("AI-powered advisory council system with customizable personas"),
+            "start_url": "/",
+            "display": "standalone",
+            "background_color": "#0c0f14",
+            "theme_color": "#0c0f14",
+            "orientation": "portrait-primary",
+            "icons": [
+                {
+                    "src": (
+                        "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' "
+                        "viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>"
+                    ),
+                    "sizes": "any",
+                    "type": "image/svg+xml",
+                    "purpose": "any maskable",
+                }
+            ],
+        }
+    )
 
 
 @app.get("/api/info")
@@ -52,7 +305,16 @@ async def info() -> dict:
             "domain": config.default_domain,
             "mode": config.default_mode,
         },
+        "tts": {
+            "enabled": config.tts.enabled,
+            "provider": config.tts.provider,
+            "fallback_provider": config.tts.fallback_provider,
+            "voice": config.tts.voice,
+            "has_elevenlabs_key": bool(get_tts_api_key("elevenlabs")),
+            "has_openai_key": bool(get_tts_api_key("openai")),
+        },
         "providers": list_providers(),
+        "models": list_model_capabilities(),
         "domains": [
             {
                 "id": d.id,
@@ -72,6 +334,8 @@ async def info() -> dict:
                 "emoji": p.emoji,
                 "category": p.category.value,
                 "focus_areas": p.focus_areas,
+                "model": p.model,
+                "model_params": p.model_params,
             }
             for p in list_personas()
         ],
@@ -82,46 +346,16 @@ async def info() -> dict:
 
 @app.post("/api/consult", response_model=ConsultResponse)
 async def consult(payload: ConsultRequest) -> ConsultResponse:
-    config = ConfigManager().config
-    provider = payload.provider or config.api.provider
-    model = payload.model or config.api.model
-    base_url = payload.base_url or config.api.base_url
-    api_key = payload.api_key or get_api_key(provider)
-    if not api_key:
-        raise HTTPException(status_code=400, detail="API key is required for consultation.")
+    council, mode = _build_council(payload)
 
     try:
-        mode = ConsultationMode(payload.mode)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    if payload.members:
-        council = Council(
-            api_key=api_key,
-            provider=provider,
-            model=model,
-            base_url=base_url,
+        result = await council.consult_async(
+            payload.query,
+            context=payload.context,
+            mode=mode,
+            session_id=payload.session_id,
+            auto_recall=payload.auto_recall if payload.auto_recall is not None else True,
         )
-        for member_id in payload.members:
-            try:
-                council.add_member(member_id)
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail=str(exc)) from exc
-    else:
-        domain = payload.domain or config.default_domain
-        try:
-            council = Council.for_domain(
-                domain,
-                api_key=api_key,
-                provider=provider,
-                model=model,
-                base_url=base_url,
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    try:
-        result = await council.consult_async(payload.query, context=payload.context, mode=mode)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -129,184 +363,590 @@ async def consult(payload: ConsultRequest) -> ConsultResponse:
         synthesis=result.synthesis,
         responses=[r.to_dict() for r in result.responses],
         mode=result.mode,
+        session_id=getattr(result, "session_id", None),
     )
 
 
-_INDEX_HTML = """
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Council AI</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      :root { color-scheme: light dark; }
-      body { font-family: system-ui, sans-serif; margin: 0; background: #0c0f14; color: #f6f7fb; }
-      header { padding: 32px; border-bottom: 1px solid #1f2430; background: #0f1219; }
-      header h1 { margin: 0 0 8px; font-size: 28px; }
-      header p { margin: 0; color: #b2b7c2; }
-      main { display: grid; gap: 24px; padding: 32px; max-width: 1100px; margin: 0 auto; }
-      .panel { background: #141824; border: 1px solid #1f2430; border-radius: 12px; padding: 20px; }
-      label { display: block; margin-bottom: 6px; color: #d4d7dd; font-weight: 600; }
-      input, select, textarea { width: 100%; margin-bottom: 12px; padding: 10px; border-radius: 8px; border: 1px solid #2a3140; background: #0e1118; color: #f6f7fb; }
-      textarea { min-height: 120px; resize: vertical; }
-      button { background: #3b82f6; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-      button:disabled { opacity: 0.6; cursor: not-allowed; }
-      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-      .responses { display: grid; gap: 12px; }
-      .response { background: #0e121a; border: 1px solid #23293a; padding: 12px; border-radius: 8px; }
-      .muted { color: #9aa3b2; font-size: 14px; }
-      .badge { background: #1f2937; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
-    </style>
-  </head>
-  <body>
-    <header>
-      <h1>🏛️ Council AI</h1>
-      <p class="muted">A minimal web console for running multi-persona consultations.</p>
-    </header>
-    <main>
-      <section class="panel">
-        <h2>Consultation Setup</h2>
-        <div class="grid">
-          <div>
-            <label for="provider">Provider</label>
-            <select id="provider"></select>
-          </div>
-          <div>
-            <label for="model">Model</label>
-            <input id="model" placeholder="gpt-4-turbo-preview" />
-          </div>
-          <div>
-            <label for="base_url">Base URL</label>
-            <input id="base_url" placeholder="https://api.openai.com/v1" />
-          </div>
-          <div>
-            <label for="mode">Mode</label>
-            <select id="mode"></select>
-          </div>
-          <div>
-            <label for="domain">Domain</label>
-            <select id="domain"></select>
-          </div>
-          <div>
-            <label for="members">Members (comma separated IDs)</label>
-            <input id="members" placeholder="rams, kahneman" />
-          </div>
-          <div>
-            <label for="api_key">API Key (optional)</label>
-            <input id="api_key" placeholder="Leave empty to use env/config" type="password" />
-          </div>
-        </div>
-        <label for="query">Query</label>
-        <textarea id="query" placeholder="Ask the council a question..."></textarea>
-        <label for="context">Context (optional)</label>
-        <textarea id="context" placeholder="Add background or constraints..."></textarea>
-        <button id="submit">Consult the Council</button>
-        <p class="muted">Tip: leave Members empty to use the domain defaults.</p>
-      </section>
-      <section class="panel">
-        <h2>Result</h2>
-        <div id="status" class="muted">No consultation yet.</div>
-        <div id="synthesis"></div>
-        <div id="responses" class="responses"></div>
-      </section>
-    </main>
-    <script>
-      const providerEl = document.getElementById("provider");
-      const modelEl = document.getElementById("model");
-      const baseUrlEl = document.getElementById("base_url");
-      const modeEl = document.getElementById("mode");
-      const domainEl = document.getElementById("domain");
-      const membersEl = document.getElementById("members");
-      const apiKeyEl = document.getElementById("api_key");
-      const queryEl = document.getElementById("query");
-      const contextEl = document.getElementById("context");
-      const submitEl = document.getElementById("submit");
-      const statusEl = document.getElementById("status");
-      const synthesisEl = document.getElementById("synthesis");
-      const responsesEl = document.getElementById("responses");
+@app.post("/api/consult/stream")
+async def consult_stream(payload: ConsultRequest) -> StreamingResponse:
+    """Stream consultation results as Server-Sent Events (SSE)."""
+    council, mode = _build_council(payload)
 
-      function escapeHtml(text) {
-        if (text == null) return "";
-        const div = document.createElement("div");
-        div.textContent = String(text);
-        return div.innerHTML;
-      }
+    async def generate_stream():
+        try:
+            async for update in council.consult_stream(
+                payload.query,
+                context=payload.context,
+                mode=mode,
+                session_id=payload.session_id,
+                auto_recall=payload.auto_recall if payload.auto_recall is not None else True,
+            ):
+                # Convert update to SSE format
+                if "result" in update:
+                    # For the final result, convert MemberResponse objects to dicts
+                    result = update["result"]
+                    update["result"] = {
+                        "query": result.query,
+                        "context": result.context,
+                        "mode": result.mode,
+                        "timestamp": result.timestamp.isoformat(),
+                        "responses": [r.to_dict() for r in result.responses],
+                        "synthesis": result.synthesis,
+                        "session_id": getattr(result, "session_id", None),
+                    }
+                elif "response" in update:
+                    # Convert MemberResponse to dict
+                    # Handle both MemberResponse objects and already-converted dicts
+                    response = update["response"]
+                    if hasattr(response, "to_dict"):
+                        # It's a MemberResponse object
+                        update["response"] = response.to_dict()
+                    elif isinstance(response, dict):
+                        # Already a dict, ensure it has all required fields
+                        if "persona_emoji" not in response and "persona_id" in response:
+                            # Try to get persona info if missing
+                            from council_ai.core.persona import get_persona
 
-      async function loadInfo() {
-        const res = await fetch("/api/info");
-        const data = await res.json();
-        providerEl.innerHTML = data.providers.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
-        modeEl.innerHTML = data.modes.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
-        domainEl.innerHTML = data.domains.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`).join("");
-        providerEl.value = data.defaults.provider || "openai";
-        modelEl.value = data.defaults.model || "";
-        baseUrlEl.value = data.defaults.base_url || "";
-        modeEl.value = data.defaults.mode || "synthesis";
-        domainEl.value = data.defaults.domain || "general";
-      }
+                            persona = get_persona(response.get("persona_id", ""))
+                            if persona:
+                                response["persona_emoji"] = persona.emoji
+                                response["persona_title"] = persona.title
+                        update["response"] = response
+                    else:
+                        # Unknown type, log and skip conversion
+                        logger.warning(f"Unexpected response type in stream: {type(response)}")
+                        continue
 
-      function renderResult(result) {
-        statusEl.textContent = `Mode: ${result.mode}`;
-        if (result.synthesis) {
-          synthesisEl.innerHTML = `<h3>Synthesis</h3><p>${escapeHtml(result.synthesis)}</p>`;
-        } else {
-          synthesisEl.innerHTML = "";
+                # Format as SSE
+                yield f"data: {json.dumps(update)}\n\n"
+        except Exception as exc:
+            error_update = {
+                "type": "error",
+                "error": str(exc),
+            }
+            yield f"data: {json.dumps(error_update)}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
+
+
+@app.get("/api/history")
+async def history_list(
+    limit: Optional[int] = None,
+    offset: int = 0,
+    domain: Optional[str] = None,
+    mode: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+) -> dict:
+    """List saved consultations with optional filters."""
+    try:
+        consultations = _history.list(
+            limit=limit,
+            offset=offset,
+            domain=domain,
+            mode=mode,
+            date_from=date_from,
+            date_to=date_to,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"consultations": consultations, "total": len(consultations)}
+
+
+@app.get("/api/sessions")
+async def list_sessions(limit: int = 50):
+    """List recent consultation sessions."""
+    sessions = _history.list_sessions(limit=limit)
+    return {"sessions": sessions}
+
+
+@app.get("/api/sessions/{session_id}")
+async def get_session(session_id: str):
+    """Get session details and full history."""
+    session = _history.load_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    return session.to_dict()
+
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session and all its consultations."""
+    if _history.delete_session(session_id):
+        return {"status": "deleted", "id": session_id}
+    raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+
+
+@app.get("/api/history/search")
+async def history_search(q: str, limit: Optional[int] = None) -> dict:
+    """Search consultations."""
+    results = _history.search(q, limit=limit)
+    return {"consultations": results, "query": q, "count": len(results)}
+
+
+@app.get("/api/history/{consultation_id}")
+async def history_get(consultation_id: str) -> Any:
+    """Get a specific consultation."""
+    data = _history.load(consultation_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    return data
+
+
+@app.post("/api/history/{consultation_id}/save")
+async def history_save(
+    consultation_id: str, tags: Optional[List[str]] = None, notes: Optional[str] = None
+) -> dict:
+    """Save/update a consultation (used after consultation completes)."""
+    # This would typically be called after a consultation completes
+    # For now, consultations are auto-saved, but this allows updating tags/notes
+    if _history.update_metadata(consultation_id, tags=tags, notes=notes):
+        return {"status": "saved", "id": consultation_id}
+    raise HTTPException(status_code=404, detail="Consultation not found")
+
+
+@app.delete("/api/history/{consultation_id}")
+async def history_delete(consultation_id: str) -> dict:
+    """Delete a consultation."""
+    if _history.delete(consultation_id):
+        return {"status": "deleted", "id": consultation_id}
+    raise HTTPException(status_code=404, detail="Consultation not found")
+
+
+# TTS Helper Functions
+
+
+def _initialize_tts_providers():
+    """Initialize TTS providers lazily."""
+    global _tts_primary, _tts_fallback, _tts_initialized
+
+    if _tts_initialized:
+        return
+
+    config = ConfigManager().config
+    if not config.tts.enabled:
+        _tts_initialized = True
+        return
+
+    try:
+        primary_key = config.tts.api_key or get_tts_api_key(config.tts.provider)
+        fallback_key = None
+        if config.tts.fallback_provider:
+            fallback_key = config.tts.fallback_api_key or get_tts_api_key(
+                config.tts.fallback_provider
+            )
+
+        _tts_primary, _tts_fallback = TTSProviderFactory.create_provider(
+            config.tts.provider,
+            api_key=primary_key,
+            fallback_provider=config.tts.fallback_provider,
+            fallback_api_key=fallback_key,
+        )
+        _tts_initialized = True
+        logger.info(
+            f"TTS providers initialized: primary={config.tts.provider}, "
+            f"fallback={config.tts.fallback_provider}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize TTS providers: {e}")
+        _tts_initialized = True
+
+
+async def _generate_tts_audio(
+    text: str, voice: Optional[str] = None, provider: Optional[str] = None
+) -> str:
+    """
+    Generate TTS audio and save to file.
+
+    Returns:
+        Filename of generated audio
+    """
+    _initialize_tts_providers()
+
+    if not _tts_primary and not _tts_fallback:
+        raise HTTPException(
+            status_code=503, detail="TTS service not available. Check API keys configuration."
+        )
+
+    # Generate audio
+    try:
+        audio_data = await generate_speech_with_fallback(
+            text, _tts_primary, _tts_fallback, voice=voice
+        )
+    except Exception as e:
+        logger.error(f"TTS generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"TTS generation failed: {str(e)}")
+
+    # Save to file
+    filename = f"{uuid4()}.mp3"
+    filepath = AUDIO_DIR / filename
+
+    try:
+        with open(filepath, "wb") as f:
+            f.write(audio_data)
+        logger.info(f"TTS audio saved: {filename}")
+        return filename
+    except Exception as e:
+        logger.error(f"Failed to save TTS audio: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save audio file")
+
+
+# TTS API Endpoints
+
+
+@app.post("/api/tts/generate", response_model=TTSResponse)
+async def tts_generate(payload: TTSRequest) -> TTSResponse:
+    """Generate TTS audio from text."""
+    config = ConfigManager().config
+
+    # Check if TTS is enabled
+    if not config.tts.enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="TTS is disabled. Enable it in settings or configuration file.",
+        )
+
+    filename = await _generate_tts_audio(
+        payload.text, voice=payload.voice, provider=payload.provider
+    )
+    audio_url = f"/api/tts/audio/{filename}"
+
+    return TTSResponse(audio_url=audio_url, filename=filename)
+
+
+@app.get("/api/tts/audio/{filename}")
+async def tts_audio(filename: str) -> FileResponse:
+    """Serve TTS audio file."""
+    # Validate filename (security)
+    if not filename.endswith(".mp3") or "/" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    filepath = AUDIO_DIR / filename
+
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    return FileResponse(
+        str(filepath),
+        media_type="audio/mpeg",
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "Content-Disposition": f'inline; filename="{filename}"',
+        },
+    )
+
+
+@app.get("/api/tts/voices")
+async def tts_voices() -> dict:
+    """List available TTS voices."""
+    _initialize_tts_providers()
+
+    voices: dict[str, list[dict[str, Any]]] = {"primary": [], "fallback": []}
+
+    if _tts_primary:
+        try:
+            voices["primary"] = await _tts_primary.list_voices()
+        except Exception as e:
+            logger.error(f"Failed to list primary TTS voices: {e}")
+
+    if _tts_fallback:
+        try:
+            voices["fallback"] = await _tts_fallback.list_voices()
+        except Exception as e:
+            logger.error(f"Failed to list fallback TTS voices: {e}")
+
+    config = ConfigManager().config
+    return {
+        "voices": voices,
+        "default_voice": config.tts.voice,
+        "provider": config.tts.provider,
+        "fallback_provider": config.tts.fallback_provider,
+    }
+
+
+# Personal Integration API Endpoints
+@app.get("/api/personal/status")
+def get_personal_status_endpoint():
+    """Get personal integration status."""
+    try:
+        from council_ai.core.personal_integration import get_personal_status
+
+        status = get_personal_status()
+        return status
+    except Exception as e:
+        logger.error(f"Failed to get personal status: {e}")
+        return {
+            "detected": False,
+            "configured": False,
+            "repo_path": None,
+            "config_dir": None,
         }
-        responsesEl.innerHTML = "";
-        result.responses.forEach(r => {
-          const card = document.createElement("div");
-          card.className = "response";
-          const personaName = escapeHtml(r.persona_name || r.persona_id || "Unknown");
-          const content = escapeHtml(r.content || "");
-          const error = r.error ? escapeHtml(r.error) : "";
-          card.innerHTML = `
-            <div class="badge">${personaName}</div>
-            <p>${content}</p>
-            ${error ? `<p class="muted">Error: ${error}</p>` : ""}
-          `;
-          responsesEl.appendChild(card);
-        });
-      }
 
-      submitEl.addEventListener("click", async () => {
-        submitEl.disabled = true;
-        statusEl.textContent = "Consulting...";
-        synthesisEl.innerHTML = "";
-        responsesEl.innerHTML = "";
-        const payload = {
-          query: queryEl.value.trim(),
-          context: contextEl.value.trim() || null,
-          domain: domainEl.value,
-          members: membersEl.value.split(",").map(x => x.trim()).filter(Boolean),
-          mode: modeEl.value,
-          provider: providerEl.value,
-          model: modelEl.value.trim() || null,
-          base_url: baseUrlEl.value.trim() || null,
-          api_key: apiKeyEl.value.trim() || null
-        };
-        try {
-          const res = await fetch("/api/consult", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-          if (!res.ok) {
-            const err = await res.json();
-            statusEl.textContent = err.detail || "Request failed.";
-          } else {
-            const data = await res.json();
-            renderResult(data);
-          }
-        } catch (err) {
-          statusEl.textContent = err.message || "Request failed.";
-        } finally {
-          submitEl.disabled = false;
+
+@app.post("/api/personal/integrate")
+def integrate_personal_endpoint():
+    """Trigger personal integration."""
+    try:
+        from pathlib import Path
+
+        from council_ai.core.personal_integration import detect_personal_repo, integrate_personal
+
+        repo_path = detect_personal_repo()
+        if not repo_path:
+            raise HTTPException(
+                status_code=404, detail="council-ai-personal repository not detected"
+            )
+
+        success = integrate_personal(Path(repo_path))
+        if success:
+            return {"success": True, "message": "Integration completed successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Integration failed")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to integrate personal: {e}")
+        raise HTTPException(status_code=500, detail=f"Integration error: {str(e)}")
+
+
+@app.get("/api/personal/verify")
+def verify_personal_integration_endpoint():
+    """Verify personal integration."""
+    try:
+        from council_ai.core.personal_integration import verify_personal_integration
+
+        verification = verify_personal_integration()
+        return verification
+    except Exception as e:
+        logger.error(f"Failed to verify personal integration: {e}")
+        return {
+            "detected": False,
+            "configured": False,
+            "configs_loaded": False,
+            "personas_available": False,
+            "issues": [f"Verification error: {str(e)}"],
         }
-      });
 
-      loadInfo();
-    </script>
-  </body>
-</html>
-"""
+
+@app.get("/api/config/diagnostics")
+async def config_diagnostics() -> dict:
+    """Get configuration diagnostics including sources, API keys, and issues."""
+    from datetime import datetime
+
+    config = ConfigManager().config
+    diagnostics: dict[str, Any] = {
+        "timestamp": datetime.now().isoformat(),
+        "config_sources": {},
+        "api_keys": {},
+        "providers": {},
+        "recommendations": [],
+        "warnings": [],
+        "errors": [],
+    }
+
+    # Determine config sources (simplified - in reality would track CLI/env/file/default)
+    # For now, we'll check environment variables vs config file
+    config_sources = diagnostics["config_sources"]
+
+    # Check API provider source
+    if os.environ.get("COUNCIL_API_PROVIDER"):
+        config_sources["api.provider"] = {
+            "value": os.environ.get("COUNCIL_API_PROVIDER"),
+            "source": "env",
+            "overridden": False,
+        }
+    elif config.api.provider:
+        config_sources["api.provider"] = {
+            "value": config.api.provider,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["api.provider"] = {
+            "value": "anthropic",
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check model source
+    if config.api.model:
+        config_sources["api.model"] = {
+            "value": config.api.model,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["api.model"] = {
+            "value": None,
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check base_url source
+    if os.environ.get("COUNCIL_API_BASE_URL"):
+        config_sources["api.base_url"] = {
+            "value": os.environ.get("COUNCIL_API_BASE_URL"),
+            "source": "env",
+            "overridden": False,
+        }
+    elif config.api.base_url:
+        config_sources["api.base_url"] = {
+            "value": config.api.base_url,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["api.base_url"] = {
+            "value": None,
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check default_domain source
+    if os.environ.get("COUNCIL_DEFAULT_DOMAIN"):
+        config_sources["default_domain"] = {
+            "value": os.environ.get("COUNCIL_DEFAULT_DOMAIN"),
+            "source": "env",
+            "overridden": False,
+        }
+    elif config.default_domain:
+        config_sources["default_domain"] = {
+            "value": config.default_domain,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["default_domain"] = {
+            "value": "general",
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check mode source
+    if config.default_mode:
+        config_sources["mode"] = {
+            "value": config.default_mode,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["mode"] = {
+            "value": "synthesis",
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check temperature source
+    if config.temperature:
+        config_sources["temperature"] = {
+            "value": config.temperature,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["temperature"] = {
+            "value": 0.7,
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check max_tokens_per_response source
+    if config.max_tokens_per_response:
+        config_sources["max_tokens_per_response"] = {
+            "value": config.max_tokens_per_response,
+            "source": "file",
+            "overridden": False,
+        }
+    else:
+        config_sources["max_tokens_per_response"] = {
+            "value": 1000,
+            "source": "default",
+            "overridden": False,
+        }
+
+    # Check API keys for each provider
+    api_keys = diagnostics["api_keys"]
+    providers_to_check = ["openai", "anthropic", "gemini", "vercel", "elevenlabs"]
+
+    for provider in providers_to_check:
+        if provider == "elevenlabs":
+            key = get_tts_api_key("elevenlabs")
+            source = "env" if os.environ.get("ELEVENLABS_API_KEY") else "file"
+        else:
+            key = get_api_key(provider)
+            env_var = f"{provider.upper()}_API_KEY"
+            if provider == "vercel":
+                env_var = "AI_GATEWAY_API_KEY"
+            source = "env" if os.environ.get(env_var) else "file"
+
+        api_keys[provider] = {
+            "configured": bool(key) and not is_placeholder_key(key),
+            "placeholder": bool(key) and is_placeholder_key(key),
+            "source": source if key else "none",
+        }
+
+    # Check provider availability
+    providers_status = diagnostics["providers"]
+    available_providers = get_available_providers()
+
+    for provider in providers_to_check:
+        if provider == "elevenlabs":
+            # TTS provider - check separately
+            key = get_tts_api_key("elevenlabs")
+            providers_status[provider] = {
+                "available": bool(key) and not is_placeholder_key(key),
+                "tested": False,
+            }
+        else:
+            has_key = any(p[0] == provider and p[1] for p in available_providers)
+            providers_status[provider] = {
+                "available": has_key,
+                "tested": False,
+            }
+
+    # Generate recommendations and warnings
+    recommendations = diagnostics["recommendations"]
+    warnings = diagnostics["warnings"]
+    errors = diagnostics["errors"]
+
+    # Check if any API key is configured
+    has_any_key = any(api_keys[p]["configured"] for p in providers_to_check if p != "elevenlabs")
+    if not has_any_key:
+        errors.append(
+            {
+                "type": "missing_api_key",
+                "message": "No API key configured. Please set an API key for at least one provider.",
+                "action": "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY environment variable, or configure in settings.",
+            }
+        )
+
+    # Check for placeholder keys
+    for provider, status in api_keys.items():
+        if status["placeholder"]:
+            warnings.append(
+                {
+                    "type": "placeholder_key",
+                    "message": f"{provider.upper()} API key appears to be a placeholder value.",
+                    "action": f"Replace the placeholder with a valid {provider.upper()} API key.",
+                }
+            )
+
+    # Recommendations
+    if not has_any_key:
+        recommendations.append(
+            {
+                "type": "configure_provider",
+                "message": "Configure at least one AI provider to start using Council AI.",
+                "action": "Set an API key in environment variables or configuration file.",
+            }
+        )
+
+    return diagnostics

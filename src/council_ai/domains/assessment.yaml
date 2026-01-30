@@ -1,0 +1,14 @@
+name: Assessment & QA
+description: "Optimized for critical evaluation, risk assessment, and quality assurance."
+default_personas:
+  - DK  # Critical thinking (Kahneman)
+  - MD  # Strategic oversight (Dempsey)
+  - NT  # Systems thinking (Tesla)
+optional_personas:
+  - AG  # Generalist
+  - PH  # Lateral thinking (Holman)
+
+example_queries:
+  - "Assess the risks in this architecture"
+  - "Evaluate the quality of this implementation"
+  - "Review this proposal for potential pitfalls"

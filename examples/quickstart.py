@@ -6,13 +6,7 @@ This script demonstrates the core features of Council AI without requiring
 an API key - perfect for understanding the system before diving in.
 """
 
-from council_ai import (
-    Council,
-    get_domain,
-    get_persona,
-    list_domains,
-    list_personas,
-)
+from council_ai import Council, get_domain, get_persona, list_domains, list_personas
 
 
 def print_section(title: str):
@@ -58,7 +52,7 @@ def demo_persona_details():
     """Show detailed persona information."""
     print_section("Persona Deep Dive: Dieter Rams")
 
-    rams = get_persona("rams")
+    rams = get_persona("DR")  # DR = Dieter Rams
     print(f"\n{rams.emoji} {rams.name} - {rams.title}\n")
     print(f"Category: {rams.category.value}")
     print(f'Core Question: "{rams.core_question}"')
@@ -125,9 +119,9 @@ council = Council.for_domain("business", api_key="your-key")
     print(
         """
 council = Council(api_key="your-key")
-council.add_member("rams")      # Design perspective
-council.add_member("holman")    # Security perspective
-council.add_member("grove")     # Strategy perspective
+council.add_member("DR")      # Design perspective
+council.add_member("PH")    # Security perspective
+council.add_member("AG")     # Strategy perspective
 """
     )
 

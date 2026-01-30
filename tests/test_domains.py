@@ -1,6 +1,4 @@
-"""
-Tests for domain configurations.
-"""
+"""Tests for domain management."""
 
 import pytest
 
@@ -10,7 +8,7 @@ from council_ai import DomainCategory, get_domain, list_domains
 def test_all_domains_exist():
     """Test that all expected domains exist."""
     domains = list_domains()
-    assert len(domains) == 12, f"Expected 12 domains, got {len(domains)}"
+    assert len(domains) == 15, f"Expected 15 domains, got {len(domains)}"
 
     expected_ids = [
         "coding",
@@ -20,11 +18,14 @@ def test_all_domains_exist():
         "leadership",
         "creative",
         "writing",
+        "audio_post",
         "career",
         "decisions",
         "devops",
         "data",
         "general",
+        "llm_review",
+        "sonotheia",
     ]
 
     domain_ids = [d.id for d in domains]
@@ -57,16 +58,16 @@ def test_specific_domains():
     business = get_domain("business")
     assert business.name == "Business Strategy"
     assert business.category == DomainCategory.BUSINESS
-    assert "grove" in business.default_personas
-    assert "taleb" in business.default_personas
+    assert "AG" in business.default_personas
+    assert "NT" in business.default_personas
     assert len(business.example_queries) > 0
 
     # Coding domain
     coding = get_domain("coding")
     assert coding.name == "Software Development"
     assert coding.category == DomainCategory.TECHNICAL
-    assert "rams" in coding.default_personas
-    assert "holman" in coding.default_personas
+    assert "DR" in coding.default_personas
+    assert "PH" in coding.default_personas
 
     # Career domain
     career = get_domain("career")
@@ -84,9 +85,9 @@ def test_domain_personas_exist():
         for persona_id in domain.default_personas:
             try:
                 persona = get_persona(persona_id)
-                assert (
-                    persona is not None
-                ), f"Persona '{persona_id}' in domain '{domain.id}' not found"
+                assert persona is not None, (
+                    f"Persona '{persona_id}' in domain '{domain.id}' not found"
+                )
             except ValueError:
                 pytest.fail(f"Persona '{persona_id}' in domain '{domain.id}' does not exist")
 
@@ -119,9 +120,9 @@ def test_domain_example_queries():
     domains = list_domains()
 
     for domain in domains:
-        assert (
-            len(domain.example_queries) >= 3
-        ), f"Domain '{domain.id}' should have at least 3 example queries"
+        assert len(domain.example_queries) >= 3, (
+            f"Domain '{domain.id}' should have at least 3 example queries"
+        )
 
         for query in domain.example_queries:
             assert len(query) > 10, f"Query in domain '{domain.id}' too short: {query}"
@@ -159,12 +160,16 @@ def test_personal_domains():
 
 def test_creative_domains():
     """Test creative domains."""
-    creative_domains = ["creative", "writing"]
+    creative_domains = ["creative", "writing", "audio_post"]
 
     for domain_id in creative_domains:
         domain = get_domain(domain_id)
         assert domain.category == DomainCategory.CREATIVE
-        assert "treasure" in domain.default_personas or "rams" in domain.default_personas
+        if domain_id == "audio_post":
+            assert "sound_designer" in domain.default_personas
+        else:
+            # JT = Julian Treasure, DR = Dieter Rams
+            assert "JT" in domain.default_personas or "DR" in domain.default_personas
 
 
 def test_general_domain():
@@ -173,7 +178,7 @@ def test_general_domain():
     assert general.category == DomainCategory.GENERAL
     assert len(general.default_personas) >= 4
     # Should include diverse perspectives
-    assert any(pid in ["kahneman", "taleb", "grove", "rams"] for pid in general.default_personas)
+    assert any(pid in ["DK", "NT", "AG", "DR"] for pid in general.default_personas)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,96 @@
+# Pre-commit hooks configuration
+#
+# IMPORTANT FOR AGENTS: Before creating new code, read:
+# - AGENT_KNOWLEDGE_BASE.md (section "Pre-Commit Hook Compliance")
+# - .agent/workflows/pre-commit-checklist.md
+# - .cursorrules (section "Pre-Commit Hook Requirements")
+#
+# Common failures to avoid:
+# - Missing imports → Add all required imports (check similar existing files)
+# - Unused imports → Remove unused imports (especially in test files)
+# - YAML indentation → Use 2 spaces consistently
+# - Missing docstrings → Add docstrings to all modules and public functions
+# - Type hints → Add type annotations to all new functions
+# - FastAPI Depends() → Use # noqa: B008 for Depends() in function signatures
+#
+# Always run: pre-commit run --all-files before committing
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: npx prettier --write
+        language: system
+        types_or: [javascript, ts, tsx, json, css, markdown]
+
+      - id: eslint
+        name: eslint
+        entry: npx eslint
+        language: system
+        types_or: [javascript, ts, tsx]
+        args: [--cache, --fix, --no-warn-ignored]
+
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        args: [--config=.flake8]
+        additional_dependencies:
+          - flake8-docstrings
+          - flake8-bugbear
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        # Temporarily relaxed mypy flags during strategy return type migration:
+        # - --no-strict-optional: Allows None-related flexibility during ConsultationResult migration
+        # - --disable-error-code=no-any-return: Permits implicit Any returns during type normalization
+        # TODO: Re-enable stricter checks after completing migration
+        # Action required: Create GitHub issue using template in .agent/ISSUE_TO_CREATE.md and reference it here
+        args: [--ignore-missing-imports, --no-strict-optional, --disable-error-code=no-any-return]
+        additional_dependencies:
+          - types-PyYAML
+          - pydantic
+        exclude: ^launch-council\.py$
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: |
+          (?x)^(
+            \.mypy_cache/|
+            \.pytest_cache/|
+            \.ruff_cache/|
+            build/|
+            dist/|
+            node_modules/|
+            package-lock\.json|
+            \.env.*
+          )

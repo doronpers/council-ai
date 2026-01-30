@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: council-ai
+  labels:
+    app: council-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: council-ai
+  template:
+    metadata:
+      labels:
+        app: council-ai
+    spec:
+      containers:
+        - name: council-ai
+          image: council-ai:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: COUNCIL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: council-secrets
+                  key: api-key
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+          volumeMounts:
+            - name: council-storage
+              mountPath: /root/.config/council-ai
+      volumes:
+        - name: council-storage
+          persistentVolumeClaim:
+            claimName: council-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: council-ai
+spec:
+  selector:
+    app: council-ai
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: council-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

@@ -4,16 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "council-ai"
-version = "1.0.0"
+version = "2.0.0"
 description = "AI-powered advisory council system with customizable personas for decision-making, reviews, and strategic thinking"
 readme = "README.md"
-license = {text = "MIT"}
-authors = [
-    {name = "Doron Reizes", email = "doron@sonotheia.com"}
-]
+license = { text = "MIT" }
+authors = [{ name = "Doron Reizes", email = "doron@sonotheia.com" }]
 keywords = [
-    "ai", "llm", "advisory", "council", "decision-making", 
-    "strategy", "review", "personas", "anthropic", "openai"
+    "ai",
+    "llm",
+    "advisory",
+    "council",
+    "decision-making",
+    "strategy",
+    "review",
+    "personas",
+    "anthropic",
+    "openai",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -22,44 +28,56 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Office/Business :: Scheduling",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "pyyaml>=6.0",
     "pydantic>=2.0",
     "rich>=13.0",
     "click>=8.0",
     "httpx>=0.25.0",
+    "python-dotenv>=1.0.0",
+    "shared-ai-utils @ git+https://github.com/doronpers/shared-ai-utils.git",
 ]
 
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.18.0"]
 openai = ["openai>=1.0.0"]
-gemini = ["google-generativeai>=0.3.0"]
-web = [
-    "fastapi>=0.109.0",
-    "uvicorn>=0.27.0",
+lmstudio = ["openai>=1.0.0"]
+gemini = ["google-genai>=1.0.0"]
+web = ["fastapi>=0.109.0", "uvicorn>=0.27.0", "aiohttp>=3.9.0"]
+googledocs = [
+    "google-api-python-client>=2.0.0",
+    "google-auth>=2.0.0",
+    "google-auth-httplib2>=0.1.0",
+    "beautifulsoup4>=4.12.0",
 ]
+monitoring = ["psutil>=5.9.0"]
+tui = ["textual>=0.40.0"]
 all = [
     "anthropic>=0.18.0",
     "openai>=1.0.0",
-    "google-generativeai>=0.3.0",
+    "google-genai>=1.0.0",
     "fastapi>=0.109.0",
     "uvicorn>=0.27.0",
+    "aiohttp>=3.9.0",
+    "textual>=0.40.0",
 ]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=4.0.0",
     "black>=23.0",
     "ruff>=0.1.0",
     "fastapi>=0.109.0",
     "uvicorn>=0.27.0",
+    "aiohttp>=3.9.0",
 ]
 
 [project.scripts]
@@ -75,11 +93,17 @@ Issues = "https://github.com/doronpers/council-ai/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-council_ai = ["personas/*.yaml", "domains/*.yaml", "templates/*.md"]
+council_ai = [
+    "personas/*.yaml",
+    "domains/*.yaml",
+    "templates/*.md",
+    "webapp/*.html",
+    "webapp/assets/**/*",
+]
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py311", "py312"]
 
 [tool.ruff]
 line-length = 100
@@ -90,3 +114,50 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = """
+    --strict-markers
+    --strict-config
+    -v
+    --tb=short
+    --disable-warnings
+    --ignore=src
+"""
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+norecursedirs = ["src", "build", "dist", ".git", ".venv", "venv"]
+markers = [
+    "asyncio: mark test as async",
+    "integration: mark test as integration test",
+    "performance: mark test as performance test",
+    "slow: mark test as slow running",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/council_ai"]
+omit = ["*/site-packages/*", "*/tests/*", "*/__pycache__/*", "*/venv/*"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+    "@abc.abstractmethod",
+    "if 0:",
+    "if False:",
+    "assert False",
+]
+fail_under = 50
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.bandit]
+exclude_dirs = ["tests"]

@@ -1,0 +1,249 @@
+/**
+ * Error Display Component Styles
+ */
+
+.error-display {
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border-left: 4px solid;
+  position: relative;
+  animation: errorSlideIn 0.3s ease-out;
+}
+
+.error-display--low {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.error-display--medium {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.error-display--high {
+  background: #fee2e2;
+  border-left-color: var(--accent-red);
+  color: #991b1b;
+}
+
+.error-display--critical {
+  background: #fee2e2;
+  border-left-color: var(--accent-red);
+  color: #991b1b;
+  border: 2px solid var(--accent-red);
+}
+
+.error-display-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.error-display-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.error-display-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-display-title {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.error-display-countdown {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.error-display-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.error-display-toggle,
+.error-display-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  opacity: 0.6;
+  transition:
+    opacity 0.2s,
+    background 0.2s;
+  color: inherit;
+}
+
+.error-display-toggle:hover,
+.error-display-dismiss:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.error-display-suggestions {
+  margin-bottom: 12px;
+}
+
+.error-display-suggestions h5 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error-display-suggestions ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.error-display-suggestions li {
+  margin-bottom: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.error-display-action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.error-display-retry,
+.error-display-action {
+  padding: 8px 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.error-display-details {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.error-display-section {
+  margin-bottom: 16px;
+}
+
+.error-display-section h5 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
+}
+
+.error-display-explanation {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+.error-display-fix-steps {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.error-display-fix-steps li {
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.error-display-technical {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.error-display-technical summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+  margin-bottom: 12px;
+  user-select: none;
+}
+
+.error-display-technical summary:hover {
+  opacity: 1;
+}
+
+.error-display-report {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.error-display-report-link {
+  font-size: 12px;
+  color: inherit;
+  text-decoration: underline;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.error-display-report-link:hover {
+  opacity: 1;
+}
+
+.error-display-details-content {
+  margin-top: 12px;
+}
+
+.error-detail-row {
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.error-detail-row strong {
+  display: inline-block;
+  min-width: 100px;
+  margin-right: 8px;
+}
+
+.error-message,
+.error-details {
+  margin: 4px 0 0 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@keyframes errorSlideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

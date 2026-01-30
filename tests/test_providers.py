@@ -1,10 +1,14 @@
-"""
-Tests for provider abstractions.
-"""
+"""Tests for TTS and other providers."""
 
 import pytest
 
-from council_ai.providers import LLMProvider, get_provider, list_providers, register_provider
+from council_ai.providers import (
+    LLMProvider,
+    get_provider,
+    list_model_capabilities,
+    list_providers,
+    register_provider,
+)
 
 
 def test_list_providers():
@@ -16,6 +20,14 @@ def test_list_providers():
     assert "gemini" in providers
     assert "http" in providers
     assert len(providers) >= 4
+
+
+def test_list_model_capabilities():
+    """Test listing model capabilities."""
+    models = list_model_capabilities()
+    assert isinstance(models, list)
+    assert any(m["provider"] == "anthropic" for m in models)
+    assert any("parameters" in m for m in models)
 
 
 def test_get_nonexistent_provider():
@@ -43,8 +55,9 @@ def test_openai_provider_without_key():
     """Test OpenAI provider without API key."""
     import os
 
-    # Temporarily remove API key
+    # Temporarily remove API keys (including fallback keys)
     old_key = os.environ.pop("OPENAI_API_KEY", None)
+    old_gw_key = os.environ.pop("AI_GATEWAY_API_KEY", None)
 
     try:
         with pytest.raises(ValueError, match="API key required"):
@@ -52,6 +65,8 @@ def test_openai_provider_without_key():
     finally:
         if old_key:
             os.environ["OPENAI_API_KEY"] = old_key
+        if old_gw_key:
+            os.environ["AI_GATEWAY_API_KEY"] = old_gw_key
 
 
 def test_gemini_provider_without_key():
@@ -84,8 +99,9 @@ def test_http_provider_without_endpoint():
 
 
 def test_http_provider_env_api_key(monkeypatch):
-    """Test HTTP provider uses env API key defaults."""
     monkeypatch.setenv("HTTP_API_KEY", "env-key")
+    # Set LLM_ENDPOINT to avoid init failure if it's not set
+    monkeypatch.setenv("LLM_ENDPOINT", "https://example.com/v1/completions")
     provider = get_provider("http", endpoint="https://example.com/v1/completions")
     assert provider.api_key == "env-key"
 
@@ -95,7 +111,16 @@ def test_custom_provider_registration():
 
     class CustomProvider(LLMProvider):
         async def complete(self, system_prompt, user_prompt, max_tokens=1000, temperature=0.7):
-            return "Custom response"
+            from shared_ai_utils.llm import LLMResponse
+
+            return LLMResponse(text="Custom response", raw_response={})
+
+        @property
+        def provider_name(self):
+            return "custom_test"
+
+        def is_available(self):
+            return True
 
     register_provider("custom_test", CustomProvider)
 
@@ -125,7 +150,7 @@ def test_provider_with_api_key():
         provider = get_provider("gemini", api_key="test-key")
         assert provider.api_key == "test-key"
     except ImportError:
-        pytest.skip("google-generativeai package not installed")
+        pytest.skip("google-genai package not installed")
 
 
 def test_provider_base_class():

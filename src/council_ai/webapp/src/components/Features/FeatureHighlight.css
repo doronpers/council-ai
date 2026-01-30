@@ -1,0 +1,90 @@
+/**
+ * Feature Highlight Component Styles
+ */
+
+.feature-highlight {
+  position: relative;
+  padding: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.feature-highlight-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.feature-highlight-badge--new {
+  background: var(--accent-green);
+  color: white;
+}
+
+.feature-highlight-badge--popular {
+  background: var(--primary);
+  color: white;
+}
+
+.feature-highlight-content {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.feature-highlight-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.feature-highlight-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.feature-highlight-title {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.feature-highlight-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.feature-highlight-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-muted);
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.feature-highlight-dismiss:hover {
+  opacity: 1;
+  color: var(--text-primary);
+}
+
+.feature-highlight-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}

@@ -1,0 +1,122 @@
+/**
+ * Feature Tour Component Styles
+ */
+
+.feature-tour-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9998;
+  cursor: pointer;
+}
+
+.feature-tour-highlight {
+  position: absolute;
+  border: 3px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  pointer-events: none;
+  animation: featureTourPulse 2s ease-in-out infinite;
+}
+
+@keyframes featureTourPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.5),
+      0 0 0 0 rgba(234, 91, 12, 0.7);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.5),
+      0 0 0 10px rgba(234, 91, 12, 0.3);
+  }
+}
+
+.feature-tour-tooltip {
+  position: fixed;
+  z-index: 10000;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  animation: featureTourTooltipFadeIn 0.3s ease-out;
+}
+
+@keyframes featureTourTooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.feature-tour-tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.feature-tour-tooltip-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.feature-tour-tooltip-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-muted);
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.feature-tour-tooltip-close:hover {
+  opacity: 1;
+  color: var(--text-primary);
+}
+
+.feature-tour-tooltip-content {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.feature-tour-tooltip-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.feature-tour-progress {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.feature-tour-tooltip-actions {
+  display: flex;
+  gap: 8px;
+}

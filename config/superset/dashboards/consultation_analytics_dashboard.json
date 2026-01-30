@@ -1,0 +1,146 @@
+{
+  "dashboard_title": "Consultation Analytics Dashboard",
+  "description": "Agent performance, consultation quality metrics, and persona effectiveness analysis",
+  "position_json": {
+    "DASHBOARD_VERSION_KEY": "v2",
+    "GRID_ID": {
+      "type": "GRID",
+      "id": "GRID_ID",
+      "children": ["ROW-header", "ROW-overview", "ROW-consultation-trends", "ROW-persona-analysis"]
+    },
+    "ROW-header": {
+      "type": "ROW",
+      "id": "ROW-header",
+      "children": ["CHART-title", "CHART-summary"],
+      "meta": { "background": "BACKGROUND_TRANSPARENT" }
+    },
+    "ROW-overview": {
+      "type": "ROW",
+      "id": "ROW-overview",
+      "children": [
+        "CHART-total-consultations",
+        "CHART-avg-responses",
+        "CHART-modes-distribution",
+        "CHART-unique-members"
+      ]
+    },
+    "ROW-consultation-trends": {
+      "type": "ROW",
+      "id": "ROW-consultation-trends",
+      "children": ["CHART-consultation-trends", "CHART-mode-trends"]
+    },
+    "ROW-persona-analysis": {
+      "type": "ROW",
+      "id": "ROW-persona-analysis",
+      "children": ["CHART-persona-usage", "CHART-persona-response-lengths"]
+    }
+  },
+  "slices": [
+    {
+      "slice_name": "Total Consultations",
+      "viz_type": "big_number_total",
+      "description": "Total number of consultations conducted",
+      "query_context": {
+        "datasource": "consultations",
+        "viz_type": "big_number_total",
+        "metrics": ["COUNT(*)"],
+        "filters": []
+      }
+    },
+    {
+      "slice_name": "Average Responses per Consultation",
+      "viz_type": "big_number",
+      "description": "Average number of member responses per consultation",
+      "query_context": {
+        "datasource": "consultations",
+        "viz_type": "big_number",
+        "metrics": ["AVG(response_count)"],
+        "filters": []
+      }
+    },
+    {
+      "slice_name": "Consultation Modes Distribution",
+      "viz_type": "pie",
+      "description": "Distribution of consultation modes",
+      "query_context": {
+        "datasource": "consultations",
+        "viz_type": "pie",
+        "metrics": ["COUNT(*)"],
+        "groupby": ["mode"],
+        "order_desc": true
+      }
+    },
+    {
+      "slice_name": "Unique Members",
+      "viz_type": "big_number_total",
+      "description": "Total number of unique members who have responded",
+      "query_context": {
+        "datasource": "member_responses",
+        "viz_type": "big_number_total",
+        "metrics": ["COUNT(DISTINCT member_name)"],
+        "filters": []
+      }
+    },
+    {
+      "slice_name": "Consultation Trends Over Time",
+      "viz_type": "line",
+      "description": "Number of consultations over time",
+      "query_context": {
+        "datasource": "consultations",
+        "viz_type": "line",
+        "metrics": ["COUNT(*)"],
+        "groupby": ["timestamp"],
+        "time_grain_sqla": "P1D",
+        "time_range": "Last 30 days",
+        "order_desc": false
+      }
+    },
+    {
+      "slice_name": "Consultation Modes Over Time",
+      "viz_type": "line",
+      "description": "Consultation modes usage trends",
+      "query_context": {
+        "datasource": "consultations",
+        "viz_type": "line",
+        "metrics": ["COUNT(*)"],
+        "groupby": ["mode", "timestamp"],
+        "time_grain_sqla": "P1D",
+        "time_range": "Last 30 days",
+        "order_desc": false
+      }
+    },
+    {
+      "slice_name": "Persona Usage",
+      "viz_type": "dist_bar",
+      "description": "Number of responses by persona",
+      "query_context": {
+        "datasource": "member_responses",
+        "viz_type": "dist_bar",
+        "metrics": ["COUNT(*)"],
+        "groupby": ["persona_name"],
+        "order_desc": true
+      }
+    },
+    {
+      "slice_name": "Average Response Length by Persona",
+      "viz_type": "dist_bar",
+      "description": "Average response length by persona",
+      "query_context": {
+        "datasource": "member_responses",
+        "viz_type": "dist_bar",
+        "metrics": ["AVG(response_length)"],
+        "groupby": ["persona_name"],
+        "order_desc": true
+      }
+    }
+  ],
+  "metadata": {
+    "color_scheme": "supersetColors",
+    "refresh_frequency": 300,
+    "timed_refresh_immune_slices": [],
+    "expanded_slices": {},
+    "filter_scopes": {},
+    "default_filters": "{}",
+    "native_filter_configuration": []
+  }
+}

@@ -1,0 +1,47 @@
+# Council AI - Configuration Example
+# Copy this file to ~/.config/council-ai/config.yaml or /tmp/council-ai/config.yaml
+# Or set COUNCIL_AI_CONFIG_DIR to specify a custom location
+
+# API Configuration
+api:
+  provider: "anthropic"  # Options: anthropic, openai, gemini, http
+  # api_key: "your-api-key"  # Optional: override env var
+  # model: "claude-sonnet-4-20250514"  # Optional: use specific model
+  # base_url: "https://custom-endpoint.com"  # Optional: custom endpoint
+
+# Text-to-Speech Configuration
+tts:
+  enabled: false  # Set to true to enable TTS by default
+  provider: "elevenlabs"  # Primary provider: elevenlabs or openai
+  # api_key: "your-elevenlabs-key"  # Optional: override ELEVENLABS_API_KEY env var
+  # voice: "EXAVITQu4vr4xnSDxMaL"  # Optional: specific voice ID (defaults to provider's default)
+  # model: "eleven_turbo_v2_5"  # Optional: TTS model (elevenlabs only)
+
+  # Fallback configuration (used if primary provider fails)
+  fallback_provider: "openai"  # Fallback provider
+  # fallback_api_key: "your-openai-key"  # Optional: override OPENAI_API_KEY env var
+  # fallback_voice: "alloy"  # Optional: fallback voice
+
+# Default Settings
+default_mode: "synthesis"  # Options: individual, sequential, synthesis, debate, vote
+default_domain: "general"  # Default domain to use
+
+# LLM Parameters
+temperature: 0.7  # Creativity level (0-1)
+max_tokens_per_response: 1000  # Maximum tokens per persona response
+# synthesis_provider: "openai"  # Optional: set to use a different provider for synthesis
+# synthesis_model: "gpt-4.1"  # Optional: set to use a different model for synthesis
+# synthesis_max_tokens: 2000  # Optional: max tokens for synthesis responses
+
+# Custom Personas and Domains (optional)
+# custom_personas_path: "/path/to/custom/personas"
+# custom_domains_path: "/path/to/custom/domains"
+
+# Preset Configurations (optional)
+# presets:
+#   quick:
+#     temperature: 0.5
+#     max_tokens_per_response: 500
+#   detailed:
+#     temperature: 0.8
+#     max_tokens_per_response: 2000

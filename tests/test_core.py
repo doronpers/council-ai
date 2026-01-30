@@ -1,6 +1,4 @@
-"""
-Tests for Council AI core functionality.
-"""
+"""Tests for the core module."""
 
 from datetime import datetime
 
@@ -50,9 +48,12 @@ def test_persona_system_prompt():
 def test_council_creation():
     """Test creating a council."""
     council = Council(api_key="test-key", provider="anthropic")
-    assert len(council.list_members()) == 0
+    # Council now has 4 default members (MD, DK, JT, PH)
+    assert len(council.list_members()) == 4
+    default_member_ids = {m.id for m in council.list_members()}
+    assert default_member_ids == {"MD", "DK", "JT", "PH"}
 
-    # Add a persona
+    # Add a custom persona
     persona = Persona(
         id="test",
         name="Test",
@@ -61,7 +62,7 @@ def test_council_creation():
         razor=".",
     )
     council.add_member(persona)
-    assert len(council.list_members()) == 1
+    assert len(council.list_members()) == 5
 
 
 def test_council_for_domain():
@@ -73,8 +74,8 @@ def test_council_for_domain():
     assert len(members) > 0
 
     member_ids = [m.id for m in members]
-    # Business domain includes grove, taleb, etc
-    assert any(mid in ["grove", "taleb", "kahneman", "dempsey"] for mid in member_ids)
+    # Business domain includes AG, NT, MD, DK, etc
+    assert any(mid in ["AG", "NT", "MD", "DK"] for mid in member_ids)
 
 
 def test_member_response():
@@ -153,6 +154,44 @@ def test_trait_operations():
     # Remove trait
     persona.remove_trait("Quality")
     assert len(persona.traits) == 0
+
+
+@pytest.mark.skip(reason="Test needs update for Strategy Pattern refactor - Phase 3 TODO")
+@pytest.mark.anyio
+async def test_consult_structured_synthesis_none_fallback(monkeypatch):
+    """Test fallback when structured synthesis returns None."""
+    council = Council(api_key="test-key")
+    object.__setattr__(council.config, "use_structured_output", True)
+
+    persona = Persona(
+        id="test",
+        name="Test",
+        title="Expert",
+        core_question="?",
+        razor=".",
+    )
+    council.add_member(persona)
+
+    async def fake_consult_individual(provider, members, query, context):
+        return [MemberResponse(persona=persona, content="Advice", timestamp=datetime.now())]
+
+    async def fake_structured_synthesis(provider, query, context, responses):
+        return None
+
+    async def fake_synthesis(provider, query, context, responses):
+        return "fallback synthesis"
+
+    monkeypatch.setattr(council, "_get_provider", lambda fallback=True: object())
+    monkeypatch.setattr(
+        council, "_get_member_response", lambda p, m, q, c: fake_consult_individual(p, [m], q, c)[0]
+    )
+    monkeypatch.setattr(council, "_generate_structured_synthesis", fake_structured_synthesis)
+    monkeypatch.setattr(council, "_generate_synthesis", fake_synthesis)
+
+    result = await council.consult_async("Test question")
+
+    assert result.synthesis
+    assert result.synthesis == "fallback synthesis"
 
 
 if __name__ == "__main__":

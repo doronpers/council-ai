@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Response Reviewer - Council AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/css/reviewer.css" />
+</head>
+
+<body>
+  <header>
+    <h1>⚖️ LLM Response Reviewer</h1>
+    <p>Supreme Court-style review of AI responses with scoring, consensus, and synthesis. See <a
+        href="/documentation/REVIEWER_SETUP.md">Reviewer Setup</a> for detailed configuration and launch options.</p>
+    <nav class="nav">
+      <a href="/" class="nav-link">🏛️ Council Consultation</a>
+      <a href="/reviewer" class="nav-link nav-link--active">⚖️ LLM Response Reviewer</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="main-grid">
+      <!-- Input Panel -->
+      <div class="panel">
+        <h2>📝 Input</h2>
+
+        <div style="margin-bottom: 20px; display: flex; gap: 8px; align-items: center">
+          <label for="question" style="flex: 1">Original Question</label>
+          <button class="btn btn-secondary" id="import-docs-btn" style="font-size: 0.85rem; padding: 6px 12px">
+            📄 Import from Google Docs
+          </button>
+        </div>
+        <textarea id="question" placeholder="Enter the question that was asked to the LLMs..."></textarea>
+
+        <div id="responses-container" style="margin-top: 20px">
+          <label>LLM Responses to Review (2-5)</label>
+          <!-- Response cards will be added here -->
+        </div>
+
+        <button class="btn btn-secondary" id="add-response-btn" style="margin-bottom: 20px">
+          + Add Response
+        </button>
+
+        <div class="button-group">
+          <button class="btn btn-primary" id="review-btn">⚖️ Begin Review</button>
+          <button class="btn btn-secondary hidden" id="cancel-btn">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Configuration Panel -->
+      <div class="panel">
+        <h2>⚙️ Council Configuration</h2>
+
+        <div style="margin-bottom: 20px">
+          <label>Select Justices</label>
+          <div class="justice-grid" id="justice-grid">
+            <!-- Justice chips will be populated here -->
+          </div>
+          <p class="help-text">
+            Click to select/deselect. Click selected justice twice to set as Chair.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px">
+          <div>
+            <label for="chair-select">Chair (Chief Justice)</label>
+            <select id="chair-select"></select>
+          </div>
+          <div>
+            <label for="vice-chair-select">Vice Chair</label>
+            <select id="vice-chair-select"></select>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 20px">
+          <label class="justice-chip" style="cursor: pointer; width: fit-content">
+            <input type="checkbox" id="sonotheia-mode" style="width: auto" />
+            <span>Include Sonotheia Experts (📡 + ⚖️)</span>
+          </label>
+        </div>
+
+        <details>
+          <summary>🔧 Advanced Settings</summary>
+          <div class="settings-content">
+            <div class="settings-grid">
+              <div>
+                <label for="provider">AI Provider</label>
+                <select id="provider">
+                  <option value="">Default (from config)</option>
+                  <option value="anthropic">Anthropic (Claude)</option>
+                  <option value="openai">OpenAI (GPT)</option>
+                  <option value="gemini">Google (Gemini)</option>
+                </select>
+              </div>
+              <div>
+                <label for="model">Model</label>
+                <input id="model" placeholder="Default model" />
+              </div>
+              <div>
+                <label for="temperature">Temperature</label>
+                <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1" />
+              </div>
+              <div>
+                <label for="max-tokens">Max Tokens</label>
+                <input type="number" id="max-tokens" value="2000" min="100" max="8000" />
+              </div>
+              <div style="grid-column: 1 / -1">
+                <label for="api-key">API Key (optional)</label>
+                <form onsubmit="return false;">
+                  <input type="password" id="api-key" placeholder="Uses environment variable if empty" />
+                </form>
+              </div>
+              <div style="grid-column: 1 / -1">
+                <label for="base-url">Custom Base URL (optional)</label>
+                <input id="base-url" placeholder="e.g., https://gateway.ai.vercel.app/v1" />
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Results Panel -->
+      <div class="panel results-panel hidden" id="results-panel">
+        <h2>📊 Review Results</h2>
+
+        <div id="loading-state" class="loading hidden">
+          <div class="spinner"></div>
+          <p>The council is deliberating...</p>
+          <div class="progress-steps" id="progress-steps">
+            <span class="progress-step" data-step="assembling">🏛️ Assembling Court</span>
+            <span class="progress-step" data-step="reviewing">📖 Reviewing Responses</span>
+            <span class="progress-step" data-step="deliberating">⚖️ Deliberating</span>
+            <span class="progress-step" data-step="synthesizing">✨ Synthesizing</span>
+          </div>
+        </div>
+
+        <div id="results-content" class="hidden">
+          <div class="results-tabs">
+            <button class="tab-btn active" data-tab="summary">Summary</button>
+            <button class="tab-btn" data-tab="assessments">Individual Assessments</button>
+            <button class="tab-btn" data-tab="opinions">Justice Opinions</button>
+            <button class="tab-btn" data-tab="synthesis">Synthesized Response</button>
+          </div>
+
+          <!-- Summary Tab -->
+          <div class="tab-content active" id="tab-summary">
+            <div id="summary-content"></div>
+          </div>
+
+          <!-- Assessments Tab -->
+          <div class="tab-content" id="tab-assessments">
+            <div id="assessments-content"></div>
+          </div>
+
+          <!-- Opinions Tab -->
+          <div class="tab-content" id="tab-opinions">
+            <div id="opinions-content"></div>
+          </div>
+
+          <!-- Synthesis Tab -->
+          <div class="tab-content" id="tab-synthesis">
+            <div id="synthesis-content"></div>
+          </div>
+        </div>
+
+        <div id="error-state" class="status status-error hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>LLM Response Reviewer — Powered by Council AI</p>
+  </footer>
+
+  <script>
+    // State
+    let responseCount = 0;
+    let selectedJustices = new Set([
+      'dempsey',
+      'kahneman',
+      'rams',
+      'treasure',
+      'holman',
+      'taleb',
+      'grove',
+    ]);
+    let availableJustices = [];
+    let activeController = null;
+
+    // DOM Elements
+    const questionEl = document.getElementById('question');
+    const responsesContainer = document.getElementById('responses-container');
+    const addResponseBtn = document.getElementById('add-response-btn');
+    const reviewBtn = document.getElementById('review-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const justiceGrid = document.getElementById('justice-grid');
+    const importDocsBtn = document.getElementById('import-docs-btn');
+    const importModal = document.getElementById('import-modal');
+    const closeImportModal = document.getElementById('close-import-modal');
+    const cancelImportBtn = document.getElementById('cancel-import-btn');
+    const confirmImportBtn = document.getElementById('confirm-import-btn');
+    const docsUrlInput = document.getElementById('docs-url');
+    const docsContentInput = document.getElementById('docs-content');
+    const importStatus = document.getElementById('import-status');
+    const chairSelect = document.getElementById('chair-select');
+    const viceChairSelect = document.getElementById('vice-chair-select');
+    const sonotheiaMode = document.getElementById('sonotheia-mode');
+    const resultsPanel = document.getElementById('results-panel');
+    const loadingState = document.getElementById('loading-state');
+    const resultsContent = document.getElementById('results-content');
+    const errorState = document.getElementById('error-state');
+
+    // Initialize
+    async function init() {
+      // Load reviewer info
+      try {
+        const res = await fetch('/api/reviewer/info');
+        const data = await res.json();
+        availableJustices = data.available_justices;
+        renderJusticeGrid();
+        updateChairSelects();
+      } catch (err) {
+        console.error('Failed to load reviewer info:', err);
+        // Use defaults
+        availableJustices = [
+          { id: 'dempsey', name: 'Martin Dempsey', emoji: '🎖️', is_default: true },
+          { id: 'kahneman', name: 'Daniel Kahneman', emoji: '🧠', is_default: true },
+          { id: 'rams', name: 'Dieter Rams', emoji: '🎨', is_default: true },
+          { id: 'treasure', name: 'Julian Treasure', emoji: '🔊', is_default: true },
+          { id: 'holman', name: 'Pablos Holman', emoji: '🔓', is_default: true },
+          { id: 'taleb', name: 'Nassim Taleb', emoji: '🦢', is_default: true },
+          { id: 'grove', name: 'Andy Grove', emoji: '🎯', is_default: true },
+          {
+            id: 'signal_analyst',
+            name: 'Dr. Elena Vance',
+            emoji: '📡',
+            is_sonotheia_expert: true,
+          },
+          {
+            id: 'compliance_auditor',
+            name: 'Marcus Chen',
+            emoji: '⚖️',
+            is_sonotheia_expert: true,
+          },
+        ];
+        renderJusticeGrid();
+        updateChairSelects();
+      }
+
+      // Add initial response cards
+      addResponseCard();
+      addResponseCard();
+
+      // Event listeners
+      addResponseBtn.addEventListener('click', () => {
+        if (responseCount < 5) {
+          addResponseCard();
+        }
+        if (responseCount >= 5) {
+          addResponseBtn.disabled = true;
+        }
+      });
+
+      reviewBtn.addEventListener('click', startReview);
+      cancelBtn.addEventListener('click', cancelReview);
+
+      // Tab switching
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+        });
+      });
+
+      // Sonotheia mode toggle
+      sonotheiaMode.addEventListener('change', () => {
+        if (sonotheiaMode.checked) {
+          selectedJustices.add('signal_analyst');
+          selectedJustices.add('compliance_auditor');
+        } else {
+          selectedJustices.delete('signal_analyst');
+          selectedJustices.delete('compliance_auditor');
+        }
+        renderJusticeGrid();
+        updateChairSelects();
+      });
+    }
+
+    function addResponseCard(content = '', source = '') {
+      responseCount++;
+      const card = document.createElement('div');
+      card.className = 'response-card';
+      card.dataset.id = responseCount;
+      card.innerHTML = `
+                <div class="response-card-header">
+                    <span class="response-number">Response #${responseCount}</span>
+                    <div>
+                        <input type="text" placeholder="Source (e.g., GPT-4, Claude)"
+                               style="width: 150px; padding: 4px 8px; font-size: 0.85rem;"
+                               class="response-source" value="${escapeHtml(source)}">
+                        <button class="remove-response" onclick="removeResponseCard(${responseCount})">✕</button>
+                    </div>
+                </div>
+                <textarea class="response-textarea response-content"
+                          placeholder="Paste the LLM response here...">${escapeHtml(content)}</textarea>
+            `;
+      responsesContainer.appendChild(card);
+    }
+
+    function removeResponseCard(id) {
+      if (responseCount <= 2) return; // Minimum 2 responses
+      const card = document.querySelector(`.response-card[data-id="${id}"]`);
+      if (card) {
+        card.remove();
+        responseCount--;
+        addResponseBtn.disabled = false;
+        // Renumber remaining cards
+        document.querySelectorAll('.response-card').forEach((c, i) => {
+          c.querySelector('.response-number').textContent = `Response #${i + 1}`;
+        });
+      }
+    }
+
+    function renderJusticeGrid() {
+      justiceGrid.innerHTML = availableJustices
+        .map((j) => {
+          const isSelected = selectedJustices.has(j.id);
+          const isChair = chairSelect.value === j.id;
+          const isViceChair = viceChairSelect.value === j.id;
+          let className = 'justice-chip';
+          if (isSelected) className += ' selected';
+          if (isChair) className += ' chair';
+          if (isViceChair) className += ' vice-chair';
+
+          return `
+                    <div class="${className}" data-id="${j.id}" onclick="toggleJustice('${j.id}')">
+                        <span class="justice-emoji">${j.emoji}</span>
+                        <span>${j.name.split(' ')[0]}</span>
+                        ${j.is_sonotheia_expert ? '<span style="font-size:0.7rem">📡</span>' : ''}
+                    </div>
+                `;
+        })
+        .join('');
+    }
+
+    function toggleJustice(id) {
+      if (selectedJustices.has(id)) {
+        selectedJustices.delete(id);
+        // If removing chair or vice-chair, reset them
+        if (chairSelect.value === id) chairSelect.value = '';
+        if (viceChairSelect.value === id) viceChairSelect.value = '';
+      } else {
+        selectedJustices.add(id);
+      }
+      renderJusticeGrid();
+      updateChairSelects();
+    }
+
+    function updateChairSelects() {
+      const selected = Array.from(selectedJustices);
+      const options = selected
+        .map((id) => {
+          const j = availableJustices.find((x) => x.id === id);
+          return `<option value="${id}">${j?.emoji || ''} ${j?.name || id}</option>`;
+        })
+        .join('');
+
+      const currentChair = chairSelect.value;
+      const currentVice = viceChairSelect.value;
+
+      chairSelect.innerHTML = '<option value="">Select Chair...</option>' + options;
+      viceChairSelect.innerHTML = '<option value="">Select Vice Chair...</option>' + options;
+
+      // Restore selections if still valid
+      if (selected.includes(currentChair)) chairSelect.value = currentChair;
+      else if (selected.includes('dempsey')) chairSelect.value = 'dempsey';
+
+      if (selected.includes(currentVice)) viceChairSelect.value = currentVice;
+      else if (selected.includes('kahneman')) viceChairSelect.value = 'kahneman';
+    }
+
+    function setProgressStep(step) {
+      document.querySelectorAll('.progress-step').forEach((el) => {
+        el.classList.remove('active', 'complete');
+        const elStep = el.dataset.step;
+        const steps = ['assembling', 'reviewing', 'deliberating', 'synthesizing'];
+        const currentIdx = steps.indexOf(step);
+        const elIdx = steps.indexOf(elStep);
+        if (elIdx < currentIdx) el.classList.add('complete');
+        if (elIdx === currentIdx) el.classList.add('active');
+      });
+    }
+
+    async function startReview() {
+      // Validate input
+      const question = questionEl.value.trim();
+      if (!question) {
+        alert('Please enter the original question.');
+        return;
+      }
+
+      const responseCards = document.querySelectorAll('.response-card');
+      const responses = [];
+      let valid = true;
+
+      responseCards.forEach((card, idx) => {
+        const content = card.querySelector('.response-content').value.trim();
+        const source = card.querySelector('.response-source').value.trim();
+        if (!content) {
+          valid = false;
+        } else {
+          responses.push({
+            id: idx + 1,
+            content: content,
+            source: source || null,
+          });
+        }
+      });
+
+      if (!valid || responses.length < 2) {
+        alert('Please fill in at least 2 LLM responses.');
+        return;
+      }
+
+      if (selectedJustices.size < 3) {
+        alert('Please select at least 3 justices for the review.');
+        return;
+      }
+
+      // Build request
+      const request = {
+        question: question,
+        responses: responses,
+        justices: Array.from(selectedJustices),
+        chair: chairSelect.value || 'dempsey',
+        vice_chair: viceChairSelect.value || 'kahneman',
+        include_sonotheia_experts: sonotheiaMode.checked,
+        provider: document.getElementById('provider').value || null,
+        model: document.getElementById('model').value || null,
+        base_url: document.getElementById('base-url').value || null,
+        api_key: document.getElementById('api-key').value || null,
+        temperature: parseFloat(document.getElementById('temperature').value) || 0.7,
+        max_tokens: parseInt(document.getElementById('max-tokens').value) || 2000,
+      };
+
+      // Show loading state
+      resultsPanel.classList.remove('hidden');
+      loadingState.classList.remove('hidden');
+      resultsContent.classList.add('hidden');
+      errorState.classList.add('hidden');
+      reviewBtn.disabled = true;
+      cancelBtn.classList.remove('hidden');
+      setProgressStep('assembling');
+
+      activeController = new AbortController();
+
+      try {
+        // Use streaming endpoint
+        const response = await fetch('/api/reviewer/review/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request),
+          signal: activeController.signal,
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.detail || 'Review failed');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let result = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                if (data.type === 'council_assembled') {
+                  setProgressStep('reviewing');
+                } else if (data.type === 'phase') {
+                  if (data.phase === 'individual_review') setProgressStep('reviewing');
+                  else if (data.phase === 'synthesis') setProgressStep('synthesizing');
+                } else if (data.type === 'justice_complete') {
+                  setProgressStep('deliberating');
+                } else if (data.type === 'complete') {
+                  result = data.result;
+                } else if (data.type === 'error') {
+                  throw new Error(data.error);
+                }
+              } catch (e) {
+                if (e.message !== 'Unexpected end of JSON input') {
+                  console.error('Parse error:', e);
+                }
+              }
+            }
+          }
+        }
+
+        if (result) {
+          renderResults(result);
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          errorState.textContent = 'Review cancelled.';
+        } else {
+          errorState.textContent = `Error: ${err.message}`;
+        }
+        errorState.classList.remove('hidden');
+        loadingState.classList.add('hidden');
+      } finally {
+        reviewBtn.disabled = false;
+        cancelBtn.classList.add('hidden');
+        activeController = null;
+      }
+    }
+
+    function cancelReview() {
+      if (activeController) {
+        activeController.abort();
+      }
+    }
+
+    function renderResults(result) {
+      loadingState.classList.add('hidden');
+      resultsContent.classList.remove('hidden');
+
+      // Render Summary
+      const summaryHtml = `
+                <div class="score-card">
+                    <div class="score-header">
+                        <div>
+                            <h3 style="margin-bottom: 8px;">🏆 Council Decision</h3>
+                            <p style="color: var(--text-secondary);">
+                                ${result.responses_reviewed} responses reviewed by ${result.council_composition.total_justices} justices
+                            </p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="winner-badge">
+                                Winner: Response #${result.group_decision.winner}
+                            </div>
+                            <div class="score-badge" style="margin-top: 8px;">
+                                ${result.group_decision.winner_score.toFixed(1)}/10
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin: 16px 0 8px;">📊 Rankings</h4>
+                    ${result.group_decision.ranking
+          .map((id, idx) => {
+            const assessment = result.individual_assessments.find(
+              (a) => a.response_id === id
+            );
+            const score = assessment?.overall_score || 0;
+            return `
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <span style="width: 24px; font-weight: bold; color: ${idx === 0 ? 'var(--accent-gold)' : 'var(--text-secondary)'}">
+                                    #${idx + 1}
+                                </span>
+                                <div style="flex: 1;">
+                                    <div class="score-bar">
+                                        <div class="score-fill" style="width: ${score * 10}%;"></div>
+                                    </div>
+                                </div>
+                                <span>Response #${id}</span>
+                                <span style="font-weight: 600; color: var(--accent-gold)">${score.toFixed(1)}</span>
+                            </div>
+                        `;
+          })
+          .join('')}
+
+                    <h4 style="margin: 20px 0 8px;">📜 Majority Opinion</h4>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">
+                        ${result.group_decision.majority_opinion}
+                    </p>
+
+                    ${result.group_decision.dissenting_opinions.length > 0
+          ? `
+                        <h4 style="margin: 20px 0 8px; color: var(--accent-red);">⚠️ Dissenting Opinions</h4>
+                        ${result.group_decision.dissenting_opinions
+            .map(
+              (d) => `
+                            <p style="color: var(--text-secondary); font-style: italic; margin-bottom: 8px;">
+                                "${d}"
+                            </p>
+                        `
+            )
+            .join('')}
+                    `
+          : ''
+        }
+
+                    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                        <strong>Vote Breakdown:</strong>
+                        <span class="vote-approve">✓ ${result.group_decision.vote_breakdown.approve || 0} Approve</span> |
+                        <span class="vote-reservations">~ ${result.group_decision.vote_breakdown.approve_with_reservations || 0} With Reservations</span> |
+                        <span class="vote-dissent">✗ ${result.group_decision.vote_breakdown.dissent || 0} Dissent</span>
+                    </div>
+                </div>
+            `;
+      document.getElementById('summary-content').innerHTML = summaryHtml;
+
+      // Render Individual Assessments
+      const assessmentsHtml = result.individual_assessments
+        .map(
+          (assessment) => `
+                <div class="score-card">
+                    <div class="score-header">
+                        <h3>
+                            Response #${assessment.response_id}
+                            ${assessment.source ? `<span style="font-weight: normal; color: var(--text-secondary);"> (${assessment.source})</span>` : ''}
+                            ${assessment.response_id === result.group_decision.winner ? '<span class="winner-badge" style="margin-left: 8px;">Winner</span>' : ''}
+                        </h3>
+                        <div class="score-badge">${assessment.overall_score.toFixed(1)}/10</div>
+                    </div>
+
+                    ${Object.entries(assessment.scores)
+              .map(
+                ([criterion, score]) => `
+                        <div class="score-label">
+                            <span>${criterion.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</span>
+                            <span>${score.toFixed(1)}/10</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: ${score * 10}%;"></div>
+                        </div>
+                    `
+              )
+              .join('')}
+
+                    ${assessment.strengths.length > 0
+              ? `
+                        <h4 style="margin: 16px 0 8px; color: var(--accent-green);">💪 Strengths</h4>
+                        <ul style="margin-left: 20px; color: var(--text-secondary);">
+                            ${assessment.strengths.map((s) => `<li>${s}</li>`).join('')}
+                        </ul>
+                    `
+              : ''
+            }
+
+                    ${assessment.weaknesses.length > 0
+              ? `
+                        <h4 style="margin: 16px 0 8px; color: var(--accent-red);">⚠️ Weaknesses</h4>
+                        <ul style="margin-left: 20px; color: var(--text-secondary);">
+                            ${assessment.weaknesses.map((w) => `<li>${w}</li>`).join('')}
+                        </ul>
+                    `
+              : ''
+            }
+                </div>
+            `
+        )
+        .join('');
+      document.getElementById('assessments-content').innerHTML = assessmentsHtml;
+
+      // Render Justice Opinions
+      const opinionsHtml =
+        result.individual_assessments[0]?.justice_opinions
+          .map((opinion) => {
+            const borderColor =
+              opinion.role === 'chair'
+                ? 'var(--accent-gold)'
+                : opinion.role === 'vice_chair'
+                  ? 'var(--accent-blue)'
+                  : 'var(--border-color)';
+            const roleBg = opinion.role === 'chair' ? 'var(--accent-gold)' : 'var(--accent-blue)';
+            const voteClass =
+              opinion.vote === 'approve'
+                ? 'vote-approve'
+                : opinion.vote === 'dissent'
+                  ? 'vote-dissent'
+                  : 'vote-reservations';
+            const voteText =
+              opinion.vote === 'approve'
+                ? '✓ Approve'
+                : opinion.vote === 'dissent'
+                  ? '✗ Dissent'
+                  : '~ With Reservations';
+            return `
+                <div class="opinion-card" style="border-left-color: ${borderColor};">
+                    <div class="opinion-header">
+                        <span style="font-size: 1.5rem;">${opinion.justice_emoji}</span>
+                        <strong>${opinion.justice_name}</strong>
+                        ${opinion.role !== 'associate'
+                ? `
+                            <span class="opinion-role" style="background: ${roleBg};">${opinion.role === 'chair' ? 'Chair' : 'Vice Chair'}</span>
+                        `
+                : ''
+              }
+                        <span class="${voteClass}" style="margin-left: auto;">
+                            ${voteText}
+                        </span>
+                    </div>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">
+                        ${opinion.opinion}
+                    </p>
+                </div>
+                `;
+          })
+          .join('') || '<p>No individual opinions available.</p>';
+      document.getElementById('opinions-content').innerHTML = opinionsHtml;
+
+      // Render Synthesis
+      const synthesisHtml = `
+                <div class="synthesis-box" style="margin-bottom: 24px;">
+                    <h3>🔗 Combined Best Elements</h3>
+                    <div class="synthesis-content">${result.synthesized_response.combined_best}</div>
+                </div>
+
+                <div class="synthesis-box" style="border-left-color: var(--accent-green);">
+                    <h3 style="color: var(--accent-green);">✨ Refined Final Response</h3>
+                    <div class="synthesis-content">${result.synthesized_response.refined_final}</div>
+                </div>
+            `;
+      document.getElementById('synthesis-content').innerHTML = synthesisHtml;
+    }
+
+    // Escape HTML helper
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Google Docs Import functionality
+    function openImportModal() {
+      importModal.style.display = 'flex';
+      docsUrlInput.value = '';
+      docsContentInput.value = '';
+      importStatus.style.display = 'none';
+    }
+
+    function closeImportModalFunc() {
+      importModal.style.display = 'none';
+    }
+
+    async function handleImport() {
+      const url = docsUrlInput.value.trim();
+      const content = docsContentInput.value.trim();
+
+      if (!url && !content) {
+        importStatus.style.display = 'block';
+        importStatus.style.background = 'var(--accent-red)';
+        importStatus.style.color = 'white';
+        importStatus.textContent =
+          'Please provide either a Google Docs URL or paste the exported content.';
+        return;
+      }
+
+      importStatus.style.display = 'block';
+      importStatus.style.background = 'var(--bg-tertiary)';
+      importStatus.style.color = 'var(--text-primary)';
+      importStatus.textContent = 'Importing...';
+
+      try {
+        const response = await fetch('/api/reviewer/import/googledocs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: url || null,
+            content: content || null,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || data.detail || 'Import failed');
+        }
+
+        if (!data.success) {
+          importStatus.style.background = 'var(--accent-red)';
+          importStatus.style.color = 'white';
+          importStatus.textContent = data.message || 'Import failed';
+          return;
+        }
+
+        // Populate form with imported data
+        questionEl.value = data.question || '';
+
+        // Clear existing responses
+        responsesContainer.innerHTML = '';
+        responseCount = 0;
+
+        // Add imported responses
+        data.responses.forEach((resp) => {
+          addResponseCard(resp.content || '', resp.source || '');
+        });
+
+        // Close modal
+        closeImportModalFunc();
+
+        // Show success message
+        importStatus.style.display = 'block';
+        importStatus.style.background = 'var(--accent-green)';
+        importStatus.style.color = 'white';
+        importStatus.textContent =
+          data.message || `Successfully imported ${data.responses.length} responses!`;
+        setTimeout(() => {
+          importStatus.style.display = 'none';
+        }, 3000);
+      } catch (error) {
+        importStatus.style.display = 'block';
+        importStatus.style.background = 'var(--accent-red)';
+        importStatus.style.color = 'white';
+        importStatus.textContent = `Error: ${error.message}`;
+      }
+    }
+
+    // Event listeners for import
+    if (importDocsBtn) {
+      importDocsBtn.addEventListener('click', openImportModal);
+    }
+    if (closeImportModal) {
+      closeImportModal.addEventListener('click', closeImportModalFunc);
+    }
+    if (cancelImportBtn) {
+      cancelImportBtn.addEventListener('click', closeImportModalFunc);
+    }
+    if (confirmImportBtn) {
+      confirmImportBtn.addEventListener('click', handleImport);
+    }
+    if (importModal) {
+      importModal.addEventListener('click', (e) => {
+        if (e.target === importModal) {
+          closeImportModalFunc();
+        }
+      });
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+
+</html>

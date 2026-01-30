@@ -1,0 +1,228 @@
+# Global Agent Knowledge Base & Instructional Set
+
+This document is the **Single Source of Truth** for all AI agents (Claude, Cursor, Gemini, etc.) working on Council AI and related repositories. You MUST refer to this before and during your tasks.
+
+> **License**: This document and the associated codebase are licensed under the [MIT License](LICENSE). When using or adapting code from this repository, include the original copyright notice. Third-party dependencies retain their original licenses.
+
+> **NOTE**: This file is auto-generated from modular rules in `shared-ai-utils`.
+> DO NOT EDIT DIRECTLY. Update the source files in `shared-ai-utils/src/shared_ai_utils/rules/`.
+
+---
+
+## 0. Prime Directives (NON-NEGOTIABLE)
+
+1. **Security & Privacy**:
+   - **NEVER** log raw audio bytes, PII, or API keys.
+   - **ALWAYS** use environment variables for secrets.
+
+2. **Design Philosophy (The Advisory Council)**:
+   - **Dieter Rams ("Less but Better")**: Radical simplification. If a feature adds complexity without proportional value, kill it.
+   - **Daniel Kahneman ("System 2 Thinking")**: Code should handle failure gracefully. validation before execution.
+   - **Constraint**: No "branding" of these names in code. Use descriptive names.
+
+3. **Agent Behavior: "Defense Against Complexity"**:
+   - **Stop and Think**: Before writing code, ask: "Is this the simplest way to solve the user's _actual_ problem?"
+   - **No Speculative Features**: Do not add "nice to have" flexibility. Build exactly what is needed now.
+   - **Refactor First**: If the code is hard to change, refactor it first. Do not pile hacks on top of technical debt.
+   - **Error Prevention**:
+     - **Type Safety**: Use Pydantic strict mode where possible.
+     - **Fail Fast**: Validate inputs at the boundary (API/CLI), not deep in the stack.
+     - **Atomic Operations**: Side effects (DB writes, File IO) should be isolated.
+
+---
+
+## 1. Operational Guardrails
+
+- **Config**: `pyproject.toml` is the source of truth for tooling. `~/.config/council-ai/config.yaml` for user configuration.
+- **Dependencies**: Lock versions. Do not upgrade without explicit instruction. Use pragmatic dependency management - avoid unnecessary dependencies, but framework dependencies (e.g., FastAPI for API modules) are acceptable when appropriate.
+
+### Dependency Tiers
+
+Minimize dependencies while allowing appropriate framework usage:
+
+- **Core Modules**: `pydantic`, `pyyaml`, `rich`, `click`, `httpx` (core dependencies)
+- **CLI Modules**: Core dependencies + `Rich`, `Click` (interactive formatting)
+- **Web Modules**: Core + `FastAPI`, `uvicorn`, `aiohttp` (for web app)
+- **Provider Modules**: Optional provider-specific SDKs (`anthropic`, `openai`, `google-genai`)
+- **Avoid**: Heavy ML frameworks (TensorFlow/PyTorch), unnecessary vendor-specific SDKs
+
+**Guideline**: Core contracts remain dependency-free. API-specific modules may include framework dependencies when they provide clear net gain over manual implementation.
+
+---
+
+## 2. Coding Standards (The "Gold Standard")
+
+- **Python**:
+  - **Formatter**: `black` (line-length: 100)
+  - **Linter**: `ruff` (Select: E, F, I, N, W, B). Imports must be sorted (`I`).
+  - **Typing**: `mypy` required for all new code.
+  - **Style**: Use `snake_case` for functions and variables, `PascalCase` for classes.
+- **Frontend**:
+  - **Framework**: React 18 + TypeScript (no external UI libraries - custom minimalist components)
+  - **Style**: Use `camelCase` for JavaScript variables and functions, `PascalCase` for components.
+- **Structure**:
+  - **src-layout**: All code lives in `src/<package_name>/`.
+  - **No Root Scripts**: Scripts belong in `scripts/` or `bin/`.
+- **Configuration**: `~/.config/council-ai/config.yaml` is the primary configuration file. `pyproject.toml` for package configuration.
+
+---
+
+## 3. Common Pitfalls & Anti-Patterns
+
+### Code Duplication
+
+- **Duplicate Logic**: Do not copy-paste LLM handling or Config loading. Use `shared-ai-utils`.
+- **Custom Providers**: Never implement custom LLM provider logic. Use `shared-ai-utils.LLMManager`.
+
+### Error Handling
+
+- **Silent Failures**: Never `except Exception: pass`. Log the error or re-raise.
+- **Bare Except**: Use specific exception types: `except (TypeError, ValueError) as e:`
+
+### Architecture
+
+- **Global State**: Minimize module-level globals. Use dependency injection.
+- **Magic Numbers**: Extract constants to a config or constants file.
+
+### Environment & Tooling
+
+- **Virtual Environments**: Always use `.venv` (not `venv`). Check for duplicates before creating new ones.
+- **Pre-commit Hooks**: When updating Python versions, ensure pre-commit tool versions support it (e.g., `black 26.1.0+` for Python 3.13).
+- **Version Conflicts**: If pre-commit fails with "invalid target-version", update the tool in `.pre-commit-config.yaml`, not `pyproject.toml`.
+- **Bypassing Hooks**: Use `--no-verify` only for structural migrations, not to hide code quality issues.
+- **IDE Setup**: Enable "Format on Save" and configure linter to use `.pre-commit-config.yaml` (see AGENT_KNOWLEDGE_BASE.md).
+- **Bulk Operations**: Use `git diff --stat` to audit changes, then run `python3 -m compileall .` before committing (see AGENT_KNOWLEDGE_BASE.md).
+
+### Import Management
+
+- **Circular Imports**: Use Protocol pattern (typing.Protocol) for dependency-free interfaces.
+- **Import Order**: Run `ruff check --fix` or `isort` to auto-fix import sorting issues.
+
+---
+
+## 4. Key Commands
+
+### Python
+
+```bash
+black .              # Format Python
+flake8 .             # Lint Python (if using flake8 instead of ruff)
+pytest               # Test backend
+```
+
+### Frontend
+
+```bash
+npm test             # Test frontend
+```
+
+---
+
+## 5. Key Paths
+
+- `src/council_ai/cli/app.py` - CLI entry point
+- `src/council_ai/webapp/app.py` - Web API entry point
+- `src/council_ai/core/` - Core classes (Council, Persona, Config)
+- `src/council_ai/webapp/src/App.tsx` - Frontend entry (React/TypeScript)
+- `~/.config/council-ai/config.yaml` - User configuration
+
+---
+
+## 6. AI-Assisted Development
+
+- **Feedback Loop**: When generating code, checking for errors, or reviewing PRs, ALWAYS consider patterns from the **Feedback Loop** library if available (run `feedback-loop memory query` or check `.feedback_loop/patterns.json`).
+- **Learn from Failures**: If a test fails, run `feedback-loop analyze` to update the pattern library before attempting a fix.
+
+---
+
+## 7. Documentation
+
+### Documentation Maintenance (REQUIRED)
+
+**CRITICAL**: Documentation maintenance is a mandatory part of every task completion. This is not optional.
+
+- **Always Update Documentation**: As part of completing any task, you MUST update relevant documentation to reflect changes, additions, or improvements.
+
+- **Prefer Existing Documentation**: Add new documents ONLY when absolutely necessary for clarity and understandability. When possible, add information to existing documentation files to maintain organization and reduce fragmentation.
+
+- **Maintain Organization**: Keep documentation organized by:
+  - Adding to existing relevant sections rather than creating new files
+  - Following established documentation structure and patterns
+  - Grouping related information together
+
+- **Revise Outdated Content**: When you encounter outdated, irrelevant, or redundant information in documentation during your work, you MUST:
+  - Update outdated information to reflect current state
+  - Remove or consolidate redundant content
+  - Mark or remove irrelevant sections
+  - Do not leave documentation in a worse state than you found it
+
+- **Update These Files When Relevant**:
+  - `README.md` - If installation steps, setup, or project overview changes
+  - `AGENT_KNOWLEDGE_BASE.md` - If you discover new recurrent issues, patterns, or guidelines
+  - `ROADMAP.md` - If completing TODOs or adding new tasks
+  - API documentation - If endpoints, parameters, or responses change
+  - Code comments and docstrings - If function behavior or interfaces change
+
+- **Documentation as Part of Definition of Done**: A task is not complete until:
+  1. Code changes are implemented and tested
+  2. All relevant documentation is updated
+  3. Outdated information encountered during the task is revised
+  4. Documentation passes linting checks (markdownlint)
+
+### Documentation Standards
+
+- **Markdown Linting**: When creating or editing markdown files, ensure all headings are unique to avoid markdownlint MD024 errors. If multiple sections use the same heading text (e.g., "Problem Statement", "Solution Overview"), make them unique by adding context (e.g., "Problem Statement - Error Handling", "Problem Statement - Onboarding"). Always run markdownlint before committing documentation changes.
+
+- **Heading Spacing (MD022)**: Headings must be surrounded by blank lines both above and below. This applies to all heading levels (##, ###, ####, etc.). For example:
+
+  ```markdown
+  ## Section Title
+
+  Content here...
+
+  ### Subsection
+
+  More content...
+  ```
+
+  Always ensure there's a blank line after headings, especially before code blocks, lists, or other content.
+
+- **Code Block Spacing (MD031)**: Fenced code blocks (```) must be surrounded by blank lines both above and below. Always add a blank line before opening a code block and after closing it.
+
+- **Markdown Tables**: When creating markdown tables, use the "compact" style format required by markdownlint MD060. This means separator rows must have spaces around pipes: `| ------ | ------ |` instead of `|------|------|`. The header row and separator row must have consistent spacing. Always verify table formatting with markdownlint before committing.
+
+---
+
+## 9. Framework Guidelines
+
+To ensure consistency and maintainability across the workspace, adherence to these framework choices is **mandatory**.
+
+### Frontend Stack
+
+- **Core**: React 18+
+- **UI Library**: Material UI (MUI) 5+
+- **State**: Context API or Zustand (avoid Redux unless necessary)
+- **Build**: Vite (preferred over CRA)
+
+**Anti-Pattern**: Do not mix UI libraries (e.g., Tailwind + MUI) without explicit approval. Stick to the MUI system for theming and layout.
+
+### Backend Stack
+
+- **Framework**: FastAPI
+- **Validation**: Pydantic v2 (Strict mode preferred)
+- **ORM**: SQLAlchemy 2.0+ (Async)
+- **Task Queue**: Celery or ARQ
+
+### Testing
+
+- **Unit/Integration**: Pytest
+- **E2E**: Playwright
+- **Mocking**: `unittest.mock` or `pytest-mock`
+
+---
+
+## 8. Reasoning Logs
+
+After significant tasks (complex, architectural, refactoring, non-obvious bug fixes), create a reasoning log entry at `feedback-loop/agent_reasoning_logs/logs/YYYY-MM-DD_council-ai_task.md` (see template: `feedback-loop/agent_reasoning_logs/templates/reasoning_entry.md`).
+
+---

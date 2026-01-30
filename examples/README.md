@@ -5,6 +5,7 @@ This directory contains examples demonstrating various ways to use Council AI.
 ## Quick Start
 
 ### 1. Simple Example
+
 The fastest way to get started:
 
 ```bash
@@ -19,6 +20,7 @@ python examples/simple_example.py
 ```
 
 ### 2. Usage Examples
+
 Comprehensive examples covering all features:
 
 ```bash
@@ -26,6 +28,7 @@ python examples/usage_examples.py
 ```
 
 ### 3. Repository Review
+
 Use the council to review a repository's code, design, and functionality:
 
 ```bash
@@ -33,16 +36,17 @@ python examples/review_repository.py
 ```
 
 This example demonstrates using the embedded council personas to provide a comprehensive review of the repository itself, analyzing:
+
 - Code quality and architecture
 - Design and user experience
 - Functionality and robustness
 
 ## Examples Overview
 
-| File | Description |
-|------|-------------|
-| `simple_example.py` | Basic consultation example - perfect for getting started |
-| `usage_examples.py` | Comprehensive examples of all features |
+| File                   | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| `simple_example.py`    | Basic consultation example - perfect for getting started    |
+| `usage_examples.py`    | Comprehensive examples of all features                      |
 | `review_repository.py` | Use council personas to review repository code, design & UX |
 
 ## Web App
@@ -57,6 +61,7 @@ council web --reload
 ## Key Concepts Demonstrated
 
 ### Creating a Council
+
 ```python
 from council_ai import Council
 
@@ -65,11 +70,12 @@ council = Council.for_domain("business", api_key="key")
 
 # Or build custom
 council = Council(api_key="key")
-council.add_member("rams")
-council.add_member("grove")
+council.add_member("DR")
+council.add_member("AG")
 ```
 
 ### Consulting the Council
+
 ```python
 result = council.consult("Should we expand to Europe?")
 print(result.synthesis)
@@ -80,6 +86,7 @@ for response in result.responses:
 ```
 
 ### Custom Personas
+
 ```python
 from council_ai import Persona, PersonaCategory
 
@@ -98,6 +105,7 @@ council.add_member(my_expert)
 ```
 
 ### Different Consultation Modes
+
 ```python
 from council_ai import ConsultationMode
 

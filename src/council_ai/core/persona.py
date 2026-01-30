@@ -14,7 +14,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import yaml
+import yaml  # type: ignore
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -27,6 +27,8 @@ class PersonaCategory(str, Enum):
     ANALYTICAL = "analytical"  # Deep analysis
     STRATEGIC = "strategic"  # Long-term thinking
     OPERATIONAL = "operational"  # Day-to-day execution
+    SPECIALIST = "specialist"  # Deep domain expertise
+    RED_TEAM = "red_team"  # Think like an attacker/fraudster
     CUSTOM = "custom"  # User-defined
 
 
@@ -38,6 +40,7 @@ class Trait(BaseModel):
     weight: float = Field(default=1.0, ge=0.0, le=2.0)
 
     def __str__(self) -> str:
+        """Return string representation."""
         return f"{self.name}: {self.description}"
 
 
@@ -57,6 +60,8 @@ class Persona(BaseModel):
         focus_areas: Areas of expertise or concern
         prompt_prefix: Custom prefix for LLM prompts
         prompt_suffix: Custom suffix for LLM prompts
+        model: Optional model override for this persona
+        model_params: Model parameter overrides (temperature, max_tokens)
         weight: Influence weight in council decisions (0.0-2.0)
         enabled: Whether this persona is active
         metadata: Additional custom data
@@ -78,20 +83,38 @@ class Persona(BaseModel):
     prompt_suffix: Optional[str] = None
     system_prompt_override: Optional[str] = None
 
+    model: Optional[str] = None
+    provider: Optional[str] = None
+    model_params: Dict[str, Any] = Field(default_factory=dict)
+
     weight: float = Field(default=1.0, ge=0.0, le=2.0)
     enabled: bool = True
+
+    # Reasoning and web search capabilities
+    reasoning_mode: Optional[str] = None  # "chain_of_thought", "tree_of_thought", etc.
+    enable_web_search: bool = False  # Allow this persona to use web search
 
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("id", mode="before")
     @classmethod
     def validate_id(cls, v: str) -> str:
-        """Normalize ID to lowercase with underscores."""
+        """Validate and normalize ID.
+
+        For 2-3 character IDs (initials like MD, DK), preserve uppercase.
+        For longer IDs, normalize to lowercase with underscores.
+        """
+        v = v.strip()
+        # If it's 2-3 uppercase letters (initials), preserve as-is
+        if len(v) <= 3 and v.isupper() and v.isalpha():
+            return v
+        # Otherwise, normalize to lowercase with underscores
         normalized = v.lower().replace(" ", "_").replace("-", "_")
         # Ensure it starts with a letter and only contains valid characters
         if not re.match(r"^[a-z][a-z0-9_]*$", normalized):
             raise ValueError(
-                f"ID must start with a letter and contain only lowercase letters, numbers, and underscores: {v}"
+                "ID must start with a letter and contain "
+                f"only lowercase letters, numbers, and underscores: {v}"
             )
         return normalized
 
@@ -202,9 +225,11 @@ When responding:
         return Persona.from_dict(data)
 
     def __str__(self) -> str:
+        """Return string representation."""
         return f"{self.emoji} {self.name} ({self.title})"
 
     def __repr__(self) -> str:
+        """Return debug representation."""
         return f"Persona(id='{self.id}', name='{self.name}')"
 
 
@@ -231,10 +256,28 @@ class PersonaManager:
 
     def _get_user_path(self) -> Path:
         """Get path to user's custom personas."""
-        config_dir = Path(
-            os.environ.get("COUNCIL_CONFIG_DIR", Path.home() / ".config" / "council-ai")
-        )
+        from ..utils.paths import get_workspace_config_dir
+
+        config_dir_env = os.environ.get("COUNCIL_CONFIG_DIR")
+        if config_dir_env:
+            config_dir = Path(config_dir_env)
+        else:
+            config_dir = get_workspace_config_dir("council-ai")
         return config_dir / "personas"
+
+    def _get_personal_path(self) -> Optional[Path]:
+        """Get path to personal personas from council-ai-personal if available."""
+        try:
+            from .personal_integration import detect_personal_repo
+
+            repo_path = detect_personal_repo()
+            if repo_path:
+                personal_personas = repo_path / "personal" / "personas"
+                if personal_personas.exists():
+                    return personal_personas
+        except Exception:
+            pass
+        return None
 
     def _load_builtin_personas(self) -> None:
         """Load all built-in personas."""
@@ -243,22 +286,34 @@ class PersonaManager:
             for yaml_file in builtin_path.glob("*.yaml"):
                 try:
                     persona = Persona.from_yaml_file(yaml_file)
-                    self._personas[persona.id] = persona
+                    # Store with lowercase key for case-insensitive lookup
+                    # But preserve original ID in persona object
+                    self._personas[persona.id.lower()] = persona
                 except Exception as e:
                     import sys
 
                     print(f"Warning: Failed to load {yaml_file}: {e}", file=sys.stderr)
 
     def _load_custom_personas(self) -> None:
-        """Load personas from custom paths and user directory."""
-        paths = self._custom_paths + [self._get_user_path()]
+        """Load personas from custom paths, personal repo, and user directory."""
+        paths = list(self._custom_paths)
+
+        # Add personal personas path (loaded before user path; user loads last)
+        personal_path = self._get_personal_path()
+        if personal_path:
+            paths.append(personal_path)
+
+        # Add user path (highest priority, loaded last)
+        paths.append(self._get_user_path())
 
         for path in paths:
-            if path.exists():
+            if path and path.exists():
                 for yaml_file in path.glob("*.yaml"):
                     try:
                         persona = Persona.from_yaml_file(yaml_file)
-                        self._personas[persona.id] = persona
+                        # Later paths overwrite earlier ones (user configs take priority)
+                        # Store with lowercase key for case-insensitive lookup
+                        self._personas[persona.id.lower()] = persona
                     except Exception as e:
                         import sys
 
@@ -272,7 +327,8 @@ class PersonaManager:
         """Get a persona by ID, raising if not found."""
         persona = self.get(persona_id)
         if persona is None:
-            available = ", ".join(self._personas.keys())
+            # Show original IDs (from persona objects) in error message
+            available = ", ".join(sorted([p.id for p in self._personas.values()]))
             raise ValueError(f"Persona '{persona_id}' not found. Available: {available}")
         return persona
 
@@ -284,21 +340,25 @@ class PersonaManager:
         return sorted(personas, key=lambda p: (p.category.value, p.name))
 
     def list_ids(self) -> List[str]:
-        """List all persona IDs."""
-        return sorted(self._personas.keys())
+        """List all persona IDs (returned in their original case from persona objects)."""
+        # Return original IDs from persona objects, not the lowercase keys
+        return sorted([persona.id for persona in self._personas.values()])
 
     def add(self, persona: Persona, overwrite: bool = False) -> None:
         """Add a persona to the manager."""
-        if persona.id in self._personas and not overwrite:
+        persona_id_lower = persona.id.lower()
+        if persona_id_lower in self._personas and not overwrite:
             raise ValueError(
                 f"Persona '{persona.id}' already exists. Use overwrite=True to replace."
             )
-        self._personas[persona.id] = persona
+        # Store with lowercase key for case-insensitive lookup
+        self._personas[persona_id_lower] = persona
 
     def remove(self, persona_id: str) -> None:
         """Remove a persona."""
-        if persona_id in self._personas:
-            del self._personas[persona_id]
+        persona_id_lower = persona_id.lower()
+        if persona_id_lower in self._personas:
+            del self._personas[persona_id_lower]
 
     def save_persona(self, persona_id: str, path: Optional[Union[str, Path]] = None) -> Path:
         """Save a persona to file."""
@@ -368,7 +428,10 @@ def get_persona_manager() -> PersonaManager:
         from .config import load_config
 
         config = load_config()
-        custom_paths = [config.custom_personas_path] if config.custom_personas_path else None
+        custom_personas_path = config.custom_personas_path
+        custom_paths: Optional[List[Union[str, Path]]] = (
+            [custom_personas_path] if custom_personas_path else None
+        )
         _default_manager = PersonaManager(custom_paths=custom_paths)
     return _default_manager
 

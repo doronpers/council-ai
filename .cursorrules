@@ -1,0 +1,79 @@
+# Council AI - Agent Rules
+
+You are an AI coding assistant working on the **Council AI** repository.
+
+## CRITICAL: Read Before ANY Task
+
+Before starting any task, you MUST read and follow: `AGENT_KNOWLEDGE_BASE.md` in the repository root.
+
+This file contains:
+
+- Prime directives (non-negotiable rules)
+- Coding standards (black, ruff, type hints)
+- Project architecture
+- Development workflows
+- Testing requirements
+
+## Quick Rules
+
+1. **Format**: Use `black` (line-length 100) and `ruff`
+2. **Style**: `snake_case` for functions, `PascalCase` for classes
+3. **Tests**: All new features require pytest tests
+4. **Security**: NEVER log API keys or commit `.env` files
+5. **Reasoning Logs**: After significant tasks (complex, architectural, refactoring, non-obvious bug fixes), create log entry at `feedback-loop/agent_reasoning_logs/logs/YYYY-MM-DD_council-ai_task.md` (see template: `feedback-loop/agent_reasoning_logs/templates/reasoning_entry.md`)
+6. **Personas**: Don't modify built-in personas without approval
+7. **Code Quality**: ALWAYS check whitespace, black formatting, and lint issues (ruff) before reporting task completion
+
+## Key Commands
+
+```bash
+black src/           # Format
+ruff check src/      # Lint
+pytest               # Test
+council --help       # CLI
+```
+
+## Core Principles
+
+1. **Hippocratic**: "First, do no harm" — preserve functionality, avoid breaking changes
+2. **Document Reasoning**: After completing significant tasks, create reasoning log entry (see Quick Rule #5 above)
+
+## Project Structure
+
+- `src/council_ai/core/` - Core classes (Council, Persona, Config)
+- `src/council_ai/personas/` - Persona YAML definitions
+- `src/council_ai/providers/` - LLM provider implementations
+- `src/council_ai/domains/` - Domain presets
+- `tests/` - pytest test suite
+
+## Planning & Roadmap Guidelines
+
+### Time Estimation Rule
+
+**Rule for Future Planning Agents**: When creating plans or roadmaps:
+
+1. **Do NOT include time estimates** (days, weeks, months) unless you have:
+   - Actual historical data from similar completed tasks in the same codebase
+   - Verified duration data from project management systems
+   - User-provided time constraints
+
+2. **Instead, use**:
+   - **Complexity indicators**: Low, Medium, High, Very High
+   - **Effort indicators**: Small, Medium, Large
+   - **Dependencies**: List blocking dependencies
+   - **Prerequisites**: What must be done first
+
+3. **If time estimates are requested**:
+   - Base them on similar completed tasks in the codebase
+   - Clearly state the assumptions and data sources
+   - Mark estimates as "rough" or "tentative"
+   - Prefer ranges over specific dates
+
+4. **Rationale**: Time estimates are highly variable and depend on:
+   - Developer experience and familiarity
+   - Unexpected technical challenges
+   - External dependencies
+   - Scope changes during implementation
+   - Context switching and interruptions
+
+This rule should be followed when updating ROADMAP.md or any planning documents.
